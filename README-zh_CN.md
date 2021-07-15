@@ -1,8 +1,8 @@
-﻿ccORM is the best database query software.🚀 Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support ORM.
+﻿ccORM是最好的数据库查询软件。🚀 支持Mac、Linux、windows三种平台，开发速度最快、最快、最强，下一步就是支持ORM。
 ```c++
 #include "ccORM.hh"
 namespace crow {
-  auto d = D("127.0.0.1","mysql_test","root","",3306,"utf8");//D_();//easy to connect
+  auto d = D("127.0.0.1","mysql_test","root","",3306,"utf8");//D_();//很容易的连接
 }
 int main(){
   using namespace crow; using namespace std;
