@@ -21,13 +21,13 @@ int main(){
   cout << s << endl;
   return 0;
 }
+```
 
 ## 特征
  - 非常快
  - 仅头文件
  - 简易编程
 
-```
 ## 前提
 cmake需求：[最好使用vcpkg安装mysql]
 find_package(MYSQL REQUIRED)
