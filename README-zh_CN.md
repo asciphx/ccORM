@@ -3,7 +3,7 @@ ccORM是最好的数据库查询软件。
 🚀 支持Mac、Linux、windows三种平台，开发速度最快、最迅速、最猛烈，即将支持ORM。
 ```c++
 #include "ccORM.hh"
-auto d = crow::D("127.0.0.1","mysql_test","root","",3306,"utf8");//D_();//很容易的连接
+auto d = crow::D("127.0.0.1","test","root","",3306,"utf8");//D_();//很容易的连接
 int main(){
   using namespace crow; using namespace std;
   auto q = d.conn();
