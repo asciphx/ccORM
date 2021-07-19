@@ -23,9 +23,22 @@ int main(){
   cout << s << endl;
   return 0;
 }
-```
 
 ## 特征
  - 非常快
  - 仅头文件
  - 简易编程
+
+```
+## 前提
+cmake需求：[最好使用vcpkg安装mysql]
+find_package(MYSQL REQUIRED)
+...然后在需要连接库的位置加入
+target_link_libraries(main ${MYSQL_LIBRARY})
+
+或者
+下面的方式，这只是示例，注意：必须让mariadb，mariadbclient在最前面，才不会报错
+```
+g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
+-pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 
+```

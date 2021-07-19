@@ -1,7 +1,5 @@
 #include "ccORM.hh"
-namespace crow {
-  auto d = D("127.0.0.1","mysql_test","root","",3306,"utf8");//D_();//easy to connect
-}
+auto d = crow::D("127.0.0.1", "mysql_test", "root", "", 3306, "utf8");//D_();//easy to connect
 int main() {
   using namespace crow; using namespace std;
   auto q = d.conn();

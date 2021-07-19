@@ -29,3 +29,15 @@ int main(){
  - Very Fast
  - Header only
  - Simple code
+
+##Premise
+Cmake requirements: [it is best to install MySQL with vcpkg]
+find_ package(MYSQL REQUIRED)
+...and then add it where you need to connect to the library
+target_link_libraries(main ${MYSQL_LIBRARY})
+perhaps
+This is just an example. Note: you must make MariaDB, mariadbclient in the front to avoid error
+```
+g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
+-pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 
+```
