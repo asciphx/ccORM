@@ -1083,7 +1083,7 @@ namespace crow {
 	return mysql_get_socket(data->connection_);
   }
   inline mysql_connection_data* mysql_database_impl::new_connection() {
-	MYSQL* mysql; int mysql_fd = -1; MYSQL* connection;
+	MYSQL* mysql; MYSQL* connection;
 	mysql = mysql_init(nullptr); connection = mysql;
 	connection = mysql_real_connect(connection, host_.c_str(), user_.c_str(), passwd_.c_str(), database_.c_str(), port_, NULL, 0);
 	if (!connection) return nullptr;
@@ -1103,8 +1103,6 @@ namespace crow {
 	int max_sync_connections_ = 0;
 	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
 	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) {};
-	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password), max_sync_connections_(max_sync_connections) {};
 	sql_database(const char* host, const char* database, const char* user, const char* password, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
 	  : impl(host, database, user, password, 3306, charset), max_sync_connections_(max_sync_connections) {};
 	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int port, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
@@ -1152,11 +1150,11 @@ namespace crow {
 		  delete data;
 		}
 		});
-	  return impl.scoped_connection(std::shared_ptr<connection_data_type>(sptr));
+	  return impl.scoped_connection(sptr);
 	}
   };
   using sql_type = crow::mysql_database_impl;
   typedef sql_database<sql_type> D;
 #define D__(a, b, c, d,...) D(a,b,c,d,##__VA_ARGS__)
-#define D_() D("127.0.0.1","mysql_test","root","")
+#define D_() D("127.0.0.1","mysql_test","root","",3306,"utf8")
 }
