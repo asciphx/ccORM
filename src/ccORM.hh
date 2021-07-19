@@ -1,5 +1,4 @@
 #pragma once
-
 #include <tuple>
 #include <vector>
 #include <any>
@@ -21,16 +20,9 @@
 
 #include <atomic>
 #include <stdarg.h>
-
-#if __linux__
-#include <sys/epoll.h>
-#elif __APPLE__
-#include <sys/event.h>
-#endif
 #include <stdexcept>
 #include <functional>
 #include <assert.h>
-
 namespace crow {
 
   template <typename... E, typename F> constexpr void apply_each(F&& f, E&&... e) {
@@ -106,6 +98,7 @@ namespace crow {
   template <typename U, typename... T>
   struct typelist_embeds_any_ref_of<typelist<T...>, U>
 	: public typelist_embeds<typelist<std::decay_t<T>...>, std::decay_t<U>> {};
+
   constexpr int count_first_falses() { return 0; }
 
   template <typename... B> constexpr int count_first_falses(bool b1, B... b) {
@@ -271,6 +264,7 @@ namespace crow {
 	  std::index_sequence<>>::ret;
 	return tuple_filter_impl(seq{}, t);
   }
+
   namespace internal {
 	template <typename T> struct has_parenthesis_operator {
 	  template <typename C> static char test(decltype(&C::operator()));
@@ -278,7 +272,6 @@ namespace crow {
 	  static const bool value = sizeof(test<T>(0)) == 1;
 	};
   }
-
   template <typename F, typename X = void> struct callable_traits {
 	typedef std::false_type is_callable;
 	static const int arity = 0;
@@ -350,7 +343,6 @@ namespace crow {
 	static const bool value = sizeof(test<F, A...>(0)) == 1;
   };
 
-
   template <typename V>
   struct type_hashmap {
 
@@ -402,6 +394,7 @@ namespace crow {
   template <typename... T> struct unconstref_tuple_elements<std::tuple<T...>> {
 	typedef std::tuple<std::remove_const_t<std::remove_reference_t<T>>...> ret;
   };
+
   struct sql_blob : public std::string {
 	using std::string::string;
 	using std::string::operator=;
@@ -446,15 +439,9 @@ namespace crow {
 	template <typename F> void map(F f);
   };
 
-}
-
-
-
-namespace crow {
   template <typename B>
   template <typename T1, typename... T>
   bool sql_result<B>::r__(T1&& t1, T&... tail) {
-
 	if constexpr (crow::is_tuple<std::decay_t<T1>>::value) {
 	  static_assert(sizeof...(T) == 0);
 	  return impl_.read(std::forward<T1>(t1));
@@ -554,7 +541,6 @@ struct mysql_statement_data : std::enable_shared_from_this<mysql_statement_data>
 	  std::cerr << "Error: could not free mysql statement" << std::endl;
   }
 };
-
 namespace crow {
 
   struct mysql_connection_data {
@@ -564,10 +550,11 @@ namespace crow {
 	type_hashmap<std::shared_ptr<mysql_statement_data>> statements_hashmap_;
 	int error_ = 0;
   };
+
   struct mysql_functions_blocking {
 	enum { is_blocking = true };
 
-#define LI_MYSQL_BLOCKING_WRAPPER(ERR, FN)                                                              \
+#define MYSQL_BLOCKING_WRAPPER(ERR, FN)                                                              \
   template <typename A1, typename... A> auto FN(int& connection_status, A1 a1, A&&... a) {\
     int ret = ::FN(a1, std::forward<A>(a)...); \
     if (ret && ret != MYSQL_NO_DATA && ret != MYSQL_DATA_TRUNCATED) \
@@ -579,16 +566,16 @@ namespace crow {
 
 	MYSQL_ROW mysql_fetch_row(int& connection_status, MYSQL_RES* res) { return ::mysql_fetch_row(res); }
 	int mysql_free_result(int& connection_status, MYSQL_RES* res) { ::mysql_free_result(res); return 0; }
-	LI_MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_real_query)
-	  LI_MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_free_result)
-	  LI_MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_execute)
-	  LI_MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_reset)
-	  LI_MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_prepare)
-	  LI_MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_fetch)
-	  LI_MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_free_result)
-	  LI_MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_store_result)
+	MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_real_query)
+	  MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_free_result)
+	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_execute)
+	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_reset)
+	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_prepare)
+	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_fetch)
+	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_free_result)
+	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_store_result)
 
-#undef LI_MYSQL_BLOCKING_WRAPPER
+#undef MYSQL_BLOCKING_WRAPPER
 
   };
 
@@ -627,29 +614,29 @@ namespace crow {
 	}
 
 
-#define LI_MYSQL_NONBLOCKING_WRAPPER(ERR, FN)                                                           \
+#define MYSQL_NONBLOCKING_WRAPPER(ERR, FN)                                                           \
   template <typename... A> auto FN(int& connection_status, A&&... a) {                                                     \
     return mysql_non_blocking_call(connection_status, #FN, ERR, ::FN##_start, ::FN##_cont, std::forward<A>(a)...);              \
   }
 
-	LI_MYSQL_NONBLOCKING_WRAPPER(mysql_error, mysql_fetch_row)
-	  LI_MYSQL_NONBLOCKING_WRAPPER(mysql_error, mysql_real_query)
-	  LI_MYSQL_NONBLOCKING_WRAPPER(mysql_error, mysql_free_result)
-	  LI_MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_execute)
-	  LI_MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_reset)
-	  LI_MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_prepare)
-	  LI_MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_fetch)
-	  LI_MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_free_result)
-	  LI_MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_store_result)
+	MYSQL_NONBLOCKING_WRAPPER(mysql_error, mysql_fetch_row)
+	  MYSQL_NONBLOCKING_WRAPPER(mysql_error, mysql_real_query)
+	  MYSQL_NONBLOCKING_WRAPPER(mysql_error, mysql_free_result)
+	  MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_execute)
+	  MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_reset)
+	  MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_prepare)
+	  MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_fetch)
+	  MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_free_result)
+	  MYSQL_NONBLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_store_result)
 
-#undef LI_MYSQL_NONBLOCKING_WRAPPER
+#undef MYSQL_NONBLOCKING_WRAPPER
+
 	  Y& fiber_;
   };
 
 #else
 #error Only the MariaDB libmysqlclient is supported.
 #endif
-
 }
 namespace crow {
   inline auto type_to_mysql_statement_buffer_type(const char&) { return MYSQL_TYPE_TINY; }
@@ -770,7 +757,7 @@ namespace crow {
 	inline ~mysql_statement_result() { flush_results(); }
 
 	inline void flush_results() {
-	  if (connection_) 		mysql_wrapper_.mysql_stmt_free_result(connection_->error_, data_.stmt_);
+	  if (connection_)       mysql_wrapper_.mysql_stmt_free_result(connection_->error_, data_.stmt_);
 	}
 	template <typename T> bool read(T&& output);
 
@@ -881,7 +868,7 @@ namespace crow {
   bool mysql_statement_result<B>::read(T&& output, MYSQL_BIND* bind, unsigned long* real_lengths) {
 	try {
 	  int res = mysql_wrapper_.mysql_stmt_fetch(connection_->error_, data_.stmt_);
-	  if (res == MYSQL_NO_DATA) 		return false;
+	  if (res == MYSQL_NO_DATA)         return false;
 	  int i = 0;
 	  tuple_map(std::forward<T>(output), [&](auto& m) {
 		this->fetch_column(bind, real_lengths[i], m, i);
@@ -909,19 +896,16 @@ namespace crow {
   template <typename B>
   template <typename... T>
   sql_result<mysql_statement_result<B>> mysql_statement<B>::operator()(T&&... args) {
-
 	if constexpr (sizeof...(T) > 0) {
 	  MYSQL_BIND bind[sizeof...(T)];
-	  memset(bind, 0, sizeof...(T) * sizeof(MYSQL_BIND));	  int i = 0;
+	  memset(bind, 0, sizeof(bind));	  int i = 0;
 	  tuple_map(std::forward_as_tuple(args...), [&](auto& m) {
 		mysql_bind_param(bind[i], m);
 		++i;
 		});
-
 	  if (mysql_stmt_bind_param(data_.stmt_, bind) != 0) {
 		connection_->error_ = 1;
-		throw std::runtime_error(std::string("mysql_stmt_bind_param error: ") +
-		  mysql_stmt_error(data_.stmt_));
+		throw std::runtime_error(std::string("mysql_stmt_bind_param error: ") + mysql_stmt_error(data_.stmt_));
 	  }
 	}
 	mysql_wrapper_.mysql_stmt_execute(connection_->error_, data_.stmt_);
@@ -997,6 +981,7 @@ namespace crow {
   template <typename B> long long int mysql_result<B>::last_insert_id() {
 	return mysql_insert_id(connection_->connection_);
   }
+
   struct mysql_connection_data; struct mysql_tag {};  template <typename B>   struct mysql_connection {
 	typedef mysql_tag db_tag;
 	inline mysql_connection(B mysql_wrapper, std::shared_ptr<crow::mysql_connection_data>& data);
@@ -1012,7 +997,6 @@ namespace crow {
 	B mysql_wrapper_;
 	std::shared_ptr<mysql_connection_data> data_;
   };
-} namespace crow {
   template <typename B>
   inline mysql_connection<B>::mysql_connection(B mysql_wrapper, std::shared_ptr<crow::mysql_connection_data>& data)
 	: mysql_wrapper_(mysql_wrapper), data_(data) {}
@@ -1061,8 +1045,7 @@ namespace crow {
 	return mysql_statement<B>{mysql_wrapper_, * pair.first->second, data_};
   }
 }
-#define MaxAsyncConnectionsPerThread 100
-#define MaxSyncConnections 1000
+#define MaxSyncConnections 2000
 #define EXPECT_THROW(STM)\
 try {STM;std::cerr << "This must have thrown an exception: " << #STM << std::endl; } catch (...) {}
 #define EXPECT_EQUAL(A, B)\
@@ -1079,216 +1062,101 @@ namespace crow {
 	typedef mysql_connection_data connection_data_type;
 	inline mysql_database_impl(const char* host, const char* database, const char* user, const char* password, ...);
 	inline ~mysql_database_impl();
-	template <typename Y> inline mysql_connection_data* new_connection(Y& fiber);
-	inline int get_socket(const std::shared_ptr<mysql_connection_data>& data);
-	template <typename Y>
-	inline mysql_connection<mysql_functions_blocking> scoped_connection(Y& fiber, std::shared_ptr<mysql_connection_data>& data);
+	inline mysql_connection_data* new_connection();
+	inline int get_socket(const std::shared_ptr<mysql_connection_data>& data);    inline mysql_connection<mysql_functions_blocking> scoped_connection(std::shared_ptr<mysql_connection_data>& data);
 	std::string host_, user_, passwd_, database_, character_set_;
 	unsigned int port_;
   };
   inline mysql_database_impl::mysql_database_impl(const char* host, const char* database, const char* user, const char* password, ...) {
-	ASSERT(host, "open_mysql_connection requires the host argument"); ASSERT(database, "open_mysql_connection requires the databaser argument"); ASSERT(user, "open_mysql_connection requires the user argument"); ASSERT(password, "open_mysql_connection requires the password argument");
+	ASSERT(host, "open_mysql_connection requires the host argument");
+	ASSERT(database, "open_mysql_connection requires the databaser argument");
+	ASSERT(user, "open_mysql_connection requires the user argument");
+	ASSERT(password, "open_mysql_connection requires the password argument");
 	va_list ap; va_start(ap, password); unsigned int i = va_arg(ap, unsigned int); char* c = va_arg(ap, char*);
-	port_ = i < 0xffff ? i : 0xcea; character_set_ = c[0] ? c : "utf8"; va_end(ap); host_ = host, database_ = database, user_ = user, passwd_ = password;
-	if (mysql_library_init(0, NULL, NULL)) throw std::runtime_error("Could not initialize MySQL library."); if (!mysql_thread_safe()) throw std::runtime_error("Mysql is not compiled as thread safe.");
+	port_ = i < 0xffff ? i : 0xcea; character_set_ = c[0] ? c : "utf8"; va_end(ap);
+	host_ = host, database_ = database, user_ = user, passwd_ = password;
+	if (mysql_library_init(0, NULL, NULL)) throw std::runtime_error("Could not initialize MySQL library.");
+	if (!mysql_thread_safe()) throw std::runtime_error("Mysql is not compiled as thread safe.");
   }
   mysql_database_impl::~mysql_database_impl() { mysql_library_end(); }
-  inline int mysql_database_impl::get_socket(const std::shared_ptr<mysql_connection_data>& data) { return mysql_get_socket(data->connection_); }
-  template <typename Y>
-  inline mysql_connection_data* mysql_database_impl::new_connection(Y& fiber) {
-	MYSQL* mysql;
-	int mysql_fd = -1, status;
-	MYSQL* connection;
-	mysql = mysql_init(nullptr);
-	if constexpr (std::is_same_v<Y, active_yield>) {
-	  connection = mysql;
-	  connection = mysql_real_connect(connection, host_.c_str(), user_.c_str(), passwd_.c_str(), database_.c_str(), port_, NULL, 0);
-	  if (!connection) return nullptr;
-	}
-	else {
-	  mysql_options(mysql, MYSQL_OPT_NONBLOCK, 0);
-	  connection = nullptr;
-	  status = mysql_real_connect_start(&connection, mysql, host_.c_str(), user_.c_str(), passwd_.c_str(), database_.c_str(), port_, NULL, 0);
-	  mysql_fd = mysql_get_socket(mysql);
-	  if (mysql_fd == -1) {
-		mysql_close(mysql);
-		return nullptr;
-	  }
-	  if (status)
-#if __linux__
-		fiber.epoll_add(mysql_fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-#elif __APPLE__
-		fiber.epoll_add(mysql_fd, EVFILT_READ | EVFILT_WRITE);
-#endif
-	  while (status)
-		try {
-		fiber.yield();
-		status = mysql_real_connect_cont(&connection, mysql, status);
-	  }
-	  catch (typename Y::exception_type& e) {
-		mysql_close(mysql); throw std::move(e);
-	  }
-	  if (!connection) return nullptr;
-	}
-	char on = 1; mysql_options(mysql, MYSQL_REPORT_DATA_TRUNCATION, &on); mysql_set_character_set(mysql, character_set_.c_str());
+  inline int mysql_database_impl::get_socket(const std::shared_ptr<mysql_connection_data>& data) {
+	return mysql_get_socket(data->connection_);
+  }
+  inline mysql_connection_data* mysql_database_impl::new_connection() {
+	MYSQL* mysql; int mysql_fd = -1; MYSQL* connection;
+	mysql = mysql_init(nullptr); connection = mysql;
+	connection = mysql_real_connect(connection, host_.c_str(), user_.c_str(), passwd_.c_str(), database_.c_str(), port_, NULL, 0);
+	if (!connection) return nullptr;
+	char on = 1; mysql_options(mysql, MYSQL_REPORT_DATA_TRUNCATION, &on);
+	mysql_set_character_set(mysql, character_set_.c_str());
 	return new mysql_connection_data{ mysql };
   }
-  template <typename Y>
-  inline mysql_connection<mysql_functions_blocking> mysql_database_impl::scoped_connection(Y& fiber,
+  inline mysql_connection<mysql_functions_blocking> mysql_database_impl::scoped_connection(
 	std::shared_ptr<mysql_connection_data>& data) {
-	if constexpr (std::is_same_v<active_yield, Y>)
-	  return mysql_connection(mysql_functions_blocking{}, data);
-
-	else
-	  return mysql_connection(mysql_functions_non_blocking<Y>{fiber}, data);
+	return mysql_connection<mysql_functions_blocking>(mysql_functions_blocking{}, data);
   }
-
-#ifndef _WIN32
-  thread_local std::unordered_map<void*, void*> sql_thread_local_data [[gnu::weak]];
-#else
-  __declspec(selectany) thread_local std::unordered_map<void*, void*> sql_thread_local_data;
-#endif
-
-  template <typename I> struct sql_database_thread_local_data {
-	typedef typename I::connection_data_type connection_data_type;
-	std::deque<connection_data_type*> async_connections_;
-	int n_connections_on_this_thread_ = 0;
-	std::deque<int> fibers_waiting_for_connections_;
-  };
-  struct active_yield {
-	typedef std::runtime_error exception_type;
-	int fiber_id = 0;
-	inline void defer(std::function<void()>) {}
-	inline void defer_fiber_resume(int fiber_id) {}
-	inline void reassign_fd_to_this_fiber(int fd) {}
-	inline void epoll_add(int fd, int flags) {}
-	inline void epoll_mod(int fd, int flags) {}
-	inline void yield() {}
-  };
-  template <typename I> struct sql_ref {
-	typedef typename I::connection_data_type connection_data_type;
-	std::deque<connection_data_type*> connections; int n_connections = 0; int max_connections = 0; std::deque<int> waiting_list;
-  };
   template <typename I> struct sql_database {
-	I impl; sql_ref<I> pool_;
+	I impl;
 	typedef typename I::connection_data_type connection_data_type;
 	typedef typename I::db_tag db_tag;
 	std::deque<connection_data_type*> sync_connections_;	std::mutex sync_connections_mutex_;	int n_sync_connections_ = 0;
 	int max_sync_connections_ = 0;
-	int max_async_connections_per_thread_ = 0;
-	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_async_connections_per_thread = MaxAsyncConnectionsPerThread, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, port), max_async_connections_per_thread_(max_async_connections_per_thread), max_sync_connections_(max_sync_connections) {};
-	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int max_async_connections_per_thread = MaxAsyncConnectionsPerThread, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password), max_async_connections_per_thread_(max_async_connections_per_thread), max_sync_connections_(max_sync_connections) {};
-	sql_database(const char* host, const char* database, const char* user, const char* password, const char* charset, unsigned int max_async_connections_per_thread = MaxAsyncConnectionsPerThread, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, 3306, charset), max_async_connections_per_thread_(max_async_connections_per_thread), max_sync_connections_(max_sync_connections) {};
-	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int port, const char* charset, unsigned int max_async_connections_per_thread = MaxAsyncConnectionsPerThread, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, port, charset), max_async_connections_per_thread_(max_async_connections_per_thread), max_sync_connections_(max_sync_connections) {};
-	~sql_database() { clear_connections(); }
-	void clear_connections() {
-	  auto it = sql_thread_local_data.find(this);
-	  if (it != sql_thread_local_data.end()) {
-		auto store = (sql_database_thread_local_data<I>*) it->second;
-		for (auto ptr : store->async_connections_)
-		  delete ptr;
-		delete store;
-		sql_thread_local_data.erase(this);
-	  }
+	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
+	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) {};
+	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
+	  : impl(host, database, user, password), max_sync_connections_(max_sync_connections) {};
+	sql_database(const char* host, const char* database, const char* user, const char* password, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
+	  : impl(host, database, user, password, 3306, charset), max_sync_connections_(max_sync_connections) {};
+	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int port, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
+	  : impl(host, database, user, password, port, charset), max_sync_connections_(max_sync_connections) {};
+	~sql_database() { close(); }
+	void close() {
 	  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
-	  for (auto* ptr : this->sync_connections_)
-		delete ptr;
+	  for (auto* ptr : this->sync_connections_) delete ptr;
 	  sync_connections_.clear();
 	  n_sync_connections_ = 0;
 	}
-	auto& thread_local_data() {
-	  auto it = sql_thread_local_data.find(this);
-	  if (it == sql_thread_local_data.end()) {
-		auto data = new sql_database_thread_local_data<I>;
-		sql_thread_local_data[this] = data;
-		return *data;
-	  }
-	  else
-		return *(sql_database_thread_local_data<I>*) it->second;
-	}
-	template <typename Y> inline auto connect(Y& fiber) {
-	  auto& tldata = this->thread_local_data();
-	  if constexpr (std::is_same_v<Y, active_yield>) {
-		pool_.connections = sync_connections_;
-		pool_.n_connections = n_sync_connections_;
-		pool_.max_connections = max_sync_connections_;
+	inline auto conn() {
+	  ++n_sync_connections_;
+	  connection_data_type* data = nullptr;
+	  if (!sync_connections_.empty()) {
+		auto lock = [this] {
+		  return std::lock_guard<std::mutex>(this->sync_connections_mutex_);
+		}();
+		data = sync_connections_.back();
+		sync_connections_.pop_back();
 	  }
 	  else {
-		pool_.connections = tldata.async_connections_;
-		pool_.n_connections = tldata.n_connections_on_this_thread_;
-		pool_.max_connections = max_async_connections_per_thread_;
-		pool_.waiting_list = tldata.fibers_waiting_for_connections_;
-	  }
-	  connection_data_type* data = nullptr;
-	  bool reuse = false;
-	  while (!data) {
-		if (!pool_.connections.empty()) {
-		  auto lock = [this] {
-			if constexpr (std::is_same_v<Y, active_yield>)
-			  return std::lock_guard<std::mutex>(this->sync_connections_mutex_);
-			else return 0;
-		  }();
-		  data = pool_.connections.back();
-		  pool_.connections.pop_back();
-		  reuse = true;
+		if (n_sync_connections_ >= max_sync_connections_) {
+		  throw std::runtime_error("Maximum number of sql connection exeeded.");
 		}
-		else {
-		  if (pool_.n_connections >= pool_.max_connections) {
-			if constexpr (std::is_same_v<Y, active_yield>)
-			  throw std::runtime_error("Maximum number of sql connection exeeded.");
-			else {
-			  fiber.yield();
-			}
-			continue;
-		  }
-		  ++pool_.n_connections;
-		  try {
-			data = impl.new_connection(fiber);
-		  }
-		  catch (typename Y::exception_type& e) {
-			pool_.n_connections--;
-			throw std::move(e);
-		  }
-		  if (!data) --pool_.n_connections;
+		try { data = impl.new_connection(); }
+		catch (std::runtime_error& e) {
+		  --n_sync_connections_;
+		  throw std::move(e);
 		}
+		if (!data)
+		  --n_sync_connections_;
 	  }
 	  assert(data);
 	  assert(data->error_ == 0);
-	  auto sptr = std::shared_ptr<connection_data_type>(data, [this, &fiber](connection_data_type* data) {
-		if (!data->error_ && pool_.connections.size() < pool_.max_connections) {
+	  auto sptr = std::shared_ptr<connection_data_type>(data, [this](connection_data_type* data) {
+		if (!data->error_ && sync_connections_.size() < max_sync_connections_) {
 		  auto lock = [this] {
-			if constexpr (std::is_same_v<Y, active_yield>)
-			  return std::lock_guard<std::mutex>(this->sync_connections_mutex_);
-			else return 0;
+			return std::lock_guard<std::mutex>(this->sync_connections_mutex_);
 		  }();
-		  pool_.connections.push_back(data);
-		  if constexpr (!std::is_same_v<Y, active_yield>)
-			if (pool_.waiting_list.size()) {
-			  int next_fiber_id = pool_.waiting_list.front();
-			  pool_.waiting_list.pop_front();
-			  fiber.defer_fiber_resume(next_fiber_id);
-			}
+		  sync_connections_.push_back(data);
 		}
 		else {
-		  pool_.n_connections--;
+		  --n_sync_connections_;
 		  delete data;
 		}
 		});
-	  if (reuse)
-		fiber.reassign_fd_to_this_fiber(impl.get_socket(sptr));
-	  return impl.scoped_connection(fiber, sptr);
+	  return impl.scoped_connection(std::shared_ptr<connection_data_type>(sptr));
 	}
-	inline auto connect() { active_yield yield; return this->connect(yield); }
   };
-}
-using sql_type = crow::mysql_database_impl;
-namespace crow {
+  using sql_type = crow::mysql_database_impl;
   typedef sql_database<sql_type> D;
-
 #define D__(a, b, c, d,...) D(a,b,c,d,##__VA_ARGS__)
 #define D_() D("127.0.0.1","mysql_test","root","")
 }
