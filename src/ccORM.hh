@@ -1107,8 +1107,8 @@ namespace crow {
 	  : impl(host, database, user, password, 3306, charset), max_sync_connections_(max_sync_connections) {};
 	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int port, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
 	  : impl(host, database, user, password, port, charset), max_sync_connections_(max_sync_connections) {};
-	~sql_database() { close(); }
-	void close() {
+	~sql_database() { flush(); }
+	void flush() {
 	  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
 	  for (auto* ptr : this->sync_connections_) delete ptr;
 	  sync_connections_.clear();
@@ -1126,9 +1126,12 @@ namespace crow {
 	  }
 	  else {
 		if (n_sync_connections_ >= max_sync_connections_) {
+		  flush();
+		  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		  goto _;
 		  throw std::runtime_error("Maximum number of sql connection exeeded.");
 		}
-		try { data = impl.new_connection(); }
+		_:try { data = impl.new_connection(); }
 		catch (std::runtime_error& e) {
 		  --n_sync_connections_;
 		  throw std::move(e);

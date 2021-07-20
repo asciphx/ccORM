@@ -17,7 +17,7 @@ int main(){
   string s = q("select name from users_test where id = 2").template r__<string>();
   EXPECT_EQUAL((make_tuple("Flux",21)),
     (q("select name, age from users_test where id = 3").template r__<string,int>()));
-  d.close();//if return,don't need this line.
+  d.close();//If there is this line, the program will exit automatically
   cout << s << endl;
   return 0;
 }
