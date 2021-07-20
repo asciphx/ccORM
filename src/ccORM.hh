@@ -1118,34 +1118,27 @@ namespace crow {
 	  ++n_sync_connections_;
 	  connection_data_type* data = nullptr;
 	  if (!sync_connections_.empty()) {
-		auto lock = [this] {
-		  return std::lock_guard<std::mutex>(this->sync_connections_mutex_);
-		}();
+		std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
 		data = sync_connections_.back();
 		sync_connections_.pop_back();
 	  }
 	  else {
-		if (n_sync_connections_ >= max_sync_connections_) {
-		  flush();
+		if (n_sync_connections_ > max_sync_connections_) {
+		  n_sync_connections_ = 0;
 		  std::this_thread::sleep_for(std::chrono::milliseconds(200));
-		  goto _;
 		  throw std::runtime_error("Maximum number of sql connection exeeded.");
 		}
-		_:try { data = impl.new_connection(); }
+		try { data = impl.new_connection(); }
 		catch (std::runtime_error& e) {
 		  --n_sync_connections_;
 		  throw std::move(e);
 		}
-		if (!data)
-		  --n_sync_connections_;
 	  }
 	  assert(data);
 	  assert(data->error_ == 0);
 	  auto sptr = std::shared_ptr<connection_data_type>(data, [this](connection_data_type* data) {
 		if (!data->error_ && sync_connections_.size() < max_sync_connections_) {
-		  auto lock = [this] {
-			return std::lock_guard<std::mutex>(this->sync_connections_mutex_);
-		  }();
+		  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
 		  sync_connections_.push_back(data);
 		}
 		else {
