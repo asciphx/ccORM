@@ -15,6 +15,7 @@
 #include <thread>
 #include <unordered_map>
 #include <boost/lexical_cast.hpp>
+#include <string_view>
 
 #include <mysql/mysql.h>
 #include <libpq-fe.h>
