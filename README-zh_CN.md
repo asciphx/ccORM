@@ -1,9 +1,11 @@
 ﻿# ccORM[版本 0.1-alpha]
 ccORM是最好的数据库查询软件。
-🚀 支持Mac、Linux、windows三种平台，开发速度最快、最迅速、最猛烈，即将支持ORM。
+🚀 支持Mac、Linux、windows三种平台。开发速度最快、最迅速、最猛烈，即将支持ORM。
 ```c++
 #include "ccORM.hh"
-auto d = crow::D("127.0.0.1","test","root","",3306,"utf8");//D_();//很容易的连接
+auto d = D_mysql();//很容易的连接
+//auto d1 = D_sqlite("test.db");
+//auto d2 = D_pgsql();
 int main(){
   using namespace crow; using namespace std;
   auto q = d.conn();
@@ -17,7 +19,7 @@ int main(){
   string s = q("select name from users_test where id = 2").template r__<string>();
   EXPECT_EQUAL((make_tuple("Flux",21)),
     (q("select name, age from users_test where id = 3").template r__<string,int>()));
-  d.flush();//如果有这一行，程序将自动退出
+  d.flush();
   cout << s << endl;
   return 0;
 }
