@@ -16,11 +16,9 @@ int main() {
   string s = q("select name from users_test where id = 2").template r__<string>();
   EXPECT_EQUAL(make_tuple("Flux", 21), (q("select name, age from users_test where id = 3").template r__<string, int>()));
   cout << s << endl;
-  cout << "generic_sql_tests start,";
   d.flush();
   generic_sql_tests(d);//test mysql
   generic_sql_tests(d1);//test sqlite
   generic_sql_tests(d2);//test pgsql
-  cout << "generic_sql_tests end.";
   return 0;
 }

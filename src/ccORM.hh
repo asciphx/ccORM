@@ -1733,6 +1733,26 @@ namespace crow {
       auto pair = stm_cache_.emplace(rq, std::make_shared<pgsql_statement_data>(stmt_name));
       return pgsql_statement{ data_, *pair.first->second };
     }
+    pgsql_statement query(const std::string& rq) {
+      uint16_t i = rq.size(); while (rq[--i] != 0x28);
+      std::string rq_ = rq;
+      for (uint16_t l = 0; rq_[i]; ++i) if (rq_[i] == 0x3f) rq_.replace(i, 1, p_(++l));
+      auto it = stm_cache_.find(rq_);
+      if (it != stm_cache_.end()) {
+        return pgsql_statement{ data_, *it->second };
+      }
+      std::string stmt_name = boost::lexical_cast<std::string>(stm_cache_.size());
+
+      if (!PQsendPrepare(connection_, stmt_name.c_str(), rq_.c_str(), 0, nullptr)) {
+        throw std::runtime_error(std::string("PQsendPrepare error") + PQerrorMessage(connection_));
+      }
+
+      while (PGresult* ret = pg_wait_for_next_result(connection_, data_->error_))
+        PQclear(ret);
+
+      auto pair = stm_cache_.emplace(rq_, std::make_shared<pgsql_statement_data>(stmt_name));
+      return pgsql_statement{ data_, *pair.first->second };
+    }
     pgsql_statement query(const char* rq) {
       auto it = stm_cache_.find(rq);
       if (it != stm_cache_.end()) {
