@@ -1341,7 +1341,7 @@ namespace crow {
           std::cerr << "PQflush error" << std::endl;
         }
         if (ret == 1)
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
     }
 
@@ -1396,7 +1396,7 @@ namespace crow {
 
       if (PQisBusy(connection)) {
         try {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         catch (std::runtime_error& e) {
           while (true)
@@ -1715,8 +1715,10 @@ namespace crow {
         return pgsql_statement{ data_, *data_->statements_hashmap(f, keys...) };
     }
     pgsql_statement query(std::string& rq) {
-      uint16_t i = rq.size(); while (rq[--i] != 0x28);
-      for (uint16_t l = 0; rq[i]; ++i) if (rq[i] == 0x3f) rq.replace(i, 1, p_(++l));
+      uint16_t i = rq.size(), l = 0; while (rq[--i] != 0x28);
+      while (rq[i++]) {
+        if (rq[i] == 0x3f) rq.replace(i, 1, p_(++l));
+      }
       auto it = stm_cache_.find(rq);
       if (it != stm_cache_.end()) {
         return pgsql_statement{ data_, *it->second };
@@ -1734,9 +1736,11 @@ namespace crow {
       return pgsql_statement{ data_, *pair.first->second };
     }
     pgsql_statement query(const std::string& rq) {
-      uint16_t i = rq.size(); while (rq[--i] != 0x28);
       std::string rq_ = rq;
-      for (uint16_t l = 0; rq_[i]; ++i) if (rq_[i] == 0x3f) rq_.replace(i, 1, p_(++l));
+      uint16_t i = rq_.size(), l = 0; while (rq_[--i] != 0x28);
+      while (rq_[i++]) {
+        if (rq_[i] == 0x3f) rq_.replace(i, 1, p_(++l));
+      }
       auto it = stm_cache_.find(rq_);
       if (it != stm_cache_.end()) {
         return pgsql_statement{ data_, *it->second };
@@ -1842,7 +1846,7 @@ namespace crow {
           if (new_pgsql_fd != pgsql_fd) {
             pgsql_fd = new_pgsql_fd;
           }
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
           status = PQconnectPoll(connection);
         }
       }
@@ -1890,7 +1894,7 @@ namespace crow {
     }
     else {
       if (n_sync_connections_ > max_sync_connections_) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         goto _;
       }
       ++n_sync_connections_;
