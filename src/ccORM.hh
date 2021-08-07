@@ -372,7 +372,7 @@ namespace crow {
       {
         std::lock_guard lock(mutex_);
         if (hash == -1)
-          hash = counter_++;
+          hash = ++counter_;
       }
       if (hash >= values_.size() or !values_[hash].has_value())
       {
@@ -616,7 +616,7 @@ namespace crow {
       bool error = false;
       while (status) {
         try {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          std::this_thread::yield();
         }
         catch (std::runtime_error& e) {
           connection_status = 1;
@@ -1062,7 +1062,7 @@ namespace crow {
     return mysql_statement<B>{mysql_wrapper_, * pair.first->second, data_};
   }
 }
-#define MaxSyncConnections 32
+#define MaxSyncConnections 256
 #define EXPECT_THROW(STM)\
 try {STM;std::cerr << "This must have thrown an exception: " << #STM << std::endl; } catch (...) {}
 #define EXPECT_EQUAL(A, B)\
@@ -1110,7 +1110,7 @@ namespace crow {
     }
     while (status)
       try {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::yield();
       status = mysql_real_connect_cont(&connection, mysql, status);
     }
     catch (std::runtime_error& e) {
@@ -1340,8 +1340,7 @@ namespace crow {
         {
           std::cerr << "PQflush error" << std::endl;
         }
-        if (ret == 1)
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (ret == 1)std::this_thread::yield();
       }
     }
 
@@ -1396,7 +1395,7 @@ namespace crow {
 
       if (PQisBusy(connection)) {
         try {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          std::this_thread::yield();
         }
         catch (std::runtime_error& e) {
           while (true)
@@ -1520,7 +1519,7 @@ namespace crow {
       if (curent_result_field_types_.size() == 0) {
 
         curent_result_field_types_.resize(PQnfields(current_result_));
-        for (int field_i = 0; field_i < curent_result_field_types_.size(); field_i++)
+        for (int field_i = 0; field_i < curent_result_field_types_.size(); ++field_i)
           curent_result_field_types_[field_i] = PQftype(current_result_, field_i);
       }
     }
@@ -1534,10 +1533,10 @@ namespace crow {
 
     tuple_map(std::forward<T>(output), [&](auto& m) {
       fetch_value(m, field_i, curent_result_field_types_[field_i]);
-      field_i++;
+      ++field_i;
       });
 
-    this->row_i_++;
+    ++this->row_i_;
 
     return true;
   }
@@ -1598,7 +1597,7 @@ namespace crow {
   void pgsql_statement::bind_param(const std::vector<T>& m, const char** values, int* lengths,
     int* binary) {
     int i = 0;
-    for (int i = 0; i < m.size(); i++)
+    for (int i = 0; i < m.size(); ++i)
       bind_param(m[i], values + i, lengths + i, binary + i);
   }
 
@@ -1804,7 +1803,7 @@ namespace crow {
       ASSERT(database, "open_pgsql_connection requires the database argument");
       ASSERT(user, "open_pgsql_connection requires the user argument");
       ASSERT(password, "open_pgsql_connection requires the password argument");
-      va_list ap; va_start(ap, password); unsigned int i = va_arg(ap, unsigned int); char* c = va_arg(ap, char*); port_ = i < 0xffff ? i : 0xcea; character_set_ = c[0] ? c : "utf8"; va_end(ap); host_ = host, database_ = database, user_ = user, passwd_ = password;
+      va_list ap; va_start(ap, password); unsigned int i = va_arg(ap, unsigned int); char* c = va_arg(ap, char*); port_ = i < 0xffff ? i : 0x1538; character_set_ = c[0] ? c : "utf8"; va_end(ap); host_ = host, database_ = database, user_ = user, passwd_ = password;
       if (!PQisthreadsafe())
         throw std::runtime_error("LibPQ is not threadsafe.");
     }
@@ -1845,8 +1844,7 @@ namespace crow {
           int new_pgsql_fd = PQsocket(connection);
           if (new_pgsql_fd != pgsql_fd) {
             pgsql_fd = new_pgsql_fd;
-          }
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          }std::this_thread::yield();
           status = PQconnectPoll(connection);
         }
       }
@@ -1894,7 +1892,7 @@ namespace crow {
     }
     else {
       if (n_sync_connections_ > max_sync_connections_) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::yield();
         goto _;
       }
       ++n_sync_connections_;
