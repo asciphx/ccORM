@@ -373,7 +373,7 @@ namespace crow {
       {
         std::lock_guard lock(mutex_);
         if (hash == -1)
-          hash = counter_++;
+          hash = ++counter_;
       }
       if (hash >= values_.size() or !values_[hash].has_value())
       {
@@ -1522,7 +1522,7 @@ namespace crow {
       if (curent_result_field_types_.size() == 0) {
 
         curent_result_field_types_.resize(PQnfields(current_result_));
-        for (int field_i = 0; field_i < curent_result_field_types_.size(); field_i++)
+        for (int field_i = 0; field_i < curent_result_field_types_.size(); ++field_i)
           curent_result_field_types_[field_i] = PQftype(current_result_, field_i);
       }
     }
@@ -1536,10 +1536,10 @@ namespace crow {
 
     tuple_map(std::forward<T>(output), [&](auto& m) {
       fetch_value(m, field_i, curent_result_field_types_[field_i]);
-      field_i++;
+      ++field_i;
       });
 
-    this->row_i_++;
+    ++this->row_i_;
 
     return true;
   }
@@ -1600,7 +1600,7 @@ namespace crow {
   void pgsql_statement::bind_param(const std::vector<T>& m, const char** values, int* lengths,
     int* binary) {
     int i = 0;
-    for (int i = 0; i < m.size(); i++)
+    for (int i = 0; i < m.size(); ++i)
       bind_param(m[i], values + i, lengths + i, binary + i);
   }
 
