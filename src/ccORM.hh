@@ -1109,10 +1109,11 @@ namespace crow {
       mysql_close(mysql);
       return nullptr;
     }
-    while (status)
-      try {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      status = mysql_real_connect_cont(&connection, mysql, status);
+    try {
+      while (status) {
+        std::this_thread::sleep_for(std::chrono::microseconds(314));
+        status = mysql_real_connect_cont(&connection, mysql, status);
+      }
     }
     catch (std::runtime_error& e) {
       mysql_close(mysql);
@@ -1161,32 +1162,27 @@ namespace crow {
     inline long long int last_insert_id() { return sqlite3_last_insert_rowid(db_); }
     inline void read_column(int pos, int& v, int sqltype) {
       if (sqltype != SQLITE_INTEGER)
-        throw std::runtime_error(
-          "Type mismatch between request result data type && destination type (integer).");
+        throw std::runtime_error("destination type (integer).");
       v = sqlite3_column_int(stmt_, pos);
     }
     inline void read_column(int pos, float& v, int sqltype) {
       if (sqltype != SQLITE_FLOAT)
-        throw std::runtime_error(
-          "Type mismatch between request result data type && destination type (float).");
+        throw std::runtime_error("destination type (float).");
       v = float(sqlite3_column_double(stmt_, pos));
     }
     inline void read_column(int pos, double& v, int sqltype) {
       if (sqltype != SQLITE_FLOAT)
-        throw std::runtime_error(
-          "Type mismatch between request result data type && destination type (double).");
+        throw std::runtime_error("destination type (double).");
       v = sqlite3_column_double(stmt_, pos);
     }
     inline void read_column(int pos, int64_t& v, int sqltype) {
       if (sqltype != SQLITE_INTEGER)
-        throw std::runtime_error(
-          "Type mismatch between request result data type && destination type (int64).");
+        throw std::runtime_error("destination type (int64).");
       v = sqlite3_column_int64(stmt_, pos);
     }
     inline void read_column(int pos, std::string& v, int sqltype) {
       if (sqltype != SQLITE_TEXT && sqltype != SQLITE_BLOB)
-        throw std::runtime_error(
-          "Type mismatch between request result data type && destination type (std::string).");
+        throw std::runtime_error("destination type (std::string).");
       auto str = sqlite3_column_text(stmt_, pos);
       auto n = sqlite3_column_bytes(stmt_, pos);
       v = std::move(std::string((const char*)str, n));
@@ -1303,6 +1299,7 @@ namespace crow {
     inline Sqlite() {}
     Sqlite(const std::string& path, unsigned int synchronous = 2) {
       path_ = path;
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
       con_.conn(path, SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
       std::ostringstream ss;
       ss << "PRAGMA synchronous=" << synchronous;
@@ -1848,7 +1845,7 @@ namespace crow {
           if (new_pgsql_fd != pgsql_fd) {
             pgsql_fd = new_pgsql_fd;
           }
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          std::this_thread::sleep_for(std::chrono::microseconds(314));
           status = PQconnectPoll(connection);
         }
       }
@@ -1888,33 +1885,33 @@ namespace crow {
       n_sync_connections_ = 0;
     }
     inline auto conn() {
-      connection_data_type* data = nullptr; _:
-    if (!sync_connections_.empty()) {
-      std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
-      data = sync_connections_.back();
-      sync_connections_.pop_back();
-    }
-    else {
-      if (n_sync_connections_ > max_sync_connections_) {
-        std::this_thread::yield();
-        goto _;
-      }
-      ++n_sync_connections_;
-      try { data = impl.new_connection(); }
-      catch (std::runtime_error& e) {
-        --n_sync_connections_;
-        throw std::move(e);
-      }
-    }
-    assert(data); assert(data->error_ == 0);
-    auto sptr = std::shared_ptr<connection_data_type>(data, [this](connection_data_type* data) {
-      if (!data->error_ && sync_connections_.size() < max_sync_connections_) {
+      connection_data_type* data = nullptr; _:;
+      if (!sync_connections_.empty()) {
         std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
-        sync_connections_.push_back(data);
+        data = sync_connections_.back();
+        sync_connections_.pop_back();
       }
-      else { --n_sync_connections_; delete data; }
-      });
-    return impl.scoped_connection(sptr);
+      else {
+        if (n_sync_connections_ > max_sync_connections_) {
+          std::this_thread::yield();
+          goto _;
+        }
+        ++n_sync_connections_;
+        try { data = impl.new_connection(); }
+        catch (std::runtime_error& e) {
+          --n_sync_connections_;
+          throw std::move(e);
+        }
+      }
+      assert(data); assert(data->error_ == 0);
+      auto sptr = std::shared_ptr<connection_data_type>(data, [this](connection_data_type* data) {
+        if (!data->error_ && sync_connections_.size() < max_sync_connections_) {
+          std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
+          sync_connections_.push_back(data);
+        }
+        else { --n_sync_connections_; delete data; }
+        });
+      return impl.scoped_connection(sptr);
     }
   };
   typedef sql_database<mysql> Mysql;
