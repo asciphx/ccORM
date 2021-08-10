@@ -617,7 +617,7 @@ namespace crow {
       bool error = false;
       while (status) {
         try {
-          std::this_thread::yield();
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         catch (std::runtime_error& e) {
           connection_status = 1;
@@ -1109,15 +1109,15 @@ namespace crow {
       mysql_close(mysql);
       return nullptr;
     }
-    try {
-      while (status) {
+    while (status) {
+      try {
         std::this_thread::sleep_for(std::chrono::microseconds(314));
         status = mysql_real_connect_cont(&connection, mysql, status);
       }
-    }
-    catch (std::runtime_error& e) {
-      mysql_close(mysql);
-      throw std::move(e);
+      catch (std::runtime_error& e) {
+        mysql_close(mysql);
+        throw std::move(e);
+      }
     }
     if (!connection) { return nullptr; }
     char on = 1; mysql_options(mysql, MYSQL_REPORT_DATA_TRUNCATION, &on);
@@ -1803,7 +1803,7 @@ namespace crow {
       ASSERT(database, "open_pgsql_connection requires the database argument");
       ASSERT(user, "open_pgsql_connection requires the user argument");
       ASSERT(password, "open_pgsql_connection requires the password argument");
-      va_list ap; va_start(ap, password); unsigned int i = va_arg(ap, unsigned int); char* c = va_arg(ap, char*); port_ = i < 0xffff ? i : 0xcea; character_set_ = c[0] ? c : "utf8"; va_end(ap); host_ = host, database_ = database, user_ = user, passwd_ = password;
+      va_list ap; va_start(ap, password); unsigned int i = va_arg(ap, unsigned int); char* c = va_arg(ap, char*); port_ = i < 0xffff ? i : 0x1538; character_set_ = c[0] ? c : "utf8"; va_end(ap); host_ = host, database_ = database, user_ = user, passwd_ = password;
       if (!PQisthreadsafe())
         throw std::runtime_error("LibPQ is not threadsafe.");
     }
