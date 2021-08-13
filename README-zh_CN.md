@@ -11,14 +11,14 @@ int main(){
   auto q = d.conn();
   q("DROP table if exists users_test;");
   q("CREATE TABLE users_test (id int,name TEXT,age int);");
-  //q.prepare(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, "Deaod", 32);
   auto add = q.prepare(string("INSERT into users_test(id, name, age) values (?,?,?);"));
-  add(1,"Alex",44);
-  add(2,"Boom",23);
-  add(3,"Flux",21);
+  add(1,"A神",44);
+  add(2,"程序王",23);
+  add(3,"超威码哥",21);
+  q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, "迪奥", 32);
   string s = q("select name from users_test where id = 2").template r__<string>();
-  EXPECT_EQUAL((make_tuple("Flux",21)),
-    (q("select name, age from users_test where id = 3").template r__<string,int>()));
+  EXPECT_EQUAL(make_tuple("超威码哥", 21),
+    (q("select name, age from users_test where id = 3").template r__<string, int>()));
   d.flush();
   cout << s << endl;
   return 0;

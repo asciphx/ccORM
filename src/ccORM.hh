@@ -1188,6 +1188,21 @@ namespace crow {
       v = std::move(std::string((const char*)str, n));
     }
   };
+  inline char* UnicodeToUtf8(const char* str) {
+    LPCSTR pszSrc = str;
+    int nLen = MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, NULL, 0);
+    if (nLen == 0) return "";
+    wchar_t* pwszDst = new wchar_t[nLen];
+    if (!pwszDst) return "";
+    MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
+    std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = NULL;
+    const wchar_t* unicode = wstr.c_str();
+    nLen = WideCharToMultiByte(CP_UTF8, 0, unicode, -1, NULL, 0, NULL, NULL);
+    char* szUtf8 = (char*)malloc(nLen + 1);
+    memset(szUtf8, 0, nLen + 1);
+    WideCharToMultiByte(CP_UTF8, 0, unicode, -1, szUtf8, nLen, NULL, NULL);
+    return szUtf8;
+  }
   struct sqlite_statement {
     typedef std::shared_ptr<sqlite3_stmt> stmt_sptr;
     sqlite3* db_;
@@ -1222,13 +1237,13 @@ namespace crow {
     }
     inline void bind(sqlite3_stmt* stmt, int pos, sql_null_t) { sqlite3_bind_null(stmt, pos); }
     inline int bind(sqlite3_stmt* stmt, int pos, const char* s) const {
-      return sqlite3_bind_text(stmt, pos, s, strlen(s), nullptr);
+      char* c = UnicodeToUtf8(s); return sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
     }
     inline int bind(sqlite3_stmt* stmt, int pos, const std::string& s) const {
-      return sqlite3_bind_text(stmt, pos, s.data(), s.size(), nullptr);
+      char* c = UnicodeToUtf8(s.c_str()); return sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
     }
     inline int bind(sqlite3_stmt* stmt, int pos, const std::string_view& s) const {
-      return sqlite3_bind_text(stmt, pos, s.data(), s.size(), nullptr);
+      char* c = UnicodeToUtf8(s.data()); return sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
     }
     inline int bind(sqlite3_stmt* stmt, int pos, const sql_blob& b) const {
       return sqlite3_bind_blob(stmt, pos, b.data(), b.size(), nullptr);
@@ -1270,7 +1285,7 @@ namespace crow {
       auto it = stm_cache_->find(req);
       if (it != stm_cache_->end()) return it->second;
       sqlite3_stmt* stmt;
-      int err = sqlite3_prepare_v2(db_, req.c_str(), req.size(), &stmt, nullptr);
+      int err = sqlite3_prepare_v2(db_, req.c_str() , req.size(), &stmt, nullptr);
       if (err != SQLITE_OK)
         throw std::runtime_error(std::string("Sqlite error during query: ") + sqlite3_errmsg(db_) + " statement was: " + req);
       cache_mutex_->lock();
@@ -1818,7 +1833,7 @@ namespace crow {
       int pgsql_fd = -1;
       std::stringstream coninfo;
       coninfo << "postgresql://" << user_ << ":" << passwd_ << "@" << host_ << ":" << port_ << "/"
-        << database_;
+        << database_ << "?client_encoding=" << character_set_;
       connection = PQconnectStart(coninfo.str().c_str());
       if (!connection) {
         std::cerr << "Warning: PQconnectStart returned null." << std::endl;
@@ -1914,9 +1929,9 @@ namespace crow {
       return impl.scoped_connection(sptr);
     }
   };
-  typedef sql_database<mysql> Mysql;
+  typedef sql_database<mysql> Mysql;//default utf8/GB2312/GBK
   typedef sql_database<pgsql> Pgsql;
-#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"utf8")
-#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
+#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"GBK")
+#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"GBK")
 #define D_sqlite(path) crow::Sqlite(path)
 }
