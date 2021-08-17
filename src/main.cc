@@ -7,8 +7,7 @@ int main() {
   using namespace crow; using namespace std;
   auto q = d.conn();
   q("DROP table if exists users_test;");
-  q("CREATE TABLE users_test (id int,name TEXT,age int)\
-	ENGINE=INNODB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;");
+  q("CREATE TABLE users_test (id int,name TEXT,age int)");
   auto add = q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"));
   add(1,"AÉñ",44);
   add(2,"³ÌÐòÍõ",23);

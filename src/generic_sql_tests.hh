@@ -97,7 +97,22 @@ template <typename Q> void test_long_strings_prepared_statement(Q& q) {
   });
 }
 
+template <typename D> std::string placeholder(int pos) {
+  if constexpr (std::is_same_v<typename D::db_tag, crow::pgsql_tag>) {
+    std::stringstream ss;
+    ss << "$" << pos;
+    return ss.str();
+  } else
+    return "?";
+}
+
 template <typename D> void generic_sql_tests(D& database) {
+  if constexpr (std::is_same_v<typename D::db_tag, crow::pgsql_tag>) {
+    std::cout << "$pgsql" << std::endl;
+  } else if constexpr (std::is_same_v<typename D::db_tag, crow::mysql_tag>)
+    std::cout << "?mysql" << std::endl;
+  else
+    std::cout << "?sqlite" << std::endl;
   auto q = database.conn();
   // try {
   //   // database.conn();
@@ -129,7 +144,7 @@ template <typename D> void generic_sql_tests(D& database) {
   insert_user(2, "码哥", 24);
   EXPECT_EQUAL(
       (std::make_tuple("John", 42)),(q("select name, age from users_test where id = 1").template r__<std::string, int>()));
-
-  //sqlite will report error，sqlite不能使用GBK的方式编码，所以注定这里验证不对
-  //EXPECT_EQUAL((std::make_tuple("码哥", 24)), (q("select name, age from users_test where id = 2").template r__<std::string, int>()));
+  std::string ssss = q("select name from users_test where id = 2").template r__<std::string>();
+  EXPECT_EQUAL("码哥", ssss);
+  printf("!!! string: %s\n", ssss.c_str());
 }
