@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <iostream>
 template <typename C> void init_test_table(C&& q) {
   q("DROP table if exists users_test;");
@@ -141,10 +141,10 @@ template <typename D> void generic_sql_tests(D& database) {
   // Prepared statement.
   auto insert_user = q.query(std::string("INSERT into users_test(id, name, age) values (?,?,?);"));
   insert_user(1, "John", 42);
-  insert_user(2, "Âë¸ç", 24);
+  insert_user(2, "ç å“¥", 24);
   EXPECT_EQUAL(
       (std::make_tuple("John", 42)),(q("select name, age from users_test where id = 1").template r__<std::string, int>()));
   std::string ssss = q("select name from users_test where id = 2").template r__<std::string>();
-  EXPECT_EQUAL("Âë¸ç", ssss);
+  EXPECT_EQUAL("ç å“¥", ssss);
   printf("!!! string: %s\n", ssss.c_str());
 }
