@@ -1,6 +1,7 @@
 ﻿# ccORM[版本 0.3]
 ccORM是最好的数据库查询软件。
 🚀 支持Mac、Linux、windows三种平台。开发速度最快、最迅速、最猛烈，即将支持ORM。
+ ![基准结果(未缓存)](./test.png)
 ```c++
 #include "ccORM.hh"
 auto d = D_mysql();//很容易的连接

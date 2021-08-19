@@ -1,6 +1,7 @@
 ﻿# ccORM[version 0.3]
 ccORM is the best database query software.
 🚀 Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support ORM.
+ ![Benchmark results (not cached)](./test.png)
 ```c++
 #include "ccORM.hh"
 auto d = D_mysql();//easy to connect
