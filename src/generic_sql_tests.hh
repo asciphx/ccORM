@@ -107,12 +107,12 @@ template <typename D> std::string placeholder(int pos) {
 }
 
 template <typename D> void generic_sql_tests(D& database) {
-  if constexpr (std::is_same_v<typename D::db_tag, crow::pgsql_tag>) {
-    std::cout << "$pgsql" << std::endl;
-  } else if constexpr (std::is_same_v<typename D::db_tag, crow::mysql_tag>)
-    std::cout << "?mysql" << std::endl;
-  else
-    std::cout << "?sqlite" << std::endl;
+  //if constexpr (std::is_same_v<typename D::db_tag, crow::pgsql_tag>) {
+  //  std::cout << "$pgsql" << std::endl;
+  //} else if constexpr (std::is_same_v<typename D::db_tag, crow::mysql_tag>)
+  //  std::cout << "?mysql" << std::endl;
+  //else
+  //  std::cout << "?sqlite" << std::endl;
   auto q = database.conn();
   // try {
   //   // database.conn();

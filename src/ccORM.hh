@@ -22,6 +22,7 @@
 #include <libpq-fe.h>
 #include <sqlite3.h>
 
+#include <chrono>
 #include <atomic>
 #include <stdarg.h>
 #include <stdexcept>
@@ -566,8 +567,6 @@ namespace crow {
   };
 
   struct mysql_functions_blocking {
-	enum { is_blocking = true };
-
 #define MYSQL_BLOCKING_WRAPPER(ERR, FN)                                                              \
   template <typename A1, typename... A> auto FN(int& connection_status, A1 a1, A&&... a) {\
     int ret = ::FN(a1, std::forward<A>(a)...); \
@@ -596,7 +595,6 @@ namespace crow {
 
 #ifdef LIBMARIADB
   struct mysql_functions_non_blocking {
-	enum { is_blocking = false };
 
 	template <typename RT, typename A1, typename... A, typename B1, typename... B>
 	auto mysql_non_blocking_call(int& connection_status,
@@ -1070,9 +1068,11 @@ namespace crow {
 	inline mysql(const char* host, const char* database, const char* user, const char* password, ...);
 	inline ~mysql();
 	inline mysql_connection_data* new_connection();
-	inline int get_socket(const std::shared_ptr<mysql_connection_data>& data);    inline mysql_connection<mysql_functions_blocking> scoped_connection(std::shared_ptr<mysql_connection_data>& data);
+	inline int get_socket(const std::shared_ptr<mysql_connection_data>& data);
+	inline mysql_connection<mysql_functions_blocking> scoped_connection(std::shared_ptr<mysql_connection_data>& data);
 	std::string host_, user_, passwd_, database_, character_set_;
 	unsigned int port_;
+	inline bool ping(const std::shared_ptr<mysql_connection_data>& data) { return mysql_ping(data->connection_) == 0; }
   };
   inline mysql::mysql(const char* host, const char* database, const char* user, const char* password, ...) {
 	ASSERT(host, "open_mysql_connection requires the host argument"); ASSERT(database, "open_mysql_connection requires the databaser argument"); ASSERT(user, "open_mysql_connection requires the user argument"); ASSERT(password, "open_mysql_connection requires the password argument");
@@ -1179,14 +1179,14 @@ namespace crow {
 #ifdef _WIN32
   inline char* UnicodeToUtf8(const char* str) {
 	if (NULL == str) return NULL;
-	size_t destlen = mbstowcs(0, str, 0);
-	size_t size = destlen + 1;
-	wchar_t* pw = new wchar_t[size];
-	mbstowcs(pw, str, size);//wprintf(L"Ws: %ls\n", pw);
-	size = wcslen(pw) * sizeof(wchar_t);
-	char* pc = (char*)malloc(size + 1); memset(pc, 0, size + 1);
-	destlen = wcstombs(pc, pw, size + 1);//wprintf(L"Cs: %hs\n", pc);
-	pc[size] = 0; delete[] pw; pw = NULL; return pc;
+	size_t len = (strlen(str) + 1) * sizeof(wchar_t);
+	size_t destlen = 0;
+	wchar_t* WStr = (wchar_t*)malloc(len);
+	mbstowcs_s(&destlen, WStr, len, str, _TRUNCATE);
+	len = wcslen(WStr) + 1; destlen = 0;
+	char* CStr = (char*)malloc(len);
+	wcstombs_s(&destlen, CStr, len, WStr, _TRUNCATE); CStr[len] = 0;
+	delete[] WStr; WStr = NULL; return CStr;
   }
 #endif
   struct sqlite_statement {
@@ -1798,29 +1798,27 @@ namespace crow {
 	std::string host_, user_, passwd_, database_;
 	unsigned int port_;
 	std::string character_set_;
-
+	std::string conninfo_;
 	inline pgsql(const char* host, const char* database, const char* user, const char* password, ...) {
 	  ASSERT(host, "open_pgsql_connection requires the host argument");
 	  ASSERT(database, "open_pgsql_connection requires the database argument");
 	  ASSERT(user, "open_pgsql_connection requires the user argument");
 	  ASSERT(password, "open_pgsql_connection requires the password argument");
 	  va_list ap; va_start(ap, password); unsigned int i = va_arg(ap, unsigned int); char* c = va_arg(ap, char*); port_ = i < 0xffff ? i : 0x1538; character_set_ = c[0] ? c : "utf8"; va_end(ap); host_ = host, database_ = database, user_ = user, passwd_ = password;
-	  if (!PQisthreadsafe())
-		throw std::runtime_error("LibPQ is not threadsafe.");
+	  if (!PQisthreadsafe()) throw std::runtime_error("LibPQ is not threadsafe.");
+	  std::stringstream coninfo; coninfo << "postgresql://" << user_ << ":" << passwd_ << "@"
+		<< host_ << ":" << port_ << "/" << database_ << "?client_encoding=" << character_set_;
+	  conninfo_ = coninfo.str();
 	}
-
+	inline bool ping() { return PQping(conninfo_.c_str()) == 0; }//pgsql is alive
 	inline int get_socket(const std::shared_ptr<pgsql_connection_data>& data) {
 	  return PQsocket(data->pgconn_);
 	}
-
 	inline pgsql_connection_data* new_connection() {
-
 	  PGconn* connection = nullptr;
 	  int pgsql_fd = -1;
-	  std::stringstream coninfo;
-	  coninfo << "postgresql://" << user_ << ":" << passwd_ << "@" << host_ << ":" << port_ << "/"
-		<< database_ << "?client_encoding=" << character_set_;
-	  connection = PQconnectStart(coninfo.str().c_str());
+	  connection = PQconnectdb(conninfo_.c_str());
+	  //connection = PQconnectStart(conninfo_);
 	  if (!connection) {
 		std::cerr << "Warning: PQconnectStart returned null." << std::endl;
 		return nullptr;
@@ -1866,18 +1864,72 @@ namespace crow {
 	  return pgsql_connection(data);
 	}
   };
-  template <typename I> struct sql_database {
-	I impl;
+  struct Timer {
+	template<typename F> void setTimeout(F func, uint32_t milliseconds);
+	template<typename F> void setTimeoutSec(F func, uint32_t seconds);
+	template<typename F> void setInterval(F func, uint32_t milliseconds);
+	template<typename F> void setIntervalSec(F func, uint32_t seconds);
+	void stop();
+  private:
+	std::atomic<bool> alive{ true };
+  };
+  template<typename F>
+  void Timer::setTimeout(F func, uint32_t milliseconds) {
+	alive = true;
+	std::thread t([=]() {
+	  std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+	  if (!alive.load()) return; func();
+	  });
+	t.detach();
+  }
+  template<typename F>
+  void Timer::setTimeoutSec(F func, uint32_t seconds) {
+	alive = true;
+	std::thread t([=]() {
+	  std::this_thread::sleep_for(std::chrono::seconds(seconds));
+	  if (!alive.load()) return; func();
+	  });
+	t.detach();
+  }
+  template<typename F>
+  void Timer::setInterval(F func, uint32_t milliseconds) {
+	alive = true;
+	std::thread t([=]() {
+	  while (alive.load()) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+		if (!alive.load()) return; func();
+	  }
+	  });
+	t.detach();
+  }
+  template<typename F>
+  void Timer::setIntervalSec(F func, uint32_t seconds) {
+	alive = true;
+	std::thread t([=]() {
+	  while (alive.load()) {
+		std::this_thread::sleep_for(std::chrono::seconds(seconds));
+		if (!alive.load()) return; func();
+	  }
+	  });
+	t.detach();
+  }
+  void Timer::stop() { alive = false; }
+  template <typename I, int Time = 28799> struct sql_database {
+	I impl; Timer timer; bool need_to_refresh = false;
 	typedef typename I::connection_data_type connection_data_type;
 	typedef typename I::db_tag db_tag;
-	std::deque<connection_data_type*> sync_connections_;    std::mutex sync_connections_mutex_;    int n_sync_connections_ = 0, max_sync_connections_ = 0;
+	std::deque<connection_data_type*> sync_connections_;std::mutex sync_connections_mutex_;
+	int n_sync_connections_ = 0, max_sync_connections_ = 0;
 	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) {};
+	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) { init(); };
 	sql_database(const char* host, const char* database, const char* user, const char* password, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, 3306, charset), max_sync_connections_(max_sync_connections) {};
+	  : impl(host, database, user, password, 3306, charset), max_sync_connections_(max_sync_connections) { init(); };
 	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int port, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, port, charset), max_sync_connections_(max_sync_connections) {};
+	  : impl(host, database, user, password, port, charset), max_sync_connections_(max_sync_connections) { init(); };
 	~sql_database() { flush(); }
+	inline void init() {
+	  timer.setIntervalSec([this]() { need_to_refresh = true; }, Time);
+	}
 	void flush() {
 	  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
 	  for (auto* ptr : this->sync_connections_) delete ptr;
@@ -1909,12 +1961,24 @@ namespace crow {
 		  sync_connections_.push_back(data);
 		} else { --n_sync_connections_; delete data; }
 		});
+	  if constexpr (std::is_same_v<typename db_tag, crow::pgsql_tag>) {
+		if (need_to_refresh) { need_to_refresh = false; impl.ping(); }
+	  } else if constexpr (std::is_same_v<typename db_tag, crow::mysql_tag>) {
+		if (need_to_refresh) { need_to_refresh = false; impl.ping(sptr); }
+	  }
 	  return impl.scoped_connection(sptr);
 	}
   };
-  typedef sql_database<mysql> Mysql;//default utf8/GB2312/GBK
-  typedef sql_database<pgsql> Pgsql;
+  //MySQL will automatically shut down after 8 hours (28800 seconds) of
+  // inactivity by default (determined by the mechanism provided by the server)
+  //typedef sql_database<sqlType,time_wait> D;time_wait default 28799
+  //I set time_ Wait and interactive_ Timeout is 100
+  typedef sql_database<mysql, 99> Mysql;
+  typedef sql_database<pgsql, 99> Pgsql;
+  //-------------- utf8 / GB2312 / GBK --------------
 #define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"GBK")
 #define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"GBK")
+//------ Use GBK or GB2312 to support Chinese ------
+//---- SQLite can only support default encoding ----
 #define D_sqlite(path) crow::Sqlite(path)
 }

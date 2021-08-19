@@ -1,6 +1,6 @@
 #include "ccORM.hh"
 #include "generic_sql_tests.hh"
-auto d = D_mysql();//用宏的方式，防止被人轻易看到用户名和密码
+auto d = D_pgsql();//用宏的方式，防止被人轻易看到用户名和密码
 auto d1 = D_sqlite("test.db");
 auto d2 = D_pgsql();
 int main() {
