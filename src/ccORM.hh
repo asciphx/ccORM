@@ -1059,12 +1059,12 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
   if (!(A)) { std::cerr << #A << " (== " << (A) << ") must be true" << std::endl; }
 #define ASSERT(x,m) if(!x)std::cerr<<#m
 template <typename... T> std::ostream& operator<<(std::ostream& os, std::tuple<T...> t) {
-  os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os](auto v) { os << v << " ,"; }); os << ">"; return os;
+  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os,&one](auto v) {
+	if(one) os << v, one=false; else os << "," << v; }); os << ">"; return os;
 }
 namespace crow {
   struct mysql {
-	typedef mysql_tag db_tag;
-	typedef mysql_connection_data connection_data_type;
+	typedef mysql_tag db_tag; typedef mysql_connection_data connection_data_type;
 	inline mysql(const char* host, const char* database, const char* user, const char* password, ...);
 	inline ~mysql();
 	inline mysql_connection_data* new_connection();
@@ -1072,7 +1072,7 @@ namespace crow {
 	inline mysql_connection<mysql_functions_blocking> scoped_connection(std::shared_ptr<mysql_connection_data>& data);
 	std::string host_, user_, passwd_, database_, character_set_;
 	unsigned int port_;
-	inline bool ping(const std::shared_ptr<mysql_connection_data>& data) { return mysql_ping(data->connection_) == 0; }
+	inline bool ping(mysql_connection_data* data) { return mysql_ping(data->connection_) == 0; }
   };
   inline mysql::mysql(const char* host, const char* database, const char* user, const char* password, ...) {
 	ASSERT(host, "open_mysql_connection requires the host argument"); ASSERT(database, "open_mysql_connection requires the databaser argument"); ASSERT(user, "open_mysql_connection requires the user argument"); ASSERT(password, "open_mysql_connection requires the password argument");
@@ -1183,7 +1183,7 @@ namespace crow {
 	size_t destlen = 0;
 	wchar_t* WStr = (wchar_t*)malloc(len);
 	mbstowcs_s(&destlen, WStr, len, str, _TRUNCATE);
-	len = wcslen(WStr) + 1; destlen = 0;
+	len = wcslen(WStr) * sizeof(char) + 1; destlen = 0;
 	char* CStr = (char*)malloc(len);
 	wcstombs_s(&destlen, CStr, len, WStr, _TRUNCATE); CStr[len] = 0;
 	delete[] WStr; WStr = NULL; return CStr;
@@ -1928,7 +1928,11 @@ namespace crow {
 	  : impl(host, database, user, password, port, charset), max_sync_connections_(max_sync_connections) { init(); };
 	~sql_database() { flush(); }
 	inline void init() {
-	  timer.setIntervalSec([this]() { need_to_refresh = true; }, Time);
+	  if constexpr (std::is_same_v<typename db_tag, crow::mysql_tag>) {
+		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time);
+	  }else if constexpr (std::is_same_v<typename db_tag, crow::pgsql_tag>) {
+		timer.setIntervalSec([this]() { impl.ping(); }, Time);
+	  }
 	}
 	void flush() {
 	  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
@@ -1961,11 +1965,6 @@ namespace crow {
 		  sync_connections_.push_back(data);
 		} else { --n_sync_connections_; delete data; }
 		});
-	  if constexpr (std::is_same_v<typename db_tag, crow::pgsql_tag>) {
-		if (need_to_refresh) { need_to_refresh = false; impl.ping(); }
-	  } else if constexpr (std::is_same_v<typename db_tag, crow::mysql_tag>) {
-		if (need_to_refresh) { need_to_refresh = false; impl.ping(sptr); }
-	  }
 	  return impl.scoped_connection(sptr);
 	}
   };
