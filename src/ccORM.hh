@@ -1928,9 +1928,9 @@ namespace crow {
 	  : impl(host, database, user, password, port, charset), max_sync_connections_(max_sync_connections) { init(); };
 	~sql_database() { flush(); }
 	inline void init() {
-	  if constexpr (std::is_same_v<typename db_tag, crow::mysql_tag>) {
+	  if constexpr (std::is_same_v<db_tag, mysql_tag>) {
 		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time);
-	  }else if constexpr (std::is_same_v<typename db_tag, crow::pgsql_tag>) {
+	  } else if constexpr (std::is_same_v<db_tag, pgsql_tag>) {
 		timer.setIntervalSec([this]() { impl.ping(); }, Time);
 	  }
 	}
