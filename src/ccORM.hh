@@ -120,7 +120,34 @@ namespace crow {
   template <typename U, typename... T>
   struct typelist_embeds_any_ref_of<typelist<T...>, U>
 	: public typelist_embeds<typelist<std::decay_t<T>...>, std::decay_t<U>> {};
-
+#ifdef _WIN32
+  inline char* UnicodeToUtf8(const char* str) {
+	LPCSTR pszSrc = str;
+	int nLen = MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, NULL, 0);
+	if (nLen == 0) return "";
+	wchar_t* pwszDst = new wchar_t[nLen];
+	MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
+	std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = NULL;
+	const wchar_t* unicode = wstr.c_str();
+	nLen = WideCharToMultiByte(CP_UTF8, 0, unicode, -1, NULL, 0, NULL, NULL);
+	char* szUtf8 = (char*)malloc(nLen + 1);
+	memset(szUtf8, 0, nLen + 1);
+	WideCharToMultiByte(CP_UTF8, 0, unicode, -1, szUtf8, nLen, NULL, NULL);
+	return szUtf8;
+  }
+#else
+  inline char* UnicodeToUtf8(const char* str) {
+	if (NULL == str) return NULL;
+	size_t destlen = mbstowcs(0, str, 0);
+	size_t size = destlen + 1;
+	wchar_t* pw = new wchar_t[size];
+	mbstowcs(pw, str, size);
+	size = wcslen(pw) * sizeof(wchar_t);
+	char* pc = (char*)malloc(size + 1); memset(pc, 0, size + 1);
+	destlen = wcstombs(pc, pw, size + 1);
+	pc[size] = 0; delete[] pw; pw = NULL; return pc;
+  }
+#endif
   constexpr int count_first_falses() { return 0; }
 
   template <typename... B> constexpr int count_first_falses(bool b1, B... b) {
@@ -453,7 +480,14 @@ namespace crow {
 
 
 	template <typename F> void map(F f);
+	nlohmann::json JSON();
   };
+  template <typename B> nlohmann::json sql_result<B>::JSON() {
+	nlohmann::json t;
+	if (!impl_.read(std::forward<nlohmann::json>(t)))
+	  throw std::runtime_error("sql_result::r__: error: Trying to read a request that did not return any data.");
+	return t;
+  }
 
   template <typename B>
   template <typename T1, typename... T>
@@ -506,33 +540,31 @@ namespace crow {
 
   }
 
+class sqlite_statement_result;
 #define IS_VALID(T, EXPR) internal::is_valid<T>( [](auto&& obj)->decltype(obj.EXPR){} )
 
   template <typename B> template <typename F> void sql_result<B>::map(F map_function) {
-
-
-	if constexpr (IS_VALID(B, map(map_function)))
-	  this->impl_.map(map_function);
-
-	typedef typename unconstref_tuple_elements<callable_arguments_tuple_t<F>>::ret TP;
-	typedef std::tuple_element_t<0, TP> TP0;
-
-	auto t = [] {
-	  static_assert(std::tuple_size_v < TP >> 0, "sql_result map function must take at least 1 argument.");
-
-	  if constexpr (is_tuple<TP0>::value)
-		return TP0{};
-	  else
-		return TP{};
-	}();
-
-	while (this->r__(t)) {
-	  if constexpr (is_tuple<TP0>::value)
-		map_function(t);
-	  else
-		std::apply(map_function, t);
+	if constexpr (std::is_same_v<B, sqlite_statement_result>) {
+	  //std::cout << "sqlite is not support!";
+	} else {
+	  if constexpr (IS_VALID(B, map(map_function)))
+		this->impl_.map(map_function);
+	  typedef typename unconstref_tuple_elements<callable_arguments_tuple_t<F>>::ret TP;
+	  typedef std::tuple_element_t<0, TP> TP0;
+	  auto t = [] {
+		static_assert(std::tuple_size_v < TP >> 0, "sql_result map function must take at least 1 argument.");
+		if constexpr (is_tuple<TP0>::value)
+		  return TP0{};
+		else
+		  return TP{};
+	  }();
+	  while (this->r__(t)) {
+		if constexpr (is_tuple<TP0>::value)
+		  map_function(t);
+		else
+		  std::apply(map_function, t);
+	  }
 	}
-
   }
 }
 struct mysql_statement_data : std::enable_shared_from_this<mysql_statement_data> {
@@ -960,23 +992,63 @@ namespace crow {
   }
 
   template <typename B> template <typename T> bool mysql_result<B>::read(T&& output) {
-
 	next_row();
-
-	if (end_of_result_)
-	  return false;
-
-	if (std::tuple_size_v<std::decay_t<T>> != current_row_num_fields_)
-	  throw std::runtime_error(std::string("The request number of field (") +
-		boost::lexical_cast<std::string>(current_row_num_fields_) +
-		") does not match the size of the tuple (" +
-		boost::lexical_cast<std::string>(std::tuple_size_v<std::decay_t<T>>) + ")");
+	if (end_of_result_) return false;
 	int i = 0;
-	crow::tuple_map(std::forward<T>(output), [&](auto& v) {
-	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(
-		std::string_view(current_row_[i], current_row_lengths_[i]));
-	  ++i;
-	  });
+	if constexpr (is_tuple<T>::value) { // Tuple
+	  if (std::tuple_size_v<std::decay_t<T>> != current_row_num_fields_)
+		throw std::runtime_error(std::string("The request number of field (") +
+		  boost::lexical_cast<std::string>(current_row_num_fields_) +
+		  ") does not match the size of the tuple (" +
+		  boost::lexical_cast<std::string>(std::tuple_size_v<std::decay_t<T>>) + ")");
+	  crow::tuple_map(std::forward<T>(output), [&](auto& v) {
+		//std::cout << "read " << std::string_view(current_row_[i], current_row_lengths_[i]) << std::endl;
+		v = boost::lexical_cast<std::decay_t<decltype(v)>>(
+		  std::string_view(current_row_[i], current_row_lengths_[i]));
+		++i;
+		});
+	} else {
+	  MYSQL_FIELD* field;
+	  while ((field = mysql_fetch_field(result_))) {
+		const char* cname = field->name;
+		switch (field->type) {
+		case enum_field_types::MYSQL_TYPE_DOUBLE:
+		  output[cname] = boost::lexical_cast<double>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_FLOAT:
+		  output[cname] = boost::lexical_cast<float>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_TINY:
+		  output[cname] = boost::lexical_cast<signed char>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_INT24:
+		  output[cname] = boost::lexical_cast<int>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_SHORT:
+		  output[cname] = boost::lexical_cast<short>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_LONGLONG:
+		  output[cname] = boost::lexical_cast<long long>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_LONG:
+		  output[cname] = boost::lexical_cast<long>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_STRING:
+		case enum_field_types::MYSQL_TYPE_VAR_STRING:
+		  output[cname] = boost::lexical_cast<std::string>(
+			std::string(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_LONG_BLOB:
+		case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
+		case enum_field_types::MYSQL_TYPE_TINY_BLOB:
+		case enum_field_types::MYSQL_TYPE_BLOB: {
+		  char* c = UnicodeToUtf8(current_row_[i]);
+		  output[cname] = c; free(c); c = NULL; break;
+		} break;
+		default:output[cname] = current_row_[i]; break;
+		}
+		++i;
+	  }
+	}
 	return true;
   }
 
@@ -1126,22 +1198,41 @@ namespace crow {
 	int last_step_ret_;
 	inline void flush_results() { sqlite3_reset(stmt_); }
 	template <typename T> bool read(T&& output) {
-	  if (last_step_ret_ != SQLITE_ROW)
-		return false;
+	  if (last_step_ret_ != SQLITE_ROW) return false;
 	  int ncols = sqlite3_column_count(stmt_);
-	  std::size_t tuple_size = std::tuple_size_v<std::decay_t<T>>;
-	  if (ncols != tuple_size) {
-		std::ostringstream ss;
-		ss << "Invalid number of parameters: SQL request has " << ncols
-		  << " fields but the function to process it has " << tuple_size << " parameters.";
-		throw std::runtime_error(ss.str());
-	  }
 	  int i = 0;
-	  auto read_elt = [&](auto& v) {
-		this->read_column(i, v, sqlite3_column_type(stmt_, i));
-		++i;
-	  };
-	  ::crow::tuple_map(std::forward<T>(output), read_elt);
+	  if constexpr (is_tuple<T>::value) {
+		std::size_t tuple_size = std::tuple_size_v<std::decay_t<T>>;
+		if (ncols != tuple_size) {
+		  std::ostringstream ss;
+		  ss << "Invalid number of parameters: SQL request has " << ncols
+			<< " fields but the function to process it has " << tuple_size << " parameters.";
+		  throw std::runtime_error(ss.str());
+		}
+		auto read_elt = [&](auto& v) {
+		  this->read_column(i, v, sqlite3_column_type(stmt_, i));
+		  ++i;
+		};
+		::crow::tuple_map(std::forward<T>(output), read_elt);
+	  } else {
+		for (i = 0; i < ncols; ++i) {
+		  const char* cname = sqlite3_column_name(stmt_, i);
+		  int type = sqlite3_column_type(stmt_, i);
+		  switch (type) {
+		  case SQLITE_INTEGER:output[cname] = sqlite3_column_int64(stmt_, i);
+		  case SQLITE_FLOAT:output[cname] = sqlite3_column_double(stmt_, i); break;
+		  case SQLITE_TEXT: {auto str = sqlite3_column_text(stmt_, i);
+			output[cname] = (const char*)str;
+		  } break;
+		  case SQLITE_BLOB: {
+			auto str = sqlite3_column_text(stmt_, i);
+			int n = sqlite3_column_bytes(stmt_, i);
+			output[cname] = std::move(std::string((const char*)str, n));
+		  } break;
+		  default:output[cname] = nullptr; break;
+		  }
+		}
+	  }
 	  last_step_ret_ = sqlite3_step(stmt_);
 	  if (last_step_ret_ != SQLITE_ROW && last_step_ret_ != SQLITE_DONE)
 		throw std::runtime_error(sqlite3_errstr(last_step_ret_));
@@ -1176,19 +1267,6 @@ namespace crow {
 	  v = std::move(std::string((const char*)str, n));
 	}
   };
-#ifdef _WIN32
-  inline char* UnicodeToUtf8(const char* str) {
-	if (NULL == str) return NULL;
-	size_t len = (strlen(str) + 1) * sizeof(wchar_t);
-	size_t destlen = 0;
-	wchar_t* WStr = (wchar_t*)malloc(len);
-	mbstowcs_s(&destlen, WStr, len, str, _TRUNCATE);
-	len = wcslen(WStr) * sizeof(char) + 1; destlen = 0;
-	char* CStr = (char*)malloc(len);
-	wcstombs_s(&destlen, CStr, len, WStr, _TRUNCATE); CStr[len] = 0;
-	delete[] WStr; WStr = NULL; return CStr;
-  }
-#endif
   struct sqlite_statement {
 	typedef std::shared_ptr<sqlite3_stmt> stmt_sptr;
 	sqlite3* db_;
@@ -1315,9 +1393,8 @@ namespace crow {
   struct Sqlite {
 	typedef sqlite_tag db_tag;
 	inline Sqlite() {}
-	Sqlite(const std::string& path, unsigned int synchronous = 2) {
+	Sqlite(const std::string& path, unsigned int synchronous = 1) {
 	  path_ = path;
-	  std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	  con_.conn(path, SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
 	  std::ostringstream ss;
 	  ss << "PRAGMA synchronous=" << synchronous;
@@ -1325,7 +1402,8 @@ namespace crow {
 	}
 	template <typename Y> inline sqlite_connection conn(Y& y) { return con_; }
 	inline sqlite_connection conn() { return con_; }
-	inline void flush() { sqlite3_close_v2(con_.db_); }
+	inline void flush() { sqlite3_db_cacheflush(con_.db_); }
+	inline void close() { sqlite3_close_v2(con_.db_); }
 	sqlite_connection con_;
 	std::string path_;
   };
@@ -1528,19 +1606,34 @@ namespace crow {
 		  curent_result_field_types_[field_i] = PQftype(current_result_, field_i);
 	  }
 	}
-
-	int field_i = 0;
-
+	int i = 0;
 	int nfields = curent_result_field_types_.size();
-	if (nfields != std::tuple_size_v<std::decay_t<T>>)
-	  throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
-		"field and the outputs.");
-
-	tuple_map(std::forward<T>(output), [&](auto& m) {
-	  fetch_value(m, field_i, curent_result_field_types_[field_i]);
-	  ++field_i;
-	  });
-
+	if constexpr (is_tuple<T>::value) {
+	  if (nfields != std::tuple_size_v<std::decay_t<T>>)
+		throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
+		  "field and the outputs.");
+	  crow::tuple_map(std::forward<T>(output), [&](auto& m) {
+		fetch_value(m, i, curent_result_field_types_[i]);
+		++i;
+		});
+	} else {
+	  for (; i < nfields; ++i) {
+		char* val = PQgetvalue(current_result_, row_i_, i);
+		char* cname = PQfname(current_result_, i);
+		switch (curent_result_field_types_[i]) {
+		case INT8OID:output[cname] = be64toh(*((uint64_t*)val)); break;
+		case INT4OID:output[cname] = ntohl(*((uint32_t*)val)); break;
+		case INT2OID:output[cname] = ntohs(*((uint16_t*)val)); break;
+		case 25: {
+		  char* c = UnicodeToUtf8(val);
+		  output[cname] = std::move(std::string(c, PQgetlength(current_result_, row_i_, i)));
+		  free(c); c = NULL;
+		} break;
+		default:output[cname] = nullptr;
+		  break;
+		}
+	  }
+	}
 	++this->row_i_;
 
 	return true;
@@ -1703,7 +1796,7 @@ namespace crow {
 	  return sql_result<pgsql_result>{
 		pgsql_result{ this->data_, data_->error_ }};
 	}
-	std::string p_(int pos) {
+	inline std::string p_(int pos) {
 	  std::stringstream ss; ss << "$" << pos; return ss.str();
 	}
 	template <typename F, typename... K> pgsql_statement cached_statement(F f, K... keys) {
@@ -1915,7 +2008,7 @@ namespace crow {
   }
   void Timer::stop() { alive = false; }
   template <typename I, int Time = 28799> struct sql_database {
-	I impl; Timer timer; bool need_to_refresh = false;
+	I impl; Timer timer;
 	typedef typename I::connection_data_type connection_data_type;
 	typedef typename I::db_tag db_tag;
 	std::deque<connection_data_type*> sync_connections_;std::mutex sync_connections_mutex_;
@@ -1929,7 +2022,9 @@ namespace crow {
 	~sql_database() { flush(); }
 	inline void init() {
 	  if constexpr (std::is_same_v<db_tag, mysql_tag>) {
-		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time);
+		connection_data_type* data = impl.new_connection(); sync_connections_.push_back(data);
+		timer.setIntervalSec([this]() {
+		  if (!sync_connections_.empty()) { impl.ping(sync_connections_.back()); } }, Time);
 	  } else if constexpr (std::is_same_v<db_tag, pgsql_tag>) {
 		timer.setIntervalSec([this]() { impl.ping(); }, Time);
 	  }
@@ -1942,10 +2037,12 @@ namespace crow {
 	}
 	inline auto conn() {
 	  connection_data_type* data = nullptr;
+	  bool reuse = true;
 	  if (!sync_connections_.empty()) {
 		std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
 		data = sync_connections_.back();
 		sync_connections_.pop_back();
+		reuse = false;
 	  } else {
 	  _:
 		if (n_sync_connections_ > max_sync_connections_) {
@@ -1957,21 +2054,22 @@ namespace crow {
 		  --n_sync_connections_;
 		  throw std::move(e);
 		}
+		if (!data) { --n_sync_connections_; std::this_thread::yield(); goto _; }
 	  }
 	  assert(data); assert(data->error_ == 0);
-	  auto sptr = std::shared_ptr<connection_data_type>(data, [this](connection_data_type* data) {
+	  auto sptr = std::shared_ptr<connection_data_type>(data, [this, &reuse](connection_data_type* data) {
 		if (!data->error_ && sync_connections_.size() < max_sync_connections_) {
 		  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
 		  sync_connections_.push_back(data);
-		} else { --n_sync_connections_; delete data; }
+		} else { --n_sync_connections_; if (reuse)delete data; }
 		});
 	  return impl.scoped_connection(sptr);
 	}
   };
-  //MySQL will automatically shut down after 8 hours (28800 seconds) of
+  //SqlDataBase will automatically shut down after 8 hours (28800 seconds) of
   // inactivity by default (determined by the mechanism provided by the server)
   //typedef sql_database<sqlType,time_wait> D;time_wait default 28799
-  //I set time_ Wait and interactive_ Timeout is 100
+  //I set time_wait and interactive_timeout is 100
   typedef sql_database<mysql, 99> Mysql;
   typedef sql_database<pgsql, 99> Pgsql;
   //-------------- utf8 / GB2312 / GBK --------------
