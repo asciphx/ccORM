@@ -1035,14 +1035,18 @@ namespace crow {
 			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_STRING:
 		case enum_field_types::MYSQL_TYPE_VAR_STRING:
-		  output[cname] = boost::lexical_cast<std::string>(
-			std::string(current_row_[i], current_row_lengths_[i])); break;
+		 // output[cname] = boost::lexical_cast<std::string>(
+			//std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_LONG_BLOB:
 		case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
 		case enum_field_types::MYSQL_TYPE_TINY_BLOB:
 		case enum_field_types::MYSQL_TYPE_BLOB: {
+#ifdef SYS_IS_UTF8
+		  output[cname] = current_row_[i]; break;
+#else
 		  char* c = UnicodeToUtf8(current_row_[i]);
 		  output[cname] = c; free(c); c = NULL; break;
+#endif // SYS_IS_UTF8
 		} break;
 		default:output[cname] = current_row_[i]; break;
 		}
@@ -1122,7 +1126,6 @@ namespace crow {
 	return mysql_statement<B>{mysql_wrapper_, * pair.first->second, data_};
   }
 }
-#define MaxSyncConnections 256
 #define EXPECT_THROW(STM)\
 try {STM;std::cerr << "This must have thrown an exception: " << #STM << std::endl; } catch (...) {}
 #define EXPECT_EQUAL(A, B)\
@@ -1301,27 +1304,27 @@ namespace crow {
 	}
 	inline void bind(sqlite3_stmt* stmt, int pos, sql_null_t) { sqlite3_bind_null(stmt, pos); }
 	inline int bind(sqlite3_stmt* stmt, int pos, const char* s) const {
-#ifdef _WIN32
+#ifdef SYS_IS_UTF8
+	  return sqlite3_bind_text(stmt, pos, s, strlen(s), nullptr);
+#else
 	  char* c = UnicodeToUtf8(s); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
 	  free(c); c = NULL; return ret;
-#else
-	  return sqlite3_bind_text(stmt, pos, s, strlen(s), nullptr);
 #endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const std::string& s) const {
-#ifdef _WIN32
+#ifdef SYS_IS_UTF8
+	  return sqlite3_bind_text(stmt, pos, s.c_str(), s.length(), nullptr);
+#else
 	  char* c = UnicodeToUtf8(s.c_str()); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
 	  free(c); c = NULL; return ret;
-#else
-	  return sqlite3_bind_text(stmt, pos, s.c_str(), s.length(), nullptr);
 #endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const std::string_view& s) const {
-#ifdef _WIN32
+#ifndef SYS_IS_UTF8
+	  return sqlite3_bind_text(stmt, pos, s.data(), s.length(), nullptr);
+#else
 	  char* c = UnicodeToUtf8(s.data()); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
 	  free(c); c = NULL; return ret;
-#else
-	  return sqlite3_bind_text(stmt, pos, s.data(), s.length(), nullptr);
 #endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const sql_blob& b) const {
@@ -1625,9 +1628,13 @@ namespace crow {
 		case INT4OID:output[cname] = ntohl(*((uint32_t*)val)); break;
 		case INT2OID:output[cname] = ntohs(*((uint16_t*)val)); break;
 		case 25: {
+#ifdef SYS_IS_UTF8
+		  output[cname] = std::move(std::string(val, PQgetlength(current_result_, row_i_, i)));
+#else
 		  char* c = UnicodeToUtf8(val);
 		  output[cname] = std::move(std::string(c, PQgetlength(current_result_, row_i_, i)));
 		  free(c); c = NULL;
+#endif // SYS_IS_UTF8
 		} break;
 		default:output[cname] = nullptr;
 		  break;
@@ -2073,8 +2080,8 @@ namespace crow {
   typedef sql_database<mysql, 99> Mysql;
   typedef sql_database<pgsql, 99> Pgsql;
   //-------------- utf8 / GB2312 / GBK --------------
-#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"GBK")
-#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"GBK")
+#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
+#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,SYS_IS_UTF8?"utf8":"GBK")
 //------ Use GBK or GB2312 to support Chinese ------
 //---- SQLite can only support default encoding ----
 #define D_sqlite(path) crow::Sqlite(path)

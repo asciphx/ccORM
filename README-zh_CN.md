@@ -4,7 +4,7 @@ ccORM是最好的数据库查询软件。
  ![基准结果(未缓存)](./test.png)
 ```c++
 #include "ccORM.hh"
-auto d = D_mysql();//很容易的连接
+auto d = D_mysql();//在web需content-type加: text/html;charset=UTF-8
 //auto d1 = D_sqlite("test.db");
 //auto d2 = D_pgsql();
 int main(){
@@ -13,12 +13,12 @@ int main(){
   q("DROP table if exists users_test;");
   q("CREATE TABLE users_test (id int,name TEXT,age int);");
   auto add = q.prepare(string("INSERT into users_test(id, name, age) values (?,?,?);"));
-  add(1,"A神",44);
-  add(2,"程序王",23);
-  add(3,"超威码哥",21);
-  q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, "迪奥", 32);
+  add(1,u8"代码哥",44);
+  add(2,u8"攻城师",23);
+  add(3,u8"程序员",21);
+  q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, u8"编程王", 32);
   string s = q("select name from users_test where id = 2").template r__<string>();
-  EXPECT_EQUAL(make_tuple("超威码哥", 21),
+  EXPECT_EQUAL(make_tuple(u8"程序员", 21),
     (q("select name, age from users_test where id = 3").template r__<string, int>()));
   d.flush();
   cout << s << endl;

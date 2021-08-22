@@ -132,11 +132,11 @@ template <typename D> void generic_sql_tests(D& database) {
   // Prepared statement.
   auto insert_user = q.query(std::string("INSERT into users_test(id, name, age) values (?,?,?);"));
   insert_user(1, "John", 42);
-  insert_user(2, "码哥", 24);
+  insert_user(2, u8"码哥", 24);
   EXPECT_EQUAL(
       (std::make_tuple("John", 42)),(q("select name, age from users_test where id = 1").template r__<std::string, int>()));
   std::string ssss = q("select name from users_test where id = 2").template r__<std::string>();
   if constexpr (std::is_same_v<typename D::db_tag, crow::sqlite_tag>) {
-  } else EXPECT_EQUAL("码哥", ssss);
+  } else EXPECT_EQUAL(u8"码哥", ssss);
   printf("!!! string: %s\n", ssss.c_str());
 }
