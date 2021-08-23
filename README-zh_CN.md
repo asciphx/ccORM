@@ -1,15 +1,18 @@
-﻿# ccORM[版本 0.3]
+﻿# ccORM[版本 0.4]
 ccORM是最好的数据库查询软件。
 🚀 支持Mac、Linux、windows三种平台。开发速度最快、最迅速、最猛烈，即将支持ORM。
  ![基准结果(未缓存)](./test.png)
 ```c++
 #include "ccORM.hh"
 auto d = D_mysql();//在web需content-type加: text/html;charset=UTF-8
-//auto d1 = D_sqlite("test.db");
-//auto d2 = D_pgsql();
-int main(){
-  using namespace crow; using namespace std;
+//auto d = D_sqlite("test.db");
+//auto d = D_pgsql();
+int main(int argc, char* argv[]) {
+  Timer t; int i = 0; t.setInterval([&i]() { cout << "After " << ++i << "s\n"; }, 1000);
+  std::locale::global(std::locale(u8"en_US.UTF8"));
   auto q = d.conn();
+  if (argv[1]) cout << q(argv[1]).JSON() << endl;// ./main "SELECT * from users_test"
+
   q("DROP table if exists users_test;");
   q("CREATE TABLE users_test (id int,name TEXT,age int);");
   auto add = q.prepare(string("INSERT into users_test(id, name, age) values (?,?,?);"));

@@ -480,15 +480,14 @@ namespace crow {
 
 
 	template <typename F> void map(F f);
-	nlohmann::json JSON();
+	nlohmann::json JSON();//or any other json lib
   };
-  template <typename B> nlohmann::json sql_result<B>::JSON() {
-	nlohmann::json t;
-	if (!impl_.read(std::forward<nlohmann::json>(t)))
-	  throw std::runtime_error("sql_result::r__: error: Trying to read a request that did not return any data.");
-	return t;
-  }
 
+  template <typename B> nlohmann::json sql_result<B>::JSON() {
+	nlohmann::json t; uint32_t result = impl_.readJson(std::forward<nlohmann::json>(t));
+	//if (!result) throw std::runtime_error("sql_result::r__: error: Trying to read a request that did not return any data.");
+	return nlohmann::json{ {"num",result},{"result",t} };
+  }
   template <typename B>
   template <typename T1, typename... T>
   bool sql_result<B>::r__(T1&& t1, T&... tail) {
@@ -951,17 +950,23 @@ namespace crow {
   }
 
   template <typename B> struct mysql_result {
-	B& mysql_wrapper_;     std::shared_ptr<mysql_connection_data> connection_;
-	MYSQL_RES* result_ = nullptr;     unsigned long* current_row_lengths_ = nullptr;
+	B& mysql_wrapper_;
+	std::shared_ptr<mysql_connection_data> connection_;
+	MYSQL_RES* result_ = nullptr;
+	unsigned long* current_row_lengths_ = nullptr;
 	MYSQL_ROW current_row_ = nullptr;
 	bool end_of_result_ = false;
-	int current_row_num_fields_ = 0;
+	unsigned int current_row_num_fields_ = 0;
+	uint32_t count_result_ = 0;
+	char** proto_name_ = nullptr;
+	uint16_t* proto_type_ = nullptr;
+	uint64_t current_result_nrows_ = 0;
 	mysql_result(B& mysql_wrapper_, std::shared_ptr<mysql_connection_data> connection_)
 	  : mysql_wrapper_(mysql_wrapper_), connection_(connection_) {}
 	mysql_result& operator=(mysql_result&) = delete;
 	mysql_result(const mysql_result&) = delete;
 	mysql_result(mysql_result&&) = default;
-	inline ~mysql_result() { flush(); }
+	~mysql_result() { free(proto_type_); free(proto_name_); proto_type_ = NULL; proto_name_ = NULL; flush(); }
 	inline void flush() {
 	  if (result_) {
 		mysql_free_result(result_);
@@ -971,14 +976,12 @@ namespace crow {
 	inline void flush_results() { this->flush(); }
 	inline void next_row();
 	template <typename T> bool read(T&& output);
-
+	template <typename T> unsigned int readJson(T&& output);
 	long long int affected_rows();
-
 	long long int last_insert_id();
   };
 
-  template <typename B> void mysql_result<B>::next_row() {
-
+  template <typename B> inline void mysql_result<B>::next_row() {
 	if (!result_)
 	  result_ = mysql_use_result(connection_->connection_);
 	current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_);
@@ -987,72 +990,131 @@ namespace crow {
 	  end_of_result_ = true;
 	  return;
 	}
-
+	current_result_nrows_ = mysql_num_rows(result_);
 	current_row_lengths_ = mysql_fetch_lengths(result_);
   }
-
-  template <typename B> template <typename T> bool mysql_result<B>::read(T&& output) {
-	next_row();
-	if (end_of_result_) return false;
-	int i = 0;
-	if constexpr (is_tuple<T>::value) { // Tuple
-	  if (std::tuple_size_v<std::decay_t<T>> != current_row_num_fields_)
-		throw std::runtime_error(std::string("The request number of field (") +
-		  boost::lexical_cast<std::string>(current_row_num_fields_) +
-		  ") does not match the size of the tuple (" +
-		  boost::lexical_cast<std::string>(std::tuple_size_v<std::decay_t<T>>) + ")");
-	  crow::tuple_map(std::forward<T>(output), [&](auto& v) {
-		//std::cout << "read " << std::string_view(current_row_[i], current_row_lengths_[i]) << std::endl;
-		v = boost::lexical_cast<std::decay_t<decltype(v)>>(
-		  std::string_view(current_row_[i], current_row_lengths_[i]));
-		++i;
-		});
-	} else {
+  template <typename B> template <typename T> unsigned int mysql_result<B>::readJson(T&& output) {
+	next_row(); if (end_of_result_) return 0;
+	if (proto_type_ == nullptr) {
+	  proto_name_ = (char**)malloc(sizeof(char*) * (int)current_row_num_fields_);
+	  proto_type_ = (uint16_t*)malloc(sizeof(uint16_t) * (int)current_row_num_fields_);
 	  MYSQL_FIELD* field;
-	  while ((field = mysql_fetch_field(result_))) {
-		const char* cname = field->name;
-		switch (field->type) {
+	  for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
+		field = mysql_fetch_field(result_);
+		proto_name_[i] = (char*)malloc(sizeof(char) * 51);
+		strcpy(proto_name_[i], field->name);
+		proto_type_[i] = (uint16_t)field->type;
+	  }
+	}
+	if (current_result_nrows_ == 1) {
+	  for (unsigned int i = 0; i < current_row_num_fields_; i++) {
+		switch (proto_type_[i]) {
 		case enum_field_types::MYSQL_TYPE_DOUBLE:
-		  output[cname] = boost::lexical_cast<double>(
+		  output[proto_name_[i]] = boost::lexical_cast<double>(
 			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_FLOAT:
-		  output[cname] = boost::lexical_cast<float>(
+		  output[proto_name_[i]] = boost::lexical_cast<float>(
 			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_TINY:
-		  output[cname] = boost::lexical_cast<signed char>(
+		  output[proto_name_[i]] = boost::lexical_cast<signed char>(
 			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_INT24:
-		  output[cname] = boost::lexical_cast<int>(
+		  output[proto_name_[i]] = boost::lexical_cast<int>(
 			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_SHORT:
-		  output[cname] = boost::lexical_cast<short>(
+		  output[proto_name_[i]] = boost::lexical_cast<short>(
 			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_LONGLONG:
-		  output[cname] = boost::lexical_cast<long long>(
+		  output[proto_name_[i]] = boost::lexical_cast<long long>(
 			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_LONG:
-		  output[cname] = boost::lexical_cast<long>(
+		  output[proto_name_[i]] = boost::lexical_cast<long>(
 			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_STRING:
 		case enum_field_types::MYSQL_TYPE_VAR_STRING:
-		 // output[cname] = boost::lexical_cast<std::string>(
-			//std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		case enum_field_types::MYSQL_TYPE_LONG_BLOB:
 		case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
 		case enum_field_types::MYSQL_TYPE_TINY_BLOB:
 		case enum_field_types::MYSQL_TYPE_BLOB: {
 #ifdef SYS_IS_UTF8
-		  output[cname] = current_row_[i]; break;
+		  output[proto_name_[i]] = boost::lexical_cast<std::string>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
 #else
 		  char* c = UnicodeToUtf8(current_row_[i]);
-		  output[cname] = c; free(c); c = NULL; break;
+		  output[proto_name_[i]] = boost::lexical_cast<std::string>(
+			std::string_view(c, current_row_lengths_[i]));
+		  free(c); c = NULL; break;
 #endif // SYS_IS_UTF8
 		} break;
-		default:output[cname] = current_row_[i]; break;
+		default:output[proto_name_[i]] = nullptr; break;
 		}
-		++i;
+		}
+	  return 1;
 	  }
+	T j;
+	while (current_row_) {
+	  for (unsigned int i = 0; i < current_row_num_fields_; i++) {
+		switch (proto_type_[i]) {
+		case enum_field_types::MYSQL_TYPE_DOUBLE:
+		  j[proto_name_[i]] = boost::lexical_cast<double>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_FLOAT:
+		  j[proto_name_[i]] = boost::lexical_cast<float>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_TINY:
+		  j[proto_name_[i]] = boost::lexical_cast<signed char>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_INT24:
+		  j[proto_name_[i]] = boost::lexical_cast<int>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_SHORT:
+		  j[proto_name_[i]] = boost::lexical_cast<short>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_LONGLONG:
+		  j[proto_name_[i]] = boost::lexical_cast<long long>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_LONG:
+		  j[proto_name_[i]] = boost::lexical_cast<long>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		case enum_field_types::MYSQL_TYPE_STRING:
+		case enum_field_types::MYSQL_TYPE_VAR_STRING:
+		case enum_field_types::MYSQL_TYPE_LONG_BLOB:
+		case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
+		case enum_field_types::MYSQL_TYPE_TINY_BLOB:
+		case enum_field_types::MYSQL_TYPE_BLOB: {
+#ifdef SYS_IS_UTF8
+		  j[proto_name_[i]] = boost::lexical_cast<std::string>(
+			std::string_view(current_row_[i], current_row_lengths_[i])); break;
+#else
+		  char* c = UnicodeToUtf8(current_row_[i]);
+		  j[proto_name_[i]] = boost::lexical_cast<std::string>(
+			std::string_view(c, current_row_lengths_[i]));
+		  free(c); c = NULL; break;
+#endif // SYS_IS_UTF8
+		} break;
+		default:j[proto_name_[i]] = nullptr; break;
+		}
+		//printf("[%.*s] ", (int)current_row_lengths_[i], current_row_[i] ? current_row_[i] : "NULL");
+	  }//printf("\n");
+	  current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_);
+	  output.push_back(j);
 	}
+	return count_result_;
+	}
+  template <typename B> template <typename T> bool mysql_result<B>::read(T&& output) {
+	next_row();
+	if (end_of_result_) return false;
+	unsigned int i = 0;
+	if (std::tuple_size_v<std::decay_t<T>> != current_row_num_fields_)
+	  throw std::runtime_error(std::string("The request number of field (") +
+		boost::lexical_cast<std::string>(current_row_num_fields_) +
+		") does not match the size of the tuple (" +
+		boost::lexical_cast<std::string>(std::tuple_size_v<std::decay_t<T>>) + ")");
+	crow::tuple_map(std::forward<T>(output), [&](auto& v) {
+	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(
+		std::string_view(current_row_[i], current_row_lengths_[i]));
+	  ++i;
+	  });
 	return true;
   }
 
@@ -1196,49 +1258,52 @@ namespace crow {
   using tuple_remove_references_and_const_t = typename tuple_remove_references_and_const<T>::type;
   inline void free_sqlite3_statement(void* s) { sqlite3_finalize((sqlite3_stmt*)s); }
   struct sqlite_statement_result {
-	sqlite3* db_;
-	sqlite3_stmt* stmt_;
-	int last_step_ret_;
+	sqlite3* db_; sqlite3_stmt* stmt_;
+	int last_step_ret_; uint32_t rowcount_ = 0;
 	inline void flush_results() { sqlite3_reset(stmt_); }
-	template <typename T> bool read(T&& output) {
-	  if (last_step_ret_ != SQLITE_ROW) return false;
-	  int ncols = sqlite3_column_count(stmt_);
-	  int i = 0;
-	  if constexpr (is_tuple<T>::value) {
-		std::size_t tuple_size = std::tuple_size_v<std::decay_t<T>>;
-		if (ncols != tuple_size) {
-		  std::ostringstream ss;
-		  ss << "Invalid number of parameters: SQL request has " << ncols
-			<< " fields but the function to process it has " << tuple_size << " parameters.";
-		  throw std::runtime_error(ss.str());
-		}
-		auto read_elt = [&](auto& v) {
-		  this->read_column(i, v, sqlite3_column_type(stmt_, i));
-		  ++i;
-		};
-		::crow::tuple_map(std::forward<T>(output), read_elt);
-	  } else {
-		for (i = 0; i < ncols; ++i) {
-		  const char* cname = sqlite3_column_name(stmt_, i);
-		  int type = sqlite3_column_type(stmt_, i);
-		  switch (type) {
-		  case SQLITE_INTEGER:output[cname] = sqlite3_column_int64(stmt_, i);
-		  case SQLITE_FLOAT:output[cname] = sqlite3_column_double(stmt_, i); break;
-		  case SQLITE_TEXT: {auto str = sqlite3_column_text(stmt_, i);
-			output[cname] = (const char*)str;
-		  } break;
-		  case SQLITE_BLOB: {
-			auto str = sqlite3_column_text(stmt_, i);
-			int n = sqlite3_column_bytes(stmt_, i);
-			output[cname] = std::move(std::string((const char*)str, n));
-		  } break;
-		  default:output[cname] = nullptr; break;
-		  }
+	// Read a tuple or a metamap.
+	template <typename T> uint32_t readJson(T&& output) {
+	  T j; int ncols = sqlite3_column_count(stmt_), i = 0; _:++rowcount_;
+	  for (i = 0; i < ncols; ++i) {
+		switch (sqlite3_column_type(stmt_, i)) {
+		case SQLITE_INTEGER:j[sqlite3_column_name(stmt_, i)] = sqlite3_column_int64(stmt_, i);
+		case SQLITE_FLOAT:j[sqlite3_column_name(stmt_, i)] = sqlite3_column_double(stmt_, i); break;
+		case SQLITE_TEXT: {auto str = sqlite3_column_text(stmt_, i);
+		  j[sqlite3_column_name(stmt_, i)] = (const char*)str;
+		} break;
+		case SQLITE_BLOB: {
+		  j[sqlite3_column_name(stmt_, i)] = std::move(std::string((const char*)sqlite3_column_text(stmt_, i),
+			sqlite3_column_bytes(stmt_, i)));
+		} break;
+		default:j[sqlite3_column_name(stmt_, i)] = nullptr; break;
 		}
 	  }
 	  last_step_ret_ = sqlite3_step(stmt_);
-	  if (last_step_ret_ != SQLITE_ROW && last_step_ret_ != SQLITE_DONE)
-		throw std::runtime_error(sqlite3_errstr(last_step_ret_));
+	  if (last_step_ret_ != SQLITE_ROW) {
+		if (rowcount_ == 1) output = j; else output.push_back(j);
+		return rowcount_;
+	  } output.push_back(j); goto _;
+	  //if (last_step_ret_ != SQLITE_ROW && last_step_ret_ != SQLITE_DONE)
+	  //  throw std::runtime_error(sqlite3_errstr(last_step_ret_));
+	}
+
+	template <typename T> bool read(T&& output) {
+	  if (last_step_ret_ != SQLITE_ROW) return false;
+	  //if constexpr (is_tuple<T>::value) {}
+	  int ncols = sqlite3_column_count(stmt_);
+	  int i = 0;
+	  std::size_t tuple_size = std::tuple_size_v<std::decay_t<T>>;
+	  if (ncols != tuple_size) {
+		std::ostringstream ss;
+		ss << "Invalid number of parameters: SQL request has " << ncols
+		  << " fields but the function to process it has " << tuple_size << " parameters.";
+		throw std::runtime_error(ss.str());
+	  }
+	  auto read_elt = [&](auto& v) {
+		this->read_column(i, v, sqlite3_column_type(stmt_, i));
+		++i;
+	  };
+	  ::crow::tuple_map(std::forward<T>(output), read_elt);
 	  return true;
 	}
 	inline long long int last_insert_id() { return sqlite3_last_insert_rowid(db_); }
@@ -1269,6 +1334,11 @@ namespace crow {
 	  auto n = sqlite3_column_bytes(stmt_, pos);
 	  v = std::move(std::string((const char*)str, n));
 	}
+	// Todo: Date types
+	// template <typename C, typename D>
+	// void read_column(int pos, std::chrono::time_point<C, D>& v) {
+	//   v = std::chrono::time_point<C, D>(sqlite3_column_int(stmt_, pos));
+	// }
   };
   struct sqlite_statement {
 	typedef std::shared_ptr<sqlite3_stmt> stmt_sptr;
@@ -1448,33 +1518,41 @@ namespace crow {
   };
 
   struct pgsql_result {
-
   public:
-	~pgsql_result() { if (current_result_) PQclear(current_result_); }
+	~pgsql_result() { if (current_result_) PQclear(current_result_); free(proto_name_);  proto_name_ = NULL; }
+	// Read metamap and tuples.
 	template <typename T> bool read(T&& t1);
+	template <typename T> unsigned int readJson(T&& t1);
 	long long int last_insert_id();
+	// Flush all results.
 	void flush_results();
 	std::shared_ptr<pgsql_connection_data> connection_;
 	int last_insert_id_ = -1;
 	int row_i_ = 0;
 	int current_result_nrows_ = 0;
 	PGresult* current_result_ = nullptr;
-	std::vector<Oid> curent_result_field_types_;
 	std::vector<int> curent_result_field_positions_;
 
+	char** proto_name_ = nullptr;
+	std::vector<Oid> proto_type_;
   private:
 
+	// Wait for the next result.
 	PGresult* wait_for_next_result();
 
+	// Fetch a string from a result field.
 	template <typename... A>
 	void fetch_value(std::string& out, int field_i, Oid field_type);
+	// Fetch a blob from a result field.
 	template <typename... A> void fetch_value(sql_blob& out, int field_i, Oid field_type);
+	// Fetch an int from a result field.
 	void fetch_value(int& out, int field_i, Oid field_type);
+	// Fetch an unsigned int from a result field.
 	void fetch_value(unsigned int& out, int field_i, Oid field_type);
   };
-
   PGresult* pg_wait_for_next_result(PGconn* connection,
 	int& connection_status, bool nothrow = false) {
+	// std::cout << "WAIT ======================" << std::endl;
 	while (true) {
 	  if (PQconsumeInput(connection) == 0) {
 		connection_status = 1;
@@ -1489,9 +1567,13 @@ namespace crow {
 	  }
 
 	  if (PQisBusy(connection)) {
+		// std::cout << "isbusy" << std::endl;
 		try {
 		  std::this_thread::yield();
 		} catch (std::runtime_error& e) {
+		  // Free results.
+		  // Yield thrown a exception (probably because a closed connection).
+		  // Flush the remaining results.
 		  while (true) {
 			if (PQconsumeInput(connection) == 0) {
 			  connection_status = 1;
@@ -1506,6 +1588,7 @@ namespace crow {
 		  throw std::move(e);
 		}
 	  } else {
+		// std::cout << "notbusy" << std::endl;
 		PGresult* res = PQgetResult(connection);
 		if (PQresultStatus(res) == PGRES_FATAL_ERROR && PQerrorMessage(connection)[0] != 0) {
 		  PQclear(res);
@@ -1539,28 +1622,43 @@ namespace crow {
 		else break;
 	  }
 	} catch (std::runtime_error& e) {
+	  // Forward fiber execptions.
 	  throw std::move(e);
 	}
   }
 
+  // Fetch a string from a result field.
   template <typename... A>
   void pgsql_result::fetch_value(std::string& out, int field_i,
 	Oid field_type) {
+	// assert(!is_binary);
+	// std::cout << "fetch string: " << length << " '"<< val <<"'" << std::endl;
 	out = std::move(std::string(PQgetvalue(current_result_, row_i_, field_i),
 	  PQgetlength(current_result_, row_i_, field_i)));
+	// out = std::move(std::string(val, strlen(val)));
   }
 
+  // Fetch a blob from a result field.
   template <typename... A>
   void pgsql_result::fetch_value(sql_blob& out, int field_i, Oid field_type) {
+	// assert(is_binary);
 	out = std::move(std::string(PQgetvalue(current_result_, row_i_, field_i),
 	  PQgetlength(current_result_, row_i_, field_i)));
   }
 
+  // Fetch an int from a result field.
   void pgsql_result::fetch_value(int& out, int field_i, Oid field_type) {
-	assert(PQfformat(current_result_, field_i) == 1);
+	assert(PQfformat(current_result_, field_i) == 1); // Assert binary format
 	char* val = PQgetvalue(current_result_, row_i_, field_i);
 
+	// TYPCATEGORY_NUMERIC
+	// std::cout << "fetch integer " << length << " " << is_binary << std::endl;
+	// std::cout << "fetch integer " << be64toh(*((uint64_t *) val)) << std::endl;
 	if (field_type == INT8OID) {
+	  // std::cout << "fetch 64b integer " << std::hex << int(32) << std::endl;
+	  // std::cout << "fetch 64b integer " << std::hex << uint64_t(*((uint64_t *) val)) << std::endl;
+	  // std::cout << "fetch 64b integer " << std::hex << (*((uint64_t *) val)) << std::endl;
+	  // std::cout << "fetch 64b integer " << std::hex << be64toh(*((uint64_t *) val)) << std::endl;
 	  out = be64toh(*((uint64_t*)val));
 	} else if (field_type == INT4OID)
 	  out = (uint32_t)ntohl(*((uint32_t*)val));
@@ -1571,9 +1669,12 @@ namespace crow {
   }
 
 
+  // Fetch an unsigned int from a result field.
   void pgsql_result::fetch_value(unsigned int& out, int field_i, Oid field_type) {
-	assert(PQfformat(current_result_, field_i) == 1);
+	assert(PQfformat(current_result_, field_i) == 1); // Assert binary format
 	char* val = PQgetvalue(current_result_, row_i_, field_i);
+
+	// if (length == 8)
 	if (field_type == INT8OID)
 	  out = be64toh(*((uint64_t*)val));
 	else if (field_type == INT4OID)
@@ -1584,8 +1685,81 @@ namespace crow {
 	  assert(0);
   }
 
+  template <typename T> uint32_t pgsql_result::readJson(T&& output) {
+	int nfields = proto_type_.size();
+	if (!current_result_ || row_i_ == current_result_nrows_) {
+	  if (current_result_) {
+		PQclear(current_result_);
+		current_result_ = nullptr;
+	  }
+	  current_result_ = wait_for_next_result();
+	  if (!current_result_)
+		return 0;
+	  row_i_ = 0;
+	  current_result_nrows_ = PQntuples(current_result_);
+	  if (current_result_nrows_ == 0) {
+		PQclear(current_result_);
+		current_result_ = nullptr;
+		return 0;
+	  }
+	  if (nfields == 0) {
+		proto_type_.resize(PQnfields(current_result_));
+		nfields = proto_type_.size();
+		proto_name_ = (char**)malloc(sizeof(char*) * nfields);
+		for (int field_i = 0; field_i < nfields; ++field_i) {
+		  proto_type_[field_i] = PQftype(current_result_, field_i);
+		  proto_name_[field_i] = (char*)malloc(sizeof(char) * 51);
+		  strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
+		}
+	  }
+	  }
+	if (current_result_nrows_ == 1) {
+	  for (int i = 0; i < nfields; ++i) {
+		char* val = PQgetvalue(current_result_, 0, i); std::cout << "->" << val << "|";
+		switch (proto_type_[i]) {
+		case INT8OID:output[proto_name_[i]] = be64toh(*((uint64_t*)val)); break;
+		case INT4OID:output[proto_name_[i]] = ntohl(*((uint32_t*)val)); break;
+		case INT2OID:output[proto_name_[i]] = ntohs(*((uint16_t*)val)); break;
+		case 25: {
+#ifdef SYS_IS_UTF8
+		  output[proto_name_[i]] = std::move(std::string(val, PQgetlength(current_result_, 0, i)));
+#else
+		  char* c = UnicodeToUtf8(val);
+		  output[proto_name_[i]] = std::move(std::string(c, PQgetlength(current_result_, 0, i)));
+		  free(c); c = NULL;
+#endif // SYS_IS_UTF8
+		} break;
+		default:output[proto_name_[i]] = nullptr;
+		  break;
+		}
+	  }
+	  return 1;
+	}
+	for (T j; row_i_ < current_result_nrows_; ++row_i_) {
+	  for (int i = 0; i < nfields; ++i) {
+		char* val = PQgetvalue(current_result_, row_i_, i); std::cout << "->" << val << "|";
+		switch (proto_type_[i]) {
+		case INT8OID:j[proto_name_[i]] = be64toh(*((uint64_t*)val)); break;
+		case INT4OID:j[proto_name_[i]] = ntohl(*((uint32_t*)val)); break;
+		case INT2OID:j[proto_name_[i]] = ntohs(*((uint16_t*)val)); break;
+		case 25: {
+#ifdef SYS_IS_UTF8
+		  j[proto_name_[i]] = std::move(std::string(val, PQgetlength(current_result_, row_i_, i)));
+#else
+		  char* c = UnicodeToUtf8(val);
+		  j[proto_name_[i]] = std::move(std::string(c, PQgetlength(current_result_, row_i_, i)));
+		  free(c); c = NULL;
+#endif // SYS_IS_UTF8
+		} break;
+		default:j[proto_name_[i]] = nullptr;
+		  break;
+		}
+	  }output.push_back(j);
+	}
+	return row_i_;
+	}
   template <typename T> bool pgsql_result::read(T&& output) {
-
+	int nfields = proto_type_.size();
 	if (!current_result_ || row_i_ == current_result_nrows_) {
 	  if (current_result_) {
 		PQclear(current_result_);
@@ -1601,55 +1775,39 @@ namespace crow {
 		current_result_ = nullptr;
 		return false;
 	  }
-
-	  if (curent_result_field_types_.size() == 0) {
-
-		curent_result_field_types_.resize(PQnfields(current_result_));
-		for (int field_i = 0; field_i < curent_result_field_types_.size(); ++field_i)
-		  curent_result_field_types_[field_i] = PQftype(current_result_, field_i);
+	  if (nfields == 0) {
+		proto_type_.resize(PQnfields(current_result_));
+		nfields = proto_type_.size();
+		for (int field_i = 0; field_i < nfields; ++field_i)
+		  proto_type_[field_i] = PQftype(current_result_, field_i);
 	  }
 	}
 	int i = 0;
-	int nfields = curent_result_field_types_.size();
-	if constexpr (is_tuple<T>::value) {
-	  if (nfields != std::tuple_size_v<std::decay_t<T>>)
-		throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
-		  "field and the outputs.");
-	  crow::tuple_map(std::forward<T>(output), [&](auto& m) {
-		fetch_value(m, i, curent_result_field_types_[i]);
-		++i;
-		});
-	} else {
-	  for (; i < nfields; ++i) {
-		char* val = PQgetvalue(current_result_, row_i_, i);
-		char* cname = PQfname(current_result_, i);
-		switch (curent_result_field_types_[i]) {
-		case INT8OID:output[cname] = be64toh(*((uint64_t*)val)); break;
-		case INT4OID:output[cname] = ntohl(*((uint32_t*)val)); break;
-		case INT2OID:output[cname] = ntohs(*((uint16_t*)val)); break;
-		case 25: {
-#ifdef SYS_IS_UTF8
-		  output[cname] = std::move(std::string(val, PQgetlength(current_result_, row_i_, i)));
-#else
-		  char* c = UnicodeToUtf8(val);
-		  output[cname] = std::move(std::string(c, PQgetlength(current_result_, row_i_, i)));
-		  free(c); c = NULL;
-#endif // SYS_IS_UTF8
-		} break;
-		default:output[cname] = nullptr;
-		  break;
-		}
-	  }
-	}
+	//if constexpr (is_tuple<T>::value) {}
+	if (nfields != std::tuple_size_v<std::decay_t<T>>)
+	  throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
+		"field and the outputs.");
+	crow::tuple_map(std::forward<T>(output), [&](auto& m) {
+	  fetch_value(m, i, proto_type_[i]);
+	  ++i;
+	  });
 	++this->row_i_;
-
 	return true;
   }
-
   long long int pgsql_result::last_insert_id() {
+	// while (PGresult* res = wait_for_next_result())
+	//  PQclear(res);
+	// PQsendQuery(connection_, "LASTVAL()");
 	int t = 0;
 	this->read(std::tie(t));
 	return t;
+	// PGresult *PQexec(connection_, const char *command);
+	// this->operator()
+	//   last_insert_id_ = PQoidValue(res);
+	//   std::cout << "id " << last_insert_id_ << std::endl;
+	//   PQclear(res);
+	// }
+	// return last_insert_id_;
   }
 
   struct pgsql_statement_data : std::enable_shared_from_this<pgsql_statement_data> {

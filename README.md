@@ -1,15 +1,18 @@
-﻿# ccORM[version 0.3]
+﻿# ccORM[version 0.4]
 ccORM is the best database query software.
 🚀 Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support ORM.
  ![Benchmark results (not cached)](./test.png)
 ```c++
 #include "ccORM.hh"
 auto d = D_mysql();//easy to connect
-//auto d1 = D_sqlite("test.db");
-//auto d2 = D_pgsql();
-int main(){
-  using namespace crow; using namespace std;
+//auto d = D_sqlite("test.db");
+//auto d = D_pgsql();
+int main(int argc, char* argv[]) {
+  Timer t; int i = 0; t.setInterval([&i]() { cout << "After " << ++i << "s\n"; }, 1000);
+  std::locale::global(std::locale(u8"en_US.UTF8"));
   auto q = d.conn();
+  if (argv[1]) cout << q(argv[1]).JSON() << endl;// ./main "SELECT * from users_test"
+
   q("DROP table if exists users_test;");
   q("CREATE TABLE users_test (id int,name TEXT,age int);");
   //q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, "Deaod", 32);
