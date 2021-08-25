@@ -1,4 +1,6 @@
 #pragma once
+#define SYS_IS_UTF8 1           //------ use GBK or UTF8 ------
+#define MaxSyncConnections 32   //---- MaxSync Connections ----
 #include <tuple>
 #include <vector>
 #include <any>
@@ -2140,9 +2142,9 @@ namespace crow {
 	~sql_database() { flush(); }
 	inline void init() {
 	  if constexpr (std::is_same_v<db_tag, mysql_tag>) {
-		connection_data_type* data = impl.new_connection(); sync_connections_.push_back(data);
-		timer.setIntervalSec([this]() {
-		  if (!sync_connections_.empty()) { impl.ping(sync_connections_.back()); } }, Time);
+		connection_data_type* data = impl.new_connection();
+		assert(data); sync_connections_.push_back(data);
+		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time);
 	  } else if constexpr (std::is_same_v<db_tag, pgsql_tag>) {
 		timer.setIntervalSec([this]() { impl.ping(); }, Time);
 	  }
