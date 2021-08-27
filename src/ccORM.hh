@@ -2,7 +2,7 @@
 #define SYS_IS_UTF8 1           //------ use GBK or UTF8 ------
 #define MaxSyncConnections 32   //---- MaxSync Connections ----
 #define MaxProtoNum 32          //------- Max Proto Num -------
-#define MaxProtoLength 33       //-- Max ProtoNum Length(+1) --
+#define MaxProtoLength 33       //-- Max ProtoName Length +1 --
 #include <tuple>
 #include <vector>
 #include <any>
