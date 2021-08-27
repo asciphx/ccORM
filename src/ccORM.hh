@@ -1,6 +1,8 @@
 #pragma once
 #define SYS_IS_UTF8 1           //------ use GBK or UTF8 ------
 #define MaxSyncConnections 32   //---- MaxSync Connections ----
+#define MaxProtoNum 32          //------- Max Proto Num -------
+#define MaxProtoLength 33       //-- Max ProtoNum Length(+1) --
 #include <tuple>
 #include <vector>
 #include <any>
@@ -959,15 +961,15 @@ namespace crow {
 	MYSQL_ROW current_row_ = nullptr;
 	bool end_of_result_ = false;
 	unsigned int current_row_num_fields_ = 0;
-	char** proto_name_ = nullptr;
-	uint16_t* proto_type_ = nullptr;
+	char proto_name_[MaxProtoNum][MaxProtoLength];
+	uint16_t proto_type_[MaxProtoNum];
 	uint64_t current_result_nrows_ = 1;
 	mysql_result(B& mysql_wrapper_, std::shared_ptr<mysql_connection_data> connection_)
 	  : mysql_wrapper_(mysql_wrapper_), connection_(connection_) {}
 	mysql_result& operator=(mysql_result&) = delete;
 	mysql_result(const mysql_result&) = delete;
 	mysql_result(mysql_result&&) = default;
-	~mysql_result() { free(proto_type_); free(proto_name_); proto_type_ = NULL; proto_name_ = NULL; flush(); }
+	~mysql_result() { flush(); }
 	inline void flush() {
 	  if (result_) {
 		mysql_free_result(result_);
@@ -995,17 +997,13 @@ namespace crow {
   }
   template <typename B> template <typename T> unsigned int mysql_result<B>::readJson(T&& output) {
 	next_row(); if (end_of_result_) return 0; T j;
-	if (proto_type_ == nullptr) {
-	  proto_name_ = (char**)malloc(sizeof(char*) * (int)current_row_num_fields_);
-	  proto_type_ = (uint16_t*)malloc(sizeof(uint16_t) * (int)current_row_num_fields_);
-	  MYSQL_FIELD* field;
-	  for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
-		field = mysql_fetch_field(result_);
-		proto_name_[i] = (char*)malloc(sizeof(char) * 51);
-		strcpy(proto_name_[i], field->name);
-		proto_type_[i] = (uint16_t)field->type;
-	  }
-	}_:
+	MYSQL_FIELD* field;
+	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
+	  field = mysql_fetch_field(result_);
+	  strcpy(proto_name_[i], field->name);
+	  proto_type_[i] = (uint16_t)field->type;
+	}
+	_:
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
 	  if (current_row_[i] == 0) { j[proto_name_[i]] = nullptr; continue; }
 		switch (proto_type_[i]) {
@@ -1474,7 +1472,7 @@ namespace crow {
 
   struct pgsql_result {
   public:
-	~pgsql_result() { if (current_result_) PQclear(current_result_); free(proto_name_);  proto_name_ = NULL; }
+	~pgsql_result() { if (current_result_) PQclear(current_result_); }
 	// Read metamap and tuples.
 	template <typename T> bool read(T&& t1);
 	template <typename T> unsigned int readJson(T&& t1);
@@ -1488,7 +1486,7 @@ namespace crow {
 	PGresult* current_result_ = nullptr;
 	std::vector<int> curent_result_field_positions_;
 
-	char** proto_name_ = nullptr;
+	char proto_name_[MaxProtoNum][MaxProtoLength];
 	std::vector<Oid> proto_type_;
   private:
 
@@ -1660,10 +1658,8 @@ namespace crow {
 	  if (nfields == 0) {
 		proto_type_.resize(PQnfields(current_result_));
 		nfields = proto_type_.size();
-		proto_name_ = (char**)malloc(sizeof(char*) * nfields);
 		for (int field_i = 0; field_i < nfields; ++field_i) {
 		  proto_type_[field_i] = PQftype(current_result_, field_i);
-		  proto_name_[field_i] = (char*)malloc(sizeof(char) * 51);
 		  strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
 		}
 	  }
