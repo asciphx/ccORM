@@ -6,10 +6,7 @@
 #include <algorithm>
 #include <sstream>
 #include "std_s.hpp"
-template<typename T>
-typename std::enable_if<std::is_fundamental<T>::value, std::string>::type stringify(const T& t) { return std::to_string(t); }
-template<typename T>
-typename std::enable_if<!std::is_fundamental<T>::value, std::string>::type stringify(const T& t) { return std::string(t); }
+//String type setting system(Not used at the moment)
 template<typename T>
 constexpr typename std::enable_if<std::is_same<T, const char*>::value, std::string>::type str_or_type(const T t) {
   std::string buf = (const char*)t; return buf;

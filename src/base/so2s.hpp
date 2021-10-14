@@ -7,6 +7,7 @@
 #include <sstream>
 #include "std_s.hpp"
 #pragma warning(disable:4834)
+//String type detection system
 namespace orm {
   template <typename T>
   bool so2s(const char* str);
@@ -34,8 +35,8 @@ namespace orm {
   bool so2s<tm>(const char* str);
   template <typename T>
   bool so2s(const char* str) {
-	static_assert(std::is_convertible<std::string, T>::value,
-	  "Impossible to convert T from std::string. Please make your own so2s() function");
+	static_assert(std::is_convertible<const char*, T>::value,
+	  "Impossible to convert T from const char*. Please make your own so2s() function");
 	return true;
   }
   template <>

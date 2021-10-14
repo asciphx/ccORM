@@ -16,7 +16,7 @@ namespace orm {
   template<typename T>
   typename std::enable_if<std::is_fundamental<T>::value, std::string>::type stringify(const T& t) { return std::to_string(t); }
   template<typename T>
-  typename std::enable_if<!std::is_fundamental<T>::value, std::string>::type stringify(const T& t) { return std::string(t); }
+  typename std::enable_if<!std::is_fundamental<T>::value, std::string>::type stringify(const T& t) { return t; }
 
   template<typename T>
   void regist() {

@@ -421,9 +421,9 @@ namespace crow {
   public:
 	~pgsql_result() { if (current_result_) PQclear(current_result_); }
 	template <typename T> bool read(T&& t1);
-	template <typename T> unsigned int readJson(T&& t1);
-	template <typename T> void readOne(T&& j);
-	template <typename T> void readArr(std::vector<T>&& output);
+	template <typename T> unsigned int readJson(T* t1);
+	template <typename T> void readOne(T* j);
+	template <typename T> void readArr(std::vector<T>* output);
 	long long int last_insert_id();
 	void flush_results();
 	std::shared_ptr<pgsql_connection_data> connection_;
@@ -453,7 +453,7 @@ namespace crow {
 		else
 		  std::cerr << "PQconsumeInput() failed: " << PQerrorMessage(connection) << std::endl;
 	  }
-	  if (PQisBusy(connection)) { 
+	  if (PQisBusy(connection)) {
 		try {
 		  std::this_thread::yield();
 		} catch (std::runtime_error& e) {
@@ -470,7 +470,7 @@ namespace crow {
 		  }
 		  throw std::move(e);
 		}
-	  } else { 
+	  } else {
 		PGresult* res = PQgetResult(connection);
 		if (PQresultStatus(res) == PGRES_FATAL_ERROR && PQerrorMessage(connection)[0] != 0) {
 		  PQclear(res);
@@ -514,7 +514,7 @@ namespace crow {
 	  PQgetlength(current_result_, row_i_, field_i)));
   }
   void pgsql_result::fetch_value(int& out, int field_i, Oid field_type) {
-	assert(PQfformat(current_result_, field_i) == 1); 
+	assert(PQfformat(current_result_, field_i) == 1);
 	char* val = PQgetvalue(current_result_, row_i_, field_i);
 	if (field_type == INT8OID) {
 	  out = be64toh(*((uint64_t*)val));
@@ -526,7 +526,7 @@ namespace crow {
 	  throw std::runtime_error("The type of request result does not match the destination type");
   }
   void pgsql_result::fetch_value(unsigned int& out, int field_i, Oid field_type) {
-	assert(PQfformat(current_result_, field_i) == 1); 
+	assert(PQfformat(current_result_, field_i) == 1);
 	char* val = PQgetvalue(current_result_, row_i_, field_i);
 	if (field_type == INT8OID)
 	  out = be64toh(*((uint64_t*)val));
@@ -537,7 +537,7 @@ namespace crow {
 	else
 	  assert(0);
   }
-  template <typename T> void pgsql_result::readOne(T&& j) {
+  template <typename T> void pgsql_result::readOne(T* j) {
 	int nfields;
 	if (!current_result_) {
 	  if (current_result_) {
@@ -551,7 +551,7 @@ namespace crow {
 		strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
 	  }
 	}
-	ForEachField(&j, [&nfields, this](auto& t, auto& k) {
+	ForEachField(j, [&nfields, this](auto& t, auto& k) {
 	  for (int i = 0; i < nfields; ++i) {
 		char* val = PQgetvalue(current_result_, row_i_, i);
 		if (strcmp(proto_name_[i], k) != 0) { continue; }
@@ -584,7 +584,7 @@ namespace crow {
 	  }
 	  });
   }
-  template <typename T> void pgsql_result::readArr(std::vector<T>&& output) {
+  template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
 	int nfields;
 	if (!current_result_ || row_i_ == current_result_nrows_) {
 	  if (current_result_) {
@@ -634,10 +634,10 @@ namespace crow {
 #endif 
 		  }
 		}
-		}); output.push_back(j);
+		}); output->push_back(j);
 	}
   }
-  template <typename T> uint32_t pgsql_result::readJson(T&& output) {
+  template <typename T> uint32_t pgsql_result::readJson(T* output) {
 	int nfields = proto_type_.size();
 	if (!current_result_ || row_i_ == current_result_nrows_) {
 	  if (current_result_) {
@@ -677,7 +677,7 @@ namespace crow {
 		} break;
 		default:j[proto_name_[i]] = nullptr;
 		}
-	  }output.push_back(j);
+	  }output->push_back(j);
 	}
 	return row_i_;
   }
@@ -841,16 +841,16 @@ namespace crow {
 	template <typename T> std::vector<T> findArray();
   };
   template <typename B> json sql_result<B>::JSON() {
-	json t; auto result = impl_.readJson(std::forward<json>(t));
+	json t; auto result = impl_.readJson(&t);
 	return json{ {"num",result},{"result",t} };
   }
   template <typename B>
   template <typename O> O sql_result<B>::findOne() {
-	O t; impl_.readOne(std::forward<O>(t)); return t;
+	O t; impl_.readOne(&t); return t;
   }
   template <typename B>
   template <typename O> std::vector<O> sql_result<B>::findArray() {
-	std::vector<O> ts; impl_.readArr(std::forward<std::vector<O>>(ts)); return ts;
+	std::vector<O> ts; impl_.readArr(&ts); return ts;
   }
   template <typename B>
   template <typename T1, typename... T>
@@ -858,8 +858,7 @@ namespace crow {
 	if constexpr (crow::is_tuple<std::decay_t<T1>>::value) {
 	  static_assert(sizeof...(T) == 0);
 	  return impl_.read(std::forward<T1>(t1));
-	}
-	else
+	} 	else
 	  return impl_.read(std::tie(t1, tail...));
   }
   template <typename B> template <typename T1, typename... T> auto sql_result<B>::r__() {
@@ -927,9 +926,9 @@ namespace crow {
 	sqlite3* db_; sqlite3_stmt* stmt_;
 	int last_step_ret_; uint32_t rowcount_ = 0;
 	inline void flush_results() { sqlite3_reset(stmt_); }
-	template <typename T> void readOne(T&& j) {
+	template <typename T> void readOne(T* j) {
 	  int ncols = sqlite3_column_count(stmt_), i = 0;
-	  ForEachField(&j, [&ncols, &i, this](auto& t, auto& k) {
+	  ForEachField(j, [&ncols, &i, this](auto& t, auto& k) {
 		for (i = 0; i < ncols; ++i) {
 		  if (strcmp(sqlite3_column_name(stmt_, i), k) != 0) { continue; }
 		  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -963,7 +962,7 @@ namespace crow {
 		}
 		});
 	}
-	template <typename T> void readArr(std::vector<T>&& output) {
+	template <typename T> void readArr(std::vector<T>* output) {
 	  T j; int ncols = sqlite3_column_count(stmt_), i = 0; _:
 	ForEachField(&j, [&ncols, &i, this](auto& t, auto& k) {
 	  for (i = 0; i < ncols; ++i) {
@@ -999,10 +998,10 @@ namespace crow {
 	  }
 	  });
 	last_step_ret_ = sqlite3_step(stmt_);
-	output.push_back(j);
+	output->push_back(j);
 	if (last_step_ret_ == SQLITE_ROW) { goto _; }
 	}
-	template <typename T> uint32_t readJson(T&& output) {
+	template <typename T> uint32_t readJson(T* output) {
 	  T j; int ncols = sqlite3_column_count(stmt_), i = 0; _:++rowcount_;
 	  for (i = 0; i < ncols; ++i) {
 		switch (sqlite3_column_type(stmt_, i)) {
@@ -1020,9 +1019,9 @@ namespace crow {
 	  }
 	  last_step_ret_ = sqlite3_step(stmt_);
 	  if (last_step_ret_ != SQLITE_ROW) {
-		output.push_back(j);
+		output->push_back(j);
 		return rowcount_;
-	  } output.push_back(j); goto _;
+	  } output->push_back(j); goto _;
 	}
 	template <typename T> bool read(T&& output) {
 	  if (last_step_ret_ != SQLITE_ROW) return false;
@@ -1144,8 +1143,7 @@ namespace crow {
 	stmt_map_ptr stm_cache_;
 	type_hashmap<sqlite_statement> statements_hashmap;
 	inline sqlite_connection()
-	  : db_(nullptr), stm_cache_(new stmt_map()), cache_mutex_(new std::mutex()) 
-	{}
+	  : db_(nullptr), stm_cache_(new stmt_map()), cache_mutex_(new std::mutex()) 	{}
 	inline void conn(const std::string& filename,
 	  int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE) {
 	  int r = sqlite3_open_v2(filename.c_str(), &db_, flags, nullptr);
@@ -1331,8 +1329,7 @@ namespace crow {
 	inline pgsql_connection& operator=(const pgsql_connection&) = delete;
 	inline pgsql_connection(pgsql_connection&& o) = default;
 	inline pgsql_connection(std::shared_ptr<pgsql_connection_data>& data)
-	  : data_(data), stm_cache_(data->statements), connection_(data->pgconn_) {
-	}
+	  : data_(data), stm_cache_(data->statements), connection_(data->pgconn_) {	}
 	auto operator()(const std::string& rq) {
 	  if (!PQsendQueryParams(connection_, rq.c_str(), 0, nullptr, nullptr, nullptr, nullptr, 1))
 		throw std::runtime_error(std::string("Postresql error:") + PQerrorMessage(connection_));
@@ -1667,7 +1664,7 @@ namespace crow {
 
 	inline ~mysql_statement_result() { flush_results(); }
 	inline void flush_results() {
-	  if (connection_) 
+	  if (connection_)
 		mysql_wrapper_.mysql_stmt_free_result(connection_->error_, data_.stmt_);
 	}
 	template <typename T> bool read(T&& output);
@@ -1690,7 +1687,7 @@ namespace crow {
 	std::shared_ptr<mysql_connection_data> connection_;
 	bool result_allocated_ = false;
   };
-} 
+}
 namespace crow {
   template <typename B> long long int mysql_statement_result<B>::affected_rows() {
 	return mysql_stmt_affected_rows(data_.stmt_);
@@ -1775,7 +1772,7 @@ namespace crow {
   bool mysql_statement_result<B>::read(T&& output, MYSQL_BIND* bind, unsigned long* real_lengths) {
 	try {
 	  int res = mysql_wrapper_.mysql_stmt_fetch(connection_->error_, data_.stmt_);
-	  if (res == MYSQL_NO_DATA) 
+	  if (res == MYSQL_NO_DATA)
 		return false;
 	  int i = 0;
 	  tuple_map(std::forward<T>(output), [&](auto& m) {
@@ -1820,9 +1817,9 @@ namespace crow {
   }
 
   template <typename B> struct mysql_result {
-	B& mysql_wrapper_; 
+	B& mysql_wrapper_;
 	std::shared_ptr<mysql_connection_data> connection_;
-	MYSQL_RES* result_ = nullptr; 
+	MYSQL_RES* result_ = nullptr;
 	unsigned long* current_row_lengths_ = nullptr;
 	MYSQL_ROW current_row_ = nullptr;
 	bool end_of_result_ = false;
@@ -1843,9 +1840,9 @@ namespace crow {
 	inline void flush_results() { this->flush(); }
 	inline void next_row();
 	template <typename T> bool read(T&& output);
-	template <typename T> unsigned int readJson(T&& output);
-	template <typename T> void readOne(T&& obj);
-	template <typename T> void readArr(std::vector<T>&& objs);
+	template <typename T> unsigned int readJson(T* output);
+	template <typename T> void readOne(T* obj);
+	template <typename T> void readArr(std::vector<T>* objs);
 
 	long long int affected_rows();
 
@@ -1862,14 +1859,14 @@ namespace crow {
 	}
 	current_row_lengths_ = mysql_fetch_lengths(result_);
   }
-  template <typename B> template <typename T> void mysql_result<B>::readOne(T&& j) {
+  template <typename B> template <typename T> void mysql_result<B>::readOne(T* j) {
 	next_row(); if (end_of_result_) return;
 	MYSQL_FIELD* field;
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
 	  field = mysql_fetch_field(result_);
 	  strcpy(proto_name_[i], field->name);
 	}
-	ForEachField(&j, [this](auto& t, auto& k) {
+	ForEachField(j, [this](auto& t, auto& k) {
 	  for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
 		if (strcmp(proto_name_[i], k) != 0 || current_row_[i] == 0) { continue; }
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -1911,7 +1908,7 @@ namespace crow {
 	  }
 	  });
   }
-  template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>&& output) {
+  template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>* output) {
 	next_row(); if (end_of_result_) return; T j;
 	MYSQL_FIELD* field;
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
@@ -1960,12 +1957,12 @@ namespace crow {
 		}
 	  }
 	  });
-	output.push_back(j);
+	output->push_back(j);
 	if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
 	  ++current_result_nrows_; goto _;
 	}
   }
-  template <typename B> template <typename T> unsigned int mysql_result<B>::readJson(T&& output) {
+  template <typename B> template <typename T> unsigned int mysql_result<B>::readJson(T* output) {
 	next_row(); if (end_of_result_) return 0; T j;
 	MYSQL_FIELD* field;
 	uint16_t proto_type[MaxProtoNum];
@@ -2021,9 +2018,9 @@ namespace crow {
 	  }
 	}
 	if (!(current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
-	  output.push_back(j);
+	  output->push_back(j);
 	  return current_result_nrows_;
-	} output.push_back(j); ++current_result_nrows_; goto _;
+	} output->push_back(j); ++current_result_nrows_; goto _;
   }
   template <typename B> template <typename T> bool mysql_result<B>::read(T&& output) {
 	next_row();
@@ -2048,7 +2045,7 @@ namespace crow {
 	return mysql_insert_id(connection_->connection_);
   }
   struct mysql_connection_data; struct mysql_tag {};
-  template <typename B> 
+  template <typename B>
   struct mysql_connection {
 	typedef mysql_tag db_tag;
 	inline mysql_connection(const mysql_connection&) = delete;
@@ -2063,7 +2060,7 @@ namespace crow {
 	B mysql_wrapper_;
 	std::shared_ptr<mysql_connection_data> data_;
   };
-} 
+}
 namespace crow {
   template <typename B>
   inline mysql_connection<B>::mysql_connection(B mysql_wrapper, std::shared_ptr<crow::mysql_connection_data>& data)

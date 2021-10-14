@@ -74,6 +74,7 @@ namespace orm {
 			  case "short"_i: _create_ += " SMALLSERIAL PRIMARY KEY"; break;
 			  case "i"_i:
 			  case "int"_i: _create_ += " SERIAL PRIMARY KEY"; break;
+			  default: ;
 			  } continue;
 			}
 		  }
@@ -123,24 +124,26 @@ namespace orm {
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value) {
 			if (is_PRIMARY_KEY(tc))  _create_ += " PRIMARY KEY"; if (is_AUTOINCREMENT(tc))_create_ += " AUTO_INCREMENT";
 		  }
-		$:
+		$://String type detection system
 		  if (is_NOT_NULL(tc)) { _create_ += " NOT NULL"; }
 		  if (is_DEFAULT(tc)) {
 			switch (hack4Str(_T_[i])) {
 			case "d"_i:
-			case "double"_i: if (!so2s<double>(def)) { break; }
+			case "double"_i: if (!so2s<double>(def)) { break; } goto _;
 			case "f"_i:
-			case "float"_i: if (!so2s<float>(def)) { break; }
+			case "float"_i: if (!so2s<float>(def)) { break; } goto _;
 			case "x"_i:
-			case "__int64"_i: if (!so2s<long long>(def)) { break; }
+			case "__int64"_i: if (!so2s<long long>(def)) { break; } goto _;
 			case "a"_i:
-			case "signed char"_i: if (!so2s<signed char>(def)) { break; }
+			case "signed char"_i: if (!so2s<signed char>(def)) { break; } goto _;
+			case "b"_i:
+			case "bool"_i: if (!so2s<bool>(def)) { break; } goto _;
 			case "s"_i:
-			case "short"_i: if (!so2s<short>(def)) { break; }
+			case "short"_i: if (!so2s<short>(def)) { break; } goto _;
 			case "i"_i:
 			case "int"_i: if (!so2s<int>(def)) { break; }
 			case "NSt7"_i:
-			case "class s"_i: if (!so2s<std::string>(def)) { break; }
+			case "class s"_i: _:
 			default: _create_ += " DEFAULT "; _create_.push_back('\''); _create_ += def; _create_.push_back('\'');
 			}
 		  }
@@ -160,7 +163,7 @@ namespace orm {
 			<< "You can ignore this message if the table already exists." << "The sql error is: " << e.what() << std::endl;
 		}
 	  }
-	  //std::cout << _create_.c_str();
+	  std::cout << _create_.c_str();
 	}
 	static void _drop() { auto DbQuery = static_cast<Sql<T>*>(QB[0])->Query(); DbQuery(_drop_).flush_results(); }
   };
