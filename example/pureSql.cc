@@ -1,8 +1,8 @@
-﻿#include "json.hpp"
-#include "ccORM.hh"
+﻿#include "../src/json.hpp"
+#include "../src/ccORM.hh"
 #include "generic_sql_tests.hh"
 auto d = D_mysql(); auto d1 = D_sqlite("test.db"); auto d2 = D_pgsql();
-using namespace crow; using namespace std; using json = nlohmann::json;
+using namespace crow; using namespace std;
 int main(int argc, char* argv[]) {
   std::locale::global(std::locale(u8"en_US.UTF8"));//设置系统为utf8编码
   json js = json::parse(u8"{ \"state\": true, \"pi\": 3.1415926, \"name\": \"中文测试\" }");
@@ -23,8 +23,8 @@ int main(int argc, char* argv[]) {
   add(3, u8"程序员", 21); //使用方法： ./main "SELECT * from users_test"
   q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, u8"编程王", 32);
   EXPECT_EQUAL(make_tuple(u8"程序员", 21), (q("select name, age from users_test where id = 3;").template r__<string, int>()));
-  generic_sql_tests(d);//测试 mysql
-  generic_sql_tests(d1);//测试 sqlite
-  generic_sql_tests(d2);//测试 pgsql
+  //generic_sql_tests(d);//测试 mysql
+  //generic_sql_tests(d1);//测试 sqlite
+  //generic_sql_tests(d2);//测试 pgsql
   return 0;
 }
