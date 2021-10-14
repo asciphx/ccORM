@@ -6,7 +6,7 @@
 #define MAX_LIMIT 100
 namespace orm {
   enum class Sort { ASC, DESC }; using namespace std;
-  template<typename T> class Table; class Proto; template<typename T> class Attr;
+  template<typename T> class Table;
   template<typename T> struct Sql {
 	friend class Table<T>;
 	Sql<T>() : table_(toSqlLowerCase(getObjectName<T>())), sql_("") {}
