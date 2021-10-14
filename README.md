@@ -1,39 +1,47 @@
-﻿# ccORM[version 0.4]
+﻿# ccORM[version 0.5]
 ccORM is the best database query software.
-🚀 Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support ORM.
+🚀 Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to update.
  ![Benchmark results (not cached)](./test.png)
 ```c++
-#include "ccORM.hh"
-auto d = D_mysql();//easy to connect
-//auto d = D_sqlite("test.db");
-//auto d = D_pgsql();
-int main(int argc, char* argv[]) {
-  Timer t; int i = 0; t.setInterval([&i]() { cout << "After " << ++i << "s\n"; }, 1000);
-  std::locale::global(std::locale(u8"en_US.UTF8"));
-  auto q = d.conn();
-  if (argv[1]) cout << q(argv[1]).JSON() << endl;// ./main "SELECT * from users_test"
-
-  q("DROP table if exists users_test;");
-  q("CREATE TABLE users_test (id int,name TEXT,age int);");
-  //q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, "Deaod", 32);
-  auto add = q.prepare(string("INSERT into users_test(id, name, age) values (?,?,?);"));
-  add(1,"Alex God",44);
-  add(2,"Program King",23);
-  add(3,"Invincible Coder",21);
-  q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, "Deaod", 32);
-  string s = q("select name from users_test where id = 2").template r__<string>();
-  EXPECT_EQUAL((make_tuple("Invincible Coder",21)),
-    (q("select name, age from users_test where id = 3").template r__<string,int>()));
-  d.flush();
-  cout << s << endl;
+#include "src/json.hpp"
+#include "src/ccORM.hh"
+auto D =
+//D_mysql();
+//D_pgsql();
+D_sqlite("any.db");
+#include "module.hpp"
+void test() {
+  Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
+  t->set(5, false, "yield"); cout << t << '\n';
+  *t = json::parse(u8R"({"id":2,"ok":false,"name":"Asciphx","date":"2021-09-08 01:04:30",
+"lang":[{"id":1,"language":"c++"},{"id":2,"language":"lua"},{"id":3,"language":"rust"}]})").get<Tab>();
+  t->lang[1].language = "golang"; cout << t << '\n';
+  *t = Tab::Q()->select()->field(&Tab::id, &Tab::name)->FindOne("id = 1");
+  cout << Tab::Q()->select()->FindArr();
+}
+int main() {
+  InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
+  Timer t; bool run = true;
+  t.setTimeout([&t, &run] {
+	int i = 0; for (; i < 5999; ++i) {
+	Tab::Q()->select()->FindOne("id = 2"); } printf("<%d>", i);
+	t.stop(); run = false;
+	}, 6);
+  int i = 0; for (; i < 4999; ++i) {
+	Tab::Q()->select()->field(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
+  }//Simulate dual threads to ensure that SQLite does not make errors
+  printf("<%d>", i);
+  while (run) { this_thread::yield(); }
+  printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC);
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));//wait for something
   return 0;
 }
 ```
 
 ## Features
- - Very Fast
- - Header only
- - Simple code
+-Modularization
+-Header files only
+-Low code
 
 ##Premise
 Cmake requirements: [it is best to install MySQL with vcpkg]
@@ -46,3 +54,32 @@ This is just an example. Note: you must make MariaDB, mariadbclient in the front
 g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
 -pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 
 ```
+## Coming soon
+One to many query, many to many query, perfect conditions, index column establishment, and cache query
+
+### Attributions
+    ccORM uses the following libraries.
+
+    lithium
+
+    https://github.com/matt-42/lithium
+
+	Copyright (c) 2014 Matthieu Garrigues
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.

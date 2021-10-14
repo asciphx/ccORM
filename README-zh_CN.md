@@ -1,38 +1,47 @@
-﻿# ccORM[版本 0.4]
+﻿# ccORM[版本 0.5]
 ccORM是最好的数据库查询软件。
-🚀 支持Mac、Linux、windows三种平台。开发速度最快、最迅速、最猛烈，即将支持ORM。
+🚀 支持Mac、Linux、windows三种平台。开发速度最快、最迅速、最猛烈，即将更新其他功能。
  ![基准结果(未缓存)](./test.png)
 ```c++
-#include "ccORM.hh"
-auto d = D_mysql();//在web需content-type加: text/html;charset=UTF-8
-//auto d = D_sqlite("test.db");
-//auto d = D_pgsql();
-int main(int argc, char* argv[]) {
-  Timer t; int i = 0; t.setInterval([&i]() { cout << "After " << ++i << "s\n"; }, 1000);
-  std::locale::global(std::locale(u8"en_US.UTF8"));
-  auto q = d.conn();
-  if (argv[1]) cout << q(argv[1]).JSON() << endl;// ./main "SELECT * from users_test"
-
-  q("DROP table if exists users_test;");
-  q("CREATE TABLE users_test (id int,name TEXT,age int);");
-  auto add = q.prepare(string("INSERT into users_test(id, name, age) values (?,?,?);"));
-  add(1,u8"代码哥",44);
-  add(2,u8"攻城师",23);
-  add(3,u8"程序员",21);
-  q.query(string("INSERT into users_test(id, name, age) values (?,?,?);"))(4, u8"编程王", 32);
-  string s = q("select name from users_test where id = 2").template r__<string>();
-  EXPECT_EQUAL(make_tuple(u8"程序员", 21),
-    (q("select name, age from users_test where id = 3").template r__<string, int>()));
-  d.flush();
-  cout << s << endl;
+#include "src/json.hpp"
+#include "src/ccORM.hh"
+auto D =
+//D_mysql();
+//D_pgsql();
+D_sqlite("any.db");
+#include "module.hpp"
+void test() {
+  Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
+  t->set(5, false, "yield"); cout << t << '\n';
+  *t = json::parse(u8R"({"id":2,"ok":false,"name":"杰森之父","date":"2021-09-08 01:04:30",
+"lang":[{"id":1,"language":"c++"},{"id":2,"language":"lua"},{"id":3,"language":"rust"}]})").get<Tab>();
+  t->lang[1].language = "golang"; cout << t << '\n';
+  *t = Tab::Q()->select()->field(&Tab::id, &Tab::name)->FindOne("id = 1");
+  cout << Tab::Q()->select()->FindArr();
+}
+int main() {
+  InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
+  Timer t; bool run = true;
+  t.setTimeout([&t, &run] {
+	int i = 0; for (; i < 5999; ++i) {
+	Tab::Q()->select()->FindOne("id = 2"); } printf("<%d>", i);
+	t.stop(); run = false;
+	}, 6);
+  int i = 0; for (; i < 4999; ++i) {
+	Tab::Q()->select()->field(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
+  }//模拟双线程以确保SQLite不会出错
+  printf("<%d>", i);
+  while (run) { this_thread::yield(); }
+  printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC);
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));//wait for something
   return 0;
 }
 ```
 
 ## 特征
- - 非常快
+ - 模块化
  - 仅头文件
- - 简易编程
+ - 低代码
 
 ## 前提
 cmake需求：[最好使用vcpkg安装mysql]
@@ -46,3 +55,32 @@ target_link_libraries(main ${MYSQL_LIBRARY})
 g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
 -pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 
 ```
+## 即将推出
+一对多查询，多对多查询，完善的条件，索引列建立，以及缓存查询
+
+### 归属
+    ccORM使用以下库。
+
+    lithium
+
+    https://github.com/matt-42/lithium
+
+	Copyright (c) 2014 Matthieu Garrigues
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
