@@ -1,7 +1,5 @@
 #pragma once
 #include <cstdlib>
-#include <cstdarg>
-#include <string>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -81,14 +79,5 @@ constexpr int operator""_i(const char* s, size_t /*len*/) {
 //You can match more strings with hackallstr method, but you need to match ""_a used together
 constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
   unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
-}
-std::string formattedString(const char* f, ...) {
-  std::string s(128, 0); va_list vl, backup; va_start(vl, f); va_copy(backup, vl);
-  auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
-  if ((r >= 0) && ((std::string::size_type)r < s.size())) s.resize(r); else while (true) {
-    if (r < 0) s.resize(s.size() * 2); else s.resize(r + 1);
-    va_copy(backup, vl); auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
-    if ((r >= 0) && ((std::string::size_type)r < s.size())) { s.resize(r); break; }
-  } va_end(vl); return s;
 }
 #endif

@@ -30,6 +30,7 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #define EXPECT(A)\
   if (!(A)) { std::cerr << #A << " (== " << (A) << ") must be true" << std::endl; }
 #define ASSERT(x,m) if(!x)std::cerr<<#m
+#include "json.hpp"
 #include <chrono>
 #include <atomic>
 #include <stdarg.h>
@@ -53,6 +54,7 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #define INT8OID 20
 #define INT2OID 21
 #define INT4OID 23
+static const char RES_DATE_FORMAT[24] = "%4d-%2d-%2d %2d:%2d:%2d";
 static std::string toLowerCase(const char* s) {
   std::string e; while (*s) {
 	if (*s > 0x40 && *s < 0x5b) {
@@ -76,10 +78,6 @@ template<typename T> const char* getObjectName() {
 #else
   const char* s = typeid(T).name(); while (*s < 0x3a && *s++ != 0x24) {}; return s;
 #endif
-}
-template <typename... T> std::ostream& operator<<(std::ostream& os, std::tuple<T...> t) {
-  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
-	if (one) os << v, one = false; else os << "," << v; }); os << ">"; return os;
 }
 struct Timer {
   template<typename F> void setTimeout(F func, uint32_t milliseconds);
@@ -326,6 +324,12 @@ namespace crow {
 	return std::apply([&](auto&&... e) { apply_each(f, std::forward<decltype(e)>(e)...); },
 	  std::forward<T>(t));
   }
+}
+template <typename... T> std::ostream& operator<<(std::ostream& os, std::tuple<T...> t) {
+  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
+	if (one) os << v, one = false; else os << "," << v; }); os << ">"; return os;
+}
+namespace crow {
   template <typename T, typename F> constexpr auto tuple_reduce(T&& t, F&& f) {
 	return std::apply(std::forward<F>(f), std::forward<T>(t));
   }
@@ -744,64 +748,6 @@ namespace crow {
 	std::unordered_map<std::string, std::shared_ptr<mysql_statement_data>> statements_;
 	type_hashmap<std::shared_ptr<mysql_statement_data>> statements_hashmap_;
 	int error_ = 0;
-  };
-  template <typename I, int Time = 28800> struct sql_database {
-	I impl; Timer timer;
-	typedef typename I::connection_data_type connection_data_type;
-	typedef typename I::db_tag db_tag;
-	typedef typename I::connection_type connection_type;
-	std::deque<connection_data_type*> sync_connections_;
-	std::mutex sync_connections_mutex_;
-	int n_sync_connections_ = 0, max_sync_connections_ = 0;
-	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) { init(); };
-	sql_database(const char* host, const char* database, const char* user, const char* password, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, 3306, charset), max_sync_connections_(max_sync_connections) { init(); };
-	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int port, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password, port, charset), max_sync_connections_(max_sync_connections) { init(); };
-	~sql_database() { flush(); }
-	inline void init() {
-	  if constexpr (std::is_same_v<db_tag, mysql_tag>) {
-		connection_data_type* data = impl.new_connection();
-		assert(data); sync_connections_.push_back(data);
-		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time);
-	  } else if constexpr (std::is_same_v<db_tag, pgsql_tag>) {
-		timer.setIntervalSec([this]() { impl.ping(); }, Time);
-	  }
-	}
-	void flush() {
-	  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
-	  for (auto* ptr : this->sync_connections_) delete ptr;
-	  sync_connections_.clear();
-	  n_sync_connections_ = 0;
-	}
-	inline auto conn() {
-	  connection_data_type* data = nullptr;
-	  bool reuse = true;
-	  if (!sync_connections_.empty()) {
-		std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
-		data = sync_connections_.back(); sync_connections_.pop_back();
-		reuse = false;
-	  } else {
-	  _:
-		if (n_sync_connections_ > max_sync_connections_) {
-		  std::this_thread::yield(); goto _;
-		}
-		++n_sync_connections_;
-		try { data = impl.new_connection(); } catch (std::runtime_error& e) {
-		  --n_sync_connections_; throw std::move(e);
-		}
-		if (!data) { --n_sync_connections_; std::this_thread::yield(); goto _; }
-	  }
-	  assert(data); assert(data->error_ == 0);
-	  auto sptr = std::shared_ptr<connection_data_type>(data, [this, &reuse](connection_data_type* data) {
-		if (!data->error_ && sync_connections_.size() < max_sync_connections_) {
-		  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
-		  sync_connections_.push_back(data);
-		} else { --n_sync_connections_; if (reuse) delete data; }
-		});
-	  return impl.scoped_connection(sptr);
-	}
   };
   namespace internal {
 	template <typename T> struct has_parenthesis_operator {
@@ -2218,6 +2164,66 @@ namespace crow {
 	std::shared_ptr<mysql_connection_data>& data) {
 	return mysql_connection<mysql_functions_blocking>(mysql_functions_blocking{}, data);
   }
+
+  template <typename I, int Time = 28800> struct sql_database {
+	I impl; Timer timer;
+	typedef typename I::connection_data_type connection_data_type;
+	typedef typename I::db_tag db_tag;
+	typedef typename I::connection_type connection_type;
+	std::deque<connection_data_type*> sync_connections_;
+	std::mutex sync_connections_mutex_;
+	int n_sync_connections_ = 0, max_sync_connections_ = 0;
+	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
+	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) { init(); };
+	sql_database(const char* host, const char* database, const char* user, const char* password, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
+	  : impl(host, database, user, password, 3306, charset), max_sync_connections_(max_sync_connections) { init(); };
+	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int port, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
+	  : impl(host, database, user, password, port, charset), max_sync_connections_(max_sync_connections) { init(); };
+	~sql_database() { flush(); }
+	inline void init() {
+	  if constexpr (std::is_same_v<db_tag, mysql_tag>) {
+		connection_data_type* data = impl.new_connection();
+		assert(data); sync_connections_.push_back(data);
+		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time);
+	  } else if constexpr (std::is_same_v<db_tag, pgsql_tag>) {
+		timer.setIntervalSec([this]() { impl.ping(); }, Time);
+	  }
+	}
+	void flush() {
+	  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
+	  for (auto* ptr : this->sync_connections_) delete ptr;
+	  sync_connections_.clear();
+	  n_sync_connections_ = 0;
+	}
+	inline auto conn() {
+	  connection_data_type* data = nullptr;
+	  bool reuse = true;
+	  if (!sync_connections_.empty()) {
+		std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
+		data = sync_connections_.back(); sync_connections_.pop_back();
+		reuse = false;
+	  } else {
+	  _:
+		if (n_sync_connections_ > max_sync_connections_) {
+		  std::this_thread::yield(); goto _;
+		}
+		++n_sync_connections_;
+		try { data = impl.new_connection(); } catch (std::runtime_error& e) {
+		  --n_sync_connections_; throw std::move(e);
+		}
+		if (!data) { --n_sync_connections_; std::this_thread::yield(); goto _; }
+	  }
+	  assert(data); assert(data->error_ == 0);
+	  auto sptr = std::shared_ptr<connection_data_type>(data, [this, &reuse](connection_data_type* data) {
+		if (!data->error_ && sync_connections_.size() < max_sync_connections_) {
+		  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
+		  sync_connections_.push_back(data);
+		} else { --n_sync_connections_; if (reuse) delete data; }
+		});
+	  return impl.scoped_connection(sptr);
+	}
+  };
+
   typedef sql_database<mysql, 99> Mysql;
   typedef sql_database<pgsql, 99> Pgsql;
   //SYS_IS_UTF8 default 1 best compatibility

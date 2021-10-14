@@ -15,7 +15,9 @@
 #include <cassert>
 #include <map>
 #include <memory>
-static const char RES_DATE_FORMAT[24] = "%4d-%2d-%2d %2d:%2d:%2d";
+#include <cstdarg>
+#include "json.hpp"
+#include "./utils/str.h"
 namespace orm {
   static const unsigned int HARDWARE_ASYNCHRONOUS = 0x6;//It is best to set the maximum number of threads
   template <class T>
@@ -72,6 +74,15 @@ namespace orm {
   static bool is_DEFAULT(TC specs) { return (specs & TC::DEFAULT); }
   static bool is_AUTOINCREMENT(TC specs) { return (specs & TC::AUTO_INCREMENT); }
 }
+std::string formattedString(const char* f, ...) {
+  std::string s(128, 0); va_list vl, backup; va_start(vl, f); va_copy(backup, vl);
+  auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
+  if ((r >= 0) && ((std::string::size_type)r < s.size())) s.resize(r); else while (true) {
+    if (r < 0) s.resize(s.size() * 2); else s.resize(r + 1);
+    va_copy(backup, vl); auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
+    if ((r >= 0) && ((std::string::size_type)r < s.size())) { s.resize(r); break; }
+  } va_end(vl); return s;
+}
 #if 1
 #define Inject(T, N) (size_t)(&reinterpret_cast<char const volatile&>(((T*)0)->N))
 #define EXP(O) O
@@ -81,7 +92,7 @@ namespace orm {
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
 inline const char* GetRealType(const char* s, const char* c) {
-  uint8_t l = strlen(s); l > 9 ? l += 3 : l += 2; return c + l;
+  uint8_t l = strLen(s); l > 9 ? l += 3 : l += 2; return c + l;
 }
 #define InjectTS(U, T) GetRealType(#U,typeid(&U::T).name())
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N

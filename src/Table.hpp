@@ -1,9 +1,7 @@
 #pragma once
-#include "./base/macros.hpp"
 #include "./base/Initalization.hpp"
 #include "./base/s2o.hpp"
 #include "./base/so2s.hpp"
-#include "./utils/str.h"
 //#pragma warning(disable:4715)
 struct enable_virtual : std::enable_shared_from_this<enable_virtual> { virtual ~enable_virtual() {} };
 template<typename T> struct virtual_shared : virtual enable_virtual {

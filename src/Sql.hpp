@@ -2,6 +2,7 @@
 #include<string>
 #include<vector>
 #include<stdarg.h>
+#include "macros.hpp"
 #define MAX_LIMIT 100
 namespace orm {
   enum class Sort { ASC, DESC }; using namespace std;
