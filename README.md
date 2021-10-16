@@ -1,14 +1,40 @@
 ﻿# ccORM[version 0.5]
 ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
-🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), the fastest development speed, the quickest and the strongest, the next step is to update.
+🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is pure static reflection.
  ![Benchmark results (not cached)](./test.png)
+## Model layer
 ```c++
-#include "src/json.hpp"
+struct Type : Table<Type> {
+  int id;
+  string language;
+  Type(int a = 0, string b = "") :
+	id(a), language(b) {} Type(bool);
+}; CONSTRUCT(Type, id, language)
+REGIST_PROTO(Type,
+  TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
+  TC::DEFAULT, "c/c++");
+struct Tab : Table<Tab> {
+  int id;
+  bool ok;
+  string name;
+  tm date;
+  vector<Type> lang;
+  Tab(int a = 0, bool b = false, string c = "", tm d = now(), vector<Type> e = {}) :
+	id(a), ok(b), name(c), date(d), lang(e) {} Tab(bool);
+}; CONSTRUCT(Tab, id, ok, name, date, lang)
+REGIST_PROTO(Tab,
+  TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
+  TC::DEFAULT, "false",
+  TC::DEFAULT, "ww'zzgg",
+  TC::DEFAULT | TC::NOT_NULL, "");
+```
+## Main function
+```c++
 #include "src/ccORM.hh"
 auto D =
 //D_mysql();
 //D_pgsql();
-D_sqlite("any.db");
+D_sqlite("any.db");//Select database
 #include "module.hpp"
 void test() {
   Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
@@ -29,7 +55,7 @@ int main() {
 	}, 6);
   int i = 0; for (; i < 4999; ++i) {
 	Tab::Q()->select()->field(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
-  }//Simulate dual threads to ensure that SQLite does not make errors
+  }//Multithreading test
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
   printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC);
@@ -42,18 +68,24 @@ int main() {
 - Modularization
 - Header files only
 - Low code
+- High performance
 
-##Premise
+## Premise
 Cmake requirements: [it is best to install MySQL with vcpkg]
 find_ package(MYSQL REQUIRED)
 ...and then add it where you need to connect to the library
 target_link_libraries(main ${MYSQL_LIBRARY})
 perhaps
-This is just an example. Note: you must make MariaDB, mariadbclient in the front to avoid error
+This is just an example. Note: please modify the `build_linux.sh` file .Through `sh ./build_linux.sh` compilation
 ```
 g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
 -pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 
 ```
+# Supported compilers(minimum version):
+    - Linux: G++ 9.2, Clang++ 9.0
+    - MacOS: Apple clang version 12.0.0 
+    - Windows: MSVC C++ compiler version 1930.
+
 ## Coming soon
 One to many query, many to many query, perfect conditions, index column establishment, and cache query
 
@@ -83,3 +115,27 @@ One to many query, many to many query, perfect conditions, index column establis
 	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 	SOFTWARE.
+	
+
+	json 
+
+    https://github.com/nlohmann/json
+
+    Copyright (c) 2013-2021 Niels Lohmann
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
