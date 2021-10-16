@@ -1,4 +1,7 @@
 #pragma once
+#include <ctime>
+#include <string>
+#include <iomanip>
 #include <cstdlib>
 #ifdef __cplusplus
 extern "C" {
@@ -79,5 +82,69 @@ constexpr int operator""_i(const char* s, size_t /*len*/) {
 //You can match more strings with hackallstr method, but you need to match ""_a used together
 constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
   unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
+}
+
+static std::string toLowerCase(const char* s) {
+  std::string e; while (*s) {
+    if (*s > 0x40 && *s < 0x5b) {
+      e += *s + 0x20;
+    } else { e += *s; }
+    *++s;
+  } return e;
+}
+static std::string toSqlLowerCase(const char* s) {
+  std::string e;
+  if (*s > 0x40 && *s < 0x5b) { e += *s + 0x20; }
+  while (*++s) {
+    if (*s > 0x40 && *s < 0x5b) {
+      e += 0x5f; e += *s + 0x20;
+    } else { e += *s; }
+  } return e;
+}
+template<typename T> const char* getObjectName() {
+#if _WIN32
+  const char* s = typeid(T).name(); while (*++s != 0x20); return ++s;
+#else
+  const char* s = typeid(T).name(); while (*s < 0x3a && *s++ != 0x24) {}; return s;
+#endif
+}
+static std::string toQuotes(const char* s) {
+  std::string e; while (*s) {
+    if (*s == 0x27) {
+      e += 0x27; e += 0x27;
+    } else { e += *s; }
+    *++s;
+  } return e;
+}
+
+std::ostream& operator<<(std::ostream& os, const tm& time) {
+  char prev = os.fill('x');
+  os << std::setfill('0') << std::setw(4) << (time.tm_year + 1900)
+    << "-" << std::setw(2) << (time.tm_mon + 1) << "-" << std::setw(2) << time.tm_mday << " "
+    << std::setw(2) << time.tm_hour << ":" << std::setw(2) << time.tm_min << ":" << std::setw(2) << time.tm_sec
+    << std::setw(0) << std::setfill(prev);
+  return os;
+}
+std::string operator&& (const std::string& o, const std::string& c) {
+  std::ostringstream os; os << "(" << o << " AND " << c << ")"; return os.str();
+};
+std::string operator|| (const std::string& o, const std::string& c) {
+  std::ostringstream os; os << "(" << o << " OR " << c << ")"; return os.str();
+};
+template<typename T>
+std::string operator<(const std::string& o, const T& v) {
+  std::ostringstream os; os << o << "<" << v; return os.str();
+}
+template<typename T>
+std::string operator<=(const std::string& o, const T& v) {
+  std::ostringstream os; os << o << "<=" << v; return os.str();
+}
+template<typename T>
+std::string operator>=(const std::string& o, const T& v) {
+  std::ostringstream os; os << o << ">=" << v; return os.str();
+}
+template<typename T>
+std::string operator>(const std::string& o, const T& v) {
+  std::ostringstream os; os << o << ">" << v; return os.str();
 }
 #endif

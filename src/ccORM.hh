@@ -55,30 +55,6 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #define INT2OID 21
 #define INT4OID 23
 static const char RES_DATE_FORMAT[24] = "%4d-%2d-%2d %2d:%2d:%2d";
-static std::string toLowerCase(const char* s) {
-  std::string e; while (*s) {
-	if (*s > 0x40 && *s < 0x5b) {
-	  e += *s + 0x20;
-	} else { e += *s; }
-	*++s;
-  } return e;
-}
-static std::string toSqlLowerCase(const char* s) {
-  std::string e;
-  if (*s > 0x40 && *s < 0x5b) { e += *s + 0x20; }
-  while (*++s) {
-	if (*s > 0x40 && *s < 0x5b) {
-	  e += 0x5f; e += *s + 0x20;
-	} else { e += *s; }
-  } return e;
-}
-template<typename T> const char* getObjectName() {
-#if _WIN32
-  const char* s = typeid(T).name(); while (*++s != 0x20); return ++s;
-#else
-  const char* s = typeid(T).name(); while (*s < 0x3a && *s++ != 0x24) {}; return s;
-#endif
-}
 struct Timer {
   template<typename F> void setTimeout(F func, uint32_t milliseconds);
   template<typename F> void setInterval(F func, uint32_t milliseconds);

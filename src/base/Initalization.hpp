@@ -20,8 +20,8 @@ namespace orm {
 
   template<typename T>
   void regist() {
-	unsigned int i = HARDWARE_ASYNCHRONOUS; while (i--) { orm::Table<T>::QB[i] = new Sql<T>(); }
-	T(true); T::_add();// std::cout << typeid(T).name()+6 <<"[created!]"<<std::endl;
+	unsigned int i = HARDWARE_ASYNCHRONOUS; while (i--) { orm::Table<T>::__[i] = new Sql<T>(); }
+	T(true); T::_addTable();// std::cout << typeid(T).name()+6 <<"[created!]"<<std::endl;
   }
   template <typename ...Args>//Registration Center
   static void InitializationOrm() {

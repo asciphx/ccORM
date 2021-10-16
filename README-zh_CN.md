@@ -1,6 +1,6 @@
 ﻿# ccORM[版本 0.5]
-ccORM是最好的数据库查询软件。
-🚀 支持Mac、Linux、windows三种平台。开发速度最快、最迅速、最猛烈，即将更新其他功能。
+ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
+🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。开发速度最快、最迅速、最猛烈，即将更新其他功能。
  ![基准结果(未缓存)](./test.png)
 ```c++
 #include "src/json.hpp"
@@ -13,7 +13,7 @@ D_sqlite("any.db");
 void test() {
   Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
   t->set(5, false, "yield"); cout << t << '\n';
-  *t = json::parse(u8R"({"id":2,"ok":false,"name":"杰森之父","date":"2021-09-08 01:04:30",
+  *t = json::parse(u8R"({"id":2,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"lua"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   *t = Tab::Q()->select()->field(&Tab::id, &Tab::name)->FindOne("id = 1");

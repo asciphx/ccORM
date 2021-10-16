@@ -1,3 +1,4 @@
+#pragma once
 #include<iostream>
 #include<string>
 #include<vector>
@@ -22,23 +23,21 @@ namespace orm {
 	vector<T> FindArr();
 	T FindOne(const char* where);
 	static decltype(D)::connection_type Query();
-  private: size_t limit_{ 10 }, offset_{ 0 }; string sql_;
-		 const std::string table_; bool prepare_{ true }, orderBy_{ true };
-		 inline void clear() { sql_ = ""; orderBy_ = true; limit_ = 10; offset_ = 0; prepare_ = true; }
-  };//chrono::milliseconds(100)microseconds
+  private: size_t limit_{ 10 }, offset_{ 0 }; string sql_; const std::string table_; bool prepare_{ true };
+		 inline void clear() { sql_ = ""; limit_ = 10; offset_ = 0; prepare_ = true; }
+  };
   template<typename T>inline Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T>inline Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
   template<typename T>inline Sql<T>* Sql<T>::orderBy(const string& col, const Sort& ord) {
-	if (orderBy_) {
-	  sql_ += formattedString(" ORDER BY %s ", col.c_str()); if (ord == Sort::DESC)sql_ += "DESC"; orderBy_ = false;
-	} else { sql_.push_back(','); sql_ += col; if (ord == Sort::DESC)sql_ += " DESC"; }return this;
+	sql_ += formattedString(" ORDER BY %s ", col.c_str()); if (ord == Sort::DESC)sql_ += "DESC"; return this;
+	 //sql_.push_back(','); sql_ += col; if (ord == Sort::DESC)sql_ += " DESC";
   }
   template<typename T, typename K>
   static void setFields(string& os, K T::* val) {
     constexpr auto schema = Schema<T>();
 	ForEachTuple(schema, [&os, &val](auto field_schema) {
 	  if (typeid(&val) == typeid(&std::get<0>(field_schema))) {
-		os += std::get<1>(field_schema); os += ',';
+		os += std::get<1>(field_schema); os += ','; return;
 	  }});
   }
   template<typename T>
@@ -61,9 +60,7 @@ namespace orm {
 	string sql(sql_); sql += " WHERE "; sql += where; this->clear(); //cout << sql << '\n';
 	decltype(D)::connection_type q_ = D.conn(); return q_(sql).findOne<T>();
   };
-  template<typename T> decltype(D)::connection_type Sql<T>::Query() {
-	return D.conn();
-  }
+  template<typename T> decltype(D)::connection_type Sql<T>::Query() { return D.conn(); }
 }//chrono::milliseconds(100)microseconds
 /*
 "SELECT u.id, u.account, u.name,u.photo, Role.id AS Role_id, Role.name AS Role_name FROM user u\

@@ -1,6 +1,6 @@
 ﻿# ccORM[version 0.5]
-ccORM is the best database query software.
-🚀 Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to update.
+ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
+🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), the fastest development speed, the quickest and the strongest, the next step is to update.
  ![Benchmark results (not cached)](./test.png)
 ```c++
 #include "src/json.hpp"
@@ -13,7 +13,7 @@ D_sqlite("any.db");
 void test() {
   Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
   t->set(5, false, "yield"); cout << t << '\n';
-  *t = json::parse(u8R"({"id":2,"ok":false,"name":"Asciphx","date":"2021-09-08 01:04:30",
+  *t = json::parse(u8R"({"id":2,"ok":false,"name":"Flawless masterpiece","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"lua"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   *t = Tab::Q()->select()->field(&Tab::id, &Tab::name)->FindOne("id = 1");
@@ -39,9 +39,9 @@ int main() {
 ```
 
 ## Features
--Modularization
--Header files only
--Low code
+- Modularization
+- Header files only
+- Low code
 
 ##Premise
 Cmake requirements: [it is best to install MySQL with vcpkg]

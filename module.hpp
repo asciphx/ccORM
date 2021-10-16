@@ -9,8 +9,8 @@ struct Type : Table<Type> {
 }; CONSTRUCT(Type, id, language)
 REGIST_PROTO(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
-  TC::DEFAULT, "c/c++")
-  struct Tab : Table<Tab> {
+  TC::DEFAULT, "c/c++");
+struct Tab : Table<Tab> {
   int id;
   bool ok;
   string name;
@@ -22,5 +22,5 @@ REGIST_PROTO(Type,
 REGIST_PROTO(Tab,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "false",
-  TC::DEFAULT, "wwzzgg",
-  TC::DEFAULT | TC::NOT_NULL, "")
+  TC::DEFAULT, "ww'zzgg",
+  TC::DEFAULT | TC::NOT_NULL, "");

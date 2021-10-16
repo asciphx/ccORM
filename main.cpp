@@ -6,15 +6,16 @@ D_sqlite("any.db");
 #include "module.hpp"
 void test() {
   Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
-  t->set(5, false, "yield"); cout << t << '\n';
-  *t = json::parse(u8R"({"id":2,"ok":false,"name":"杰森之父","date":"2021-09-08 01:04:30",
-"lang":[{"id":1,"language":"c++"},{"id":2,"language":"lua"},{"id":3,"language":"rust"}]})").get<Tab>();
+  t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
+  *t = json::parse(u8R"({"id":2,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
+"lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   *t = Tab::Q()->select()->field(&Tab::id, &Tab::name)->FindOne("id = 1");
   cout << Tab::Q()->select()->FindArr();
 }
 int main() {
   InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
+  return 0;
   Timer t; bool run = true;
   t.setTimeout([&t, &run] {
 	int i = 0; for (; i < 5999; ++i) {
