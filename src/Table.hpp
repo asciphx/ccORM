@@ -118,7 +118,7 @@ namespace orm {
 	  if (_create_need) {
 		_create_need = false;
 		for (uint8_t i = 0; i < _size_; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
-		  if (_T_[i][0] == 'S') { std::cout << _T_[i]; continue; }
+		  if (_T_[i][0] == 'S') { continue; }
 		  TC tc = (TC)_tc_[i]; const char* def = _def_[i];
 		  if (i)_create_ += ",\n"; _create_ += $[i];
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
@@ -200,7 +200,7 @@ namespace orm {
 			case 'int': if (!so2s<int>(def)) { break; }
 			case 'NSt7':
 			case "class s"_i: _:
-			default: _create_ += " DEFAULT "; _create_.push_back('\''); _create_ += def; _create_.push_back('\'');
+			default: _create_ += " DEFAULT "; _create_.push_back('\''); _create_ += toQuotes(def); _create_.push_back('\'');
 			}
 		  }
 		} _create_ += "\n);";

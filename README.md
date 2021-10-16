@@ -12,7 +12,7 @@ D_sqlite("any.db");
 #include "module.hpp"
 void test() {
   Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
-  t->set(5, false, "yield"); cout << t << '\n';
+  t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
   *t = json::parse(u8R"({"id":2,"ok":false,"name":"Flawless masterpiece","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"lua"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
