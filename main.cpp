@@ -26,7 +26,7 @@ int main() {
 	}, 6);
   int i = 0; for (; i < 4999; ++i) {
 	Tab::Q()->select()->field(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
-  }//Simulate dual threads to ensure that SQLite does not make errors,the maximum number of SQLite threads is 3
+  }//多线程测试
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
   printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC);

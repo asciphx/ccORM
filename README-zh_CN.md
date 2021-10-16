@@ -1,14 +1,42 @@
 ﻿# ccORM[版本 0.5]
 ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
-🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。开发速度最快、最迅速、最猛烈，即将更新其他功能。
+🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是纯粹的静态反射。
+开发速度最快、最迅速、最猛烈，即将更新其他功能。
  ![基准结果(未缓存)](./test.png)
+
+## 模型层
 ```c++
-#include "src/json.hpp"
+struct Type : Table<Type> {
+  int id;
+  string language;
+  Type(int a = 0, string b = "") :
+	id(a), language(b) {} Type(bool);
+}; CONSTRUCT(Type, id, language)
+REGIST_PROTO(Type,
+  TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
+  TC::DEFAULT, "c/c++");
+struct Tab : Table<Tab> {
+  int id;
+  bool ok;
+  string name;
+  tm date;
+  vector<Type> lang;
+  Tab(int a = 0, bool b = false, string c = "", tm d = now(), vector<Type> e = {}) :
+	id(a), ok(b), name(c), date(d), lang(e) {} Tab(bool);
+}; CONSTRUCT(Tab, id, ok, name, date, lang)
+REGIST_PROTO(Tab,
+  TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
+  TC::DEFAULT, "false",
+  TC::DEFAULT, "ww'zzgg",
+  TC::DEFAULT | TC::NOT_NULL, "");
+```
+## 主函数
+```c++
 #include "src/ccORM.hh"
 auto D =
 //D_mysql();
 //D_pgsql();
-D_sqlite("any.db");
+D_sqlite("any.db");//选择数据库
 #include "module.hpp"
 void test() {
   Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
@@ -29,7 +57,7 @@ int main() {
 	}, 6);
   int i = 0; for (; i < 4999; ++i) {
 	Tab::Q()->select()->field(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
-  }//模拟双线程以确保SQLite不会出错
+  }//多线程测试
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
   printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC);
@@ -42,6 +70,7 @@ int main() {
  - 模块化
  - 仅头文件
  - 低代码
+ - 高性能
 
 ## 前提
 cmake需求：[最好使用vcpkg安装mysql]
@@ -50,11 +79,16 @@ find_package(MYSQL REQUIRED)
 target_link_libraries(main ${MYSQL_LIBRARY})
 
 或者
-下面的方式，这只是示例，注意：必须让mariadb，mariadbclient在最前面，才不会报错
+下面的方式，这只是示例，注意：请自行修改`build_linux.sh`文件.通过`sh ./build_linux.sh`编译
 ```
 g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
 -pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 
 ```
+# 支持的编译器（最低版本）:
+    - Linux: G++ 9.2, Clang++ 9.0
+    - MacOS: Apple clang version 12.0.0 
+    - Windows: MSVC C++ compiler version 1930.
+
 ## 即将推出
 一对多查询，多对多查询，完善的条件，索引列建立，以及缓存查询
 
