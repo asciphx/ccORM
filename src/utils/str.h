@@ -102,10 +102,11 @@ static std::string toSqlLowerCase(const char* s) {
   } return e;
 }
 template<typename T> const char* getObjectName() {
+  const char* s = typeid(T).name();
 #if _WIN32
-  const char* s = typeid(T).name(); while (*++s != 0x20); return ++s;
+  while (*++s != 0x20); return ++s;
 #else
-  const char* s = typeid(T).name(); while (*s < 0x3a && *s++ != 0x24) {}; return s;
+  while (*s < 0x3a && *s++ != 0x24) {}; return s;
 #endif
 }
 static std::string toQuotes(const char* s) {

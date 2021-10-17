@@ -23,7 +23,7 @@ int main() {
 	int i = 0; for (; i < 5999; ++i) {
 	  Tab::Q()->select()->FindOne("id = 2");
 	} printf("<%d>", i);
-	t.stop(); run = false;
+	run = false;
 	}, 6);
   int i = 0; for (; i < 4999; ++i) {
 	Tab::Q()->select(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
