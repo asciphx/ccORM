@@ -116,14 +116,11 @@ static std::string toQuotes(const char* s) {
     *++s;
   } return e;
 }
-
 std::ostream& operator<<(std::ostream& os, const tm& time) {
-  char prev = os.fill('x');
-  os << std::setfill('0') << std::setw(4) << (time.tm_year + 1900)
-    << "-" << std::setw(2) << (time.tm_mon + 1) << "-" << std::setw(2) << time.tm_mday << " "
-    << std::setw(2) << time.tm_hour << ":" << std::setw(2) << time.tm_min << ":" << std::setw(2) << time.tm_sec
-    << std::setw(0) << std::setfill(prev);
-  return os;
+  os << (time.tm_year + 1900) << std::setfill('0')
+    << "-" << std::setw(2) << (time.tm_mon + 1) << "-" << std::setw(2) << time.tm_mday
+    << " " << std::setw(2) << time.tm_hour << ":" << std::setw(2) << time.tm_min
+    << ":" << std::setw(2) << time.tm_sec; return os;
 }
 std::string operator&& (const std::string& o, const std::string& c) {
   std::ostringstream os; os << "(" << o << " AND " << c << ")"; return os.str();

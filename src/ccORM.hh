@@ -2202,9 +2202,7 @@ namespace crow {
   //SYS_IS_UTF8 default 1 best compatibility
 #define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
 #define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,SYS_IS_UTF8?"utf8":"GBK")
-
-  //SQLite supports up to 3 threads, while the upper limit of PgSQL or MySQL is the number of threads
-  //so the SQLite test case should preferably contain two threads(No error).
+  //SQLite is not suitable for multi-threaded environments
 #define D_sqlite(path) crow::Sqlite(path)
   auto COMPILE_USE = D_mysql();//Note that this line is for compilation.
 }

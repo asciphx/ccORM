@@ -1,7 +1,13 @@
-﻿# ccORM[版本 0.5]
+﻿# ccORM[版本 0.6]
 ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
 🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是纯粹的静态反射。
  ![基准结果(未缓存)](./test.png)
+
+## 更新说明
+> 现在模型层只允许一个主键（加入了异常判定）
+> 提升了日期格式的处理效率
+> 优化了QueryBuilder的select方法
+> 增加了一部分的颜色代码
 
 ## 模型层
 ```c++
@@ -41,7 +47,7 @@ void test() {
   Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
   t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
   *t = json::parse(u8R"({"id":2,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
-"lang":[{"id":1,"language":"c++"},{"id":2,"language":"lua"},{"id":3,"language":"rust"}]})").get<Tab>();
+"lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   *t = Tab::Q()->select()->field(&Tab::id, &Tab::name)->FindOne("id = 1");
   cout << Tab::Q()->select()->FindArr();

@@ -14,18 +14,19 @@ void test() {
   t->Insert();//插入
   cout << Tab::Q()->select()->FindArr();
   t->Delete();//删除
-  *t = Tab::Q()->select()->field(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';
+  *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';
 }
 int main() {
   InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&t, &run] {
 	int i = 0; for (; i < 5999; ++i) {
-	Tab::Q()->select()->FindOne("id = 2"); } printf("<%d>", i);
+	  Tab::Q()->select()->FindOne("id = 2");
+	} printf("<%d>", i);
 	t.stop(); run = false;
 	}, 6);
   int i = 0; for (; i < 4999; ++i) {
-	Tab::Q()->select()->field(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
+	Tab::Q()->select(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
   }//多线程测试
   printf("<%d>", i);
   while (run) { this_thread::yield(); }

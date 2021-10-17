@@ -42,6 +42,7 @@ namespace orm {
 	  assert(_size_ >= sizeof...(U));
 	  uint8_t idex = 0; (void)std::initializer_list<int>{($et(idex++, &t), void(), 0)...};
 	}
+	//Query builder
 	static Sql<T>* Q() {
 	_: if (++_idex > HARDWARE_CORE) _idex = 0; Sql<T>* q = __[_idex];
 	  if (q->prepare_) { q->prepare_ = false; return q; }
@@ -69,21 +70,21 @@ namespace orm {
 		} ++i;
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str() << ";";
-	  Q()->Query()(os.str());
+	  Q()->Query()(os.str());//.last_insert_id()
 	}
 	//Update the object (The default condition is the value of the primary key)
 	void Update() {
 	  uint8_t i = 0; std::ostringstream os; os << "UPDATE " << toSqlLowerCase(_name) << " SET ";
-	  std::string condition(" WHERE "); bool f = false;
-	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &f, &condition, this](auto& t, auto& k) {
+	  std::string condition(" WHERE ");
+	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition, this](auto& t, auto& k) {
 		TC tc = (TC)_tc_[i];
 		if (is_PRIMARY_KEY(tc)) {
-		  if (f) { condition += " AND "; } condition += k; condition.push_back('=');
+		  condition += k; condition.push_back('=');
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			condition += std::to_string(t);
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
-		  } f = true;
+		  }
 		}
 		if (!is_AUTOINCREMENT(tc)) {
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
@@ -100,16 +101,16 @@ namespace orm {
 	}
 	//Delete the object based on this object's primary key
 	void Delete() {
-	  uint8_t i = 0; std::ostringstream os; os << "DELETE FROM " << toSqlLowerCase(_name) << " WHERE "; bool f=false;
-	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &f, this](auto& t, auto& k) {
+	  uint8_t i = 0; std::ostringstream os; os << "DELETE FROM " << toSqlLowerCase(_name) << " WHERE ";
+	  ForEachField(dynamic_cast<T*>(this), [&i, &os, this](auto& t, auto& k) {
 		TC tc = (TC)_tc_[i];
 		if (is_PRIMARY_KEY(tc)) {
-		  if (f) { os << " AND "; } os << k << '=';
+		  os << k << '=';
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			os << t;
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			os << '\'' << toQuotes(t.c_str()) << '\'';
-		  } f = true;
+		  }
 		} ++i;
 		}); os << ";";
 	  Q()->Query()(os.str());
@@ -147,13 +148,12 @@ namespace orm {
 		  } else { _create_ += " TINYINT"; } goto $;
 		  case 'b':
 		  case 'bool': _create_ += " BOOLEAN"; if (is_NOT_NULL(tc)) { _create_ += " NOT NULL"; }
-					 if constexpr (std::is_same_v<decltype(D)::db_tag, crow::sqlite_tag>) {
-					   if (is_DEFAULT(tc) && so2s<bool>(def)) {
-						 _create_ += " DEFAULT "; _create_.push_back('\''); if (def[0] == 't') {
-						   _create_.push_back('1');
-						 } else { _create_.push_back('0'); } _create_.push_back('\'');
-					   } continue;
-					 } else { goto $; }
+					 if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) { goto $; }
+					 if (is_DEFAULT(tc) && so2s<bool>(def)) {
+					   _create_ += " DEFAULT "; _create_.push_back('\''); if (def[0] == 't') {
+						 _create_.push_back('1');
+					   } else { _create_.push_back('0'); } _create_.push_back('\'');
+					 } continue;
 		  case 's':
 		  case "short"_i: _create_ += " SMALLINT"; break;//SmallInt
 		  case 'i':
@@ -175,7 +175,7 @@ namespace orm {
 		  case "class s"_i: _create_ += " VARCHAR(255)"; goto $;
 		  }
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value) {
-			if (is_PRIMARY_KEY(tc) || is_AUTOINCREMENT(tc)) { _create_ += " PRIMARY KEY"; }
+			if (is_PRIMARY_KEY(tc) || (is_PRIMARY_KEY(tc) && is_AUTOINCREMENT(tc))) { _create_ += " PRIMARY KEY"; }
 		  }
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value) {
 			if (is_PRIMARY_KEY(tc))  _create_ += " PRIMARY KEY"; if (is_AUTOINCREMENT(tc))_create_ += " AUTO_INCREMENT";
@@ -197,9 +197,10 @@ namespace orm {
 			case 's':
 			case "short"_i: if (!so2s<short>(def)) { break; } goto _;
 			case 'i':
-			case 'int': if (!so2s<int>(def)) { break; }
+			case 'int': if (!so2s<int>(def)) { break; } _: _create_ += " DEFAULT ";
+			  _create_.push_back('\''); _create_ += def; _create_.push_back('\''); break;
 			case 'NSt7':
-			case "class s"_i: _:
+			case "class s"_i:
 			default: _create_ += " DEFAULT "; _create_.push_back('\''); _create_ += toQuotes(def); _create_.push_back('\'');
 			}
 		  }
@@ -215,8 +216,8 @@ namespace orm {
 		try {
 		  DbQuery(_create_.c_str()).flush_results();
 		} catch (std::runtime_error e) {
-		  std::cerr << "Warning: Lithium::sql could not create the " << static_cast<Sql<T>*>(__[0])->table_ << " sql table.\n"
-			<< "You can ignore this message if the table already exists." << "The sql error is: " << e.what() << std::endl;
+		  std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << static_cast<Sql<T>*>(__[0])->table_
+			<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n";
 		}
 	  }
 	  std::cout << _create_.c_str();
@@ -231,16 +232,11 @@ namespace orm {
 	ForEachField(dynamic_cast<T*>(c), [&s, &b](auto& t, auto& k) {
 	  if (b) { s.push_back('\"'), b = false; } else { s += ",\""; } s += k;
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		std::ostringstream os; const tm* time = &t;
-		os << std::setfill('0') << std::setw(4) << (time->tm_year + 1900) << '-'
+		s += "\":\""; std::ostringstream os; const tm* time = &t;
+		os << 20 << (time->tm_year - 100) << '-' << std::setfill('0')
 		  << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' '
 		  << std::setw(2) << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':'
-		  << std::setw(2) << time->tm_sec << '"'; s += "\":\"";
-#ifdef _WIN32
-		s += os.str();
-#else
-		s += os.str().replace(1, 1, "");
-#endif
+		  << std::setw(2) << time->tm_sec << '"'; s += os.str();
 	  } else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":" + std::to_string(t);
 	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {

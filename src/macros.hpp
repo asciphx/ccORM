@@ -14,56 +14,53 @@
 #include <ctime>
 #include <cassert>
 #include <cstdarg>
+#include <stdexcept>
 #include "json.hpp"
 #include "./utils/str.h"
 namespace orm {
   static const unsigned int HARDWARE_ASYNCHRONOUS = 0x6;//It is best to set the maximum number of threads
   template <class T>
   static typename std::enable_if<std::is_same<T, tm>::value, std::string>::type DuckTyping(const T& _v) {
-    std::ostringstream os; os << std::setfill('0') << std::setw(4) << (_v.tm_year + 1900)
-      << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
-      << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec;
-#ifdef _WIN32
-    return os.str();
-#else
-    return os.str().replace(1, 1, "");
-#endif
+	std::ostringstream os; os << 20 << (_v.tm_year - 100) << '-' << std::setfill('0') << std::setw(2)
+	  << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
+	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec;
+	return os.str();
   }
   template <class T>
   static inline typename std::enable_if<!std::is_same<T, tm>::value, T>::type DuckTyping(const T& _v) { return _v; }
 
   template <typename T>
   static typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* str, const json& j) {
-    std::string d_; j.at(str).get_to(d_); int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
-    if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
-      _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
-    }
+	std::string d_; j.at(str).get_to(d_); int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
+	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
+	}
   }
   template <typename T>
   static inline typename std::enable_if<!std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* str, const json& j) {
-    j.at(str).get_to(_v);
+	j.at(str).get_to(_v);
   }
   template <typename Fn, typename Tuple, std::size_t... I>
   inline constexpr void ForEachTuple(Tuple& tuple, Fn& fn,
-    std::index_sequence<I...>) {
-    using Expander = int[];
-    (void)Expander { 0, ((void)fn(std::get<I>(tuple)), 0)... };
+	std::index_sequence<I...>) {
+	using Expander = int[];
+	(void)Expander { 0, ((void)fn(std::get<I>(tuple)), 0)... };
   }
   template <typename Fn, typename Tuple>
   inline constexpr void ForEachTuple(Tuple&& tuple, Fn&& fn) {
-    ForEachTuple(tuple, fn,
-      std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
+	ForEachTuple(tuple, fn,
+	  std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
   }
   template <typename T>
   inline constexpr auto Schema() { return std::make_tuple(); }
   template <typename T, typename Fn>
   inline constexpr void ForEachField(T* value, Fn&& fn) {
-    constexpr auto struct_schema = Schema<std::decay_t<T>>();
-    static_assert(std::tuple_size<decltype(struct_schema)>::value != 0,
-      "Schema tuples, like ((&T::field, field_name), ...)");
-    ForEachTuple(struct_schema, [value, &fn](auto field_schema) {
-      fn(value->*(std::get<0>(field_schema)), std::get<1>(field_schema));
-      });
+	constexpr auto struct_schema = Schema<std::decay_t<T>>();
+	static_assert(std::tuple_size<decltype(struct_schema)>::value != 0,
+	  "Schema tuples, like ((&T::field, field_name), ...)");
+	ForEachTuple(struct_schema, [value, &fn](auto field_schema) {
+	  fn(value->*(std::get<0>(field_schema)), std::get<1>(field_schema));
+	  });
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
@@ -76,9 +73,9 @@ std::string formattedString(const char* f, ...) {
   std::string s(128, 0); va_list vl, backup; va_start(vl, f); va_copy(backup, vl);
   auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
   if ((r >= 0) && ((std::string::size_type)r < s.size())) s.resize(r); else while (true) {
-    if (r < 0) s.resize(s.size() * 2); else s.resize(r + 1);
-    va_copy(backup, vl); auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
-    if ((r >= 0) && ((std::string::size_type)r < s.size())) { s.resize(r); break; }
+	if (r < 0) s.resize(s.size() * 2); else s.resize(r + 1);
+	va_copy(backup, vl); auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
+	if ((r >= 0) && ((std::string::size_type)r < s.size())) { s.resize(r); break; }
   } va_end(vl); return s;
 }
 #if 1
@@ -332,7 +329,6 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
     template <> inline constexpr auto orm::Schema<o>() {\
       return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
     }
-
 //----------------------------------------------------------
 #define PTR_2(a,o,k,v)      _tc_[a] = k; _def_[a] = v;
 #define PTR_4(a,o,k,v,...)  _tc_[a] = k; _def_[a] = v; EXP(PTR_2(a+1,o,__VA_ARGS__))
@@ -368,8 +364,21 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define PTR_64(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_62(a+1,o,__VA_ARGS__))
 #define PTRS_N(o,N,...) EXP(PTR_##N(0,o,__VA_ARGS__))
 #define PTRS(o,N,...) PTRS_N(o,N,__VA_ARGS__)
+//`1;`->加粗，`4`->下划线，`0`->还原,`m`<=>`\033[`
+#define RGB_BLACK  	 "\033[30m"
+#define RGB_RED  	 "\033[31m"
+#define RGB_GREEN    "\033[32m"
+#define RGB_YELLOW   "\033[33m"
+#define RGB_BLUE   	 "\033[34m"
+#define RGB_MAGENTA  "\033[35m"
+#define RGB_AZURE    "\033[36m"
+#define RGB_NULL 	 "\033[0m"
 //regist PROPERTY
 #define REGIST_PROTO(o,...)\
-  o::o(bool b){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)  }
-        //
+  o::o(bool b)throw (std::string){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
+    for(uint8_t i=0;i<NUM_ARGS(__VA_ARGS__);++i){\
+       if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;}else{\
+throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }\
+    }\
+  }
 #endif
