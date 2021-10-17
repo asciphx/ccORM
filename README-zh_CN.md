@@ -38,13 +38,16 @@ auto D =
 D_sqlite("any.db");//选择数据库
 #include "module.hpp"
 void test() {
-  Tab::ptr t = Tab::create(1, true, "abcd", now(), vector<Type>{ Type{1,"typescript"} });
+  Tab::ptr t = Tab::create(1, true, u8"日期更变", now(), vector<Type>{ Type{ 1,"typescript" } });
+  t->Update();//更新
   t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
-  *t = json::parse(u8R"({"id":2,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
+  *t = json::parse(u8R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
-  *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1");
+  t->Insert();//插入
   cout << Tab::Q()->select()->FindArr();
+  t->Delete();//删除
+  *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';
 }
 int main() {
   InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
