@@ -1,4 +1,4 @@
-#ifndef MACROS_HPP
+ï»¿#ifndef MACROS_HPP
 #define MACROS_HPP
 #include <string>
 #include <tuple>
@@ -364,7 +364,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define PTR_64(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_62(a+1,o,__VA_ARGS__))
 #define PTRS_N(o,N,...) EXP(PTR_##N(0,o,__VA_ARGS__))
 #define PTRS(o,N,...) PTRS_N(o,N,__VA_ARGS__)
-//`1;`->¼Ó´Ö£¬`4`->ÏÂ»®Ïß£¬`0`->»¹Ô­,`m`<=>`\033[`
+//`1;`->åŠ ç²—ï¼Œ`4`->ä¸‹åˆ’çº¿ï¼Œ`0`->è¿˜åŽŸ,`m`<=>`\033[`
 #define RGB_BLACK  	 "\033[30m"
 #define RGB_RED  	 "\033[31m"
 #define RGB_GREEN    "\033[32m"
