@@ -1,13 +1,7 @@
 ﻿# ccORM[version 0.6]
-ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
-🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is pure static reflection.
+> ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
+> 🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is pure static reflection.
  ![Benchmark results (not cached)](./test.png)
-
-## Update description
-> At present, only one primary key can exist in the model layer (exceptions are added)
-> The processing efficiency of date format is improved
-> The select method of querybuilder is optimized
-> Added a part of the color code
 
 ## Model layer
 ```c++
@@ -49,7 +43,7 @@ void test() {
   *t = json::parse(u8R"({"id":2,"ok":false,"name":"Flawless masterpiece","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
-  *t = Tab::Q()->select()->field(&Tab::id, &Tab::name)->FindOne("id = 1");
+  *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1");
   cout << Tab::Q()->select()->FindArr();
 }
 int main() {
@@ -61,7 +55,7 @@ int main() {
 	t.stop(); run = false;
 	}, 6);
   int i = 0; for (; i < 4999; ++i) {
-	Tab::Q()->select()->field(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
+	Tab::Q()->select(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
   }//Multithreading test
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
