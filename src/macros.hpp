@@ -375,7 +375,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define RGB_NULL 	 "\033[0m"
 //regist PROPERTY
 #define REGIST_PROTO(o,...)\
-  o::o(bool b)throw (std::string){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
+  o::o(bool b){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
     for(uint8_t i=0;i<NUM_ARGS(__VA_ARGS__);++i){\
        if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;}else{\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }\
