@@ -22,7 +22,7 @@ namespace orm {
 	vector<T> FindArr();
 	T FindOne(const char* where);
 	static decltype(D)::connection_type Query();
-  private: uint8_t limit_{ 10 }, offset_{ 0 }; string sql_; const std::string table_; bool prepare_{ true };
+  private: uint32_t limit_{ 10 }, offset_{ 0 }; string sql_; const std::string table_; bool prepare_{ true };
 		 inline void clear() { sql_ = "SELECT "; limit_ = 10; offset_ = 0; prepare_ = true; }
   };
   template<typename T>inline Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
