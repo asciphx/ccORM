@@ -17,9 +17,9 @@ void test() {
   *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';
 }
 int main() {
-  InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
+  InitializationOrm<Type, Tab>(); clock_t start = clock(); test(); return 0;
   Timer t; bool run = true;
-  t.setTimeout([&t, &run] {
+  t.setTimeout([&run] {
 	int i = 0; for (; i < 5999; ++i) {
 	  Tab::Q()->select()->FindOne("id = 2");
 	} printf("<%d>", i);

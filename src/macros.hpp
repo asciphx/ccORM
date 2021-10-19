@@ -69,7 +69,7 @@ namespace orm {
   static bool is_DEFAULT(TC specs) { return (specs & TC::DEFAULT); }
   static bool is_AUTOINCREMENT(TC specs) { return (specs & TC::AUTO_INCREMENT); }
 }
-std::string formattedString(const char* f, ...) {
+static std::string formattedString(const char* f, ...) {
   std::string s(128, 0); va_list vl, backup; va_start(vl, f); va_copy(backup, vl);
   auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
   if ((r >= 0) && ((std::string::size_type)r < s.size())) s.resize(r); else while (true) {
@@ -319,8 +319,8 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
 
 #define REGISTER_TABLE(o)\
-    template<> std::string orm::Table<o>::_create_ = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
-    template<> const char* orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "#o";";\
+    template<> std::string orm::Table<o>::_create_ = std::string("CREATE TABLE IF NOT EXISTS "+toSqlLowerCase(#o" (\n")).c_str();\
+    template<> const char* orm::Table<o>::_drop_ = std::string("DROP TABLE IF EXISTS "+toSqlLowerCase(#o";")).c_str();\
     template<> const char* orm::Table<o>::_name = #o;
 #define CONSTRUCT(o,...)\
         ATTRS(o,__VA_ARGS__)\

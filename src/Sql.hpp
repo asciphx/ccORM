@@ -3,14 +3,14 @@
 #include<string>
 #include<vector>
 #include<stdarg.h>
-#include "macros.hpp"
+#include"macros.hpp"
 #define MAX_LIMIT 100
 namespace orm {
   enum class Sort { ASC, DESC }; using namespace std;
   template<typename T> class Table;
   template<typename T> struct Sql {
 	friend class Table<T>;
-	Sql<T>() : table_(toSqlLowerCase(getObjectName<T>())), sql_("SELECT ") {}
+	Sql<T>() : table_(T::_name), sql_("SELECT ") {}
 	~Sql<T>() {}
 	Sql<T>* limit(size_t limit);
 	Sql<T>* offset(size_t offset);
@@ -22,7 +22,7 @@ namespace orm {
 	vector<T> FindArr();
 	T FindOne(const char* where);
 	static decltype(D)::connection_type Query();
-  private: size_t limit_{ 10 }, offset_{ 0 }; string sql_; const std::string table_; bool prepare_{ true };
+  private: uint8_t limit_{ 10 }, offset_{ 0 }; string sql_; const std::string table_; bool prepare_{ true };
 		 inline void clear() { sql_ = "SELECT "; limit_ = 10; offset_ = 0; prepare_ = true; }
   };
   template<typename T>inline Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
@@ -34,6 +34,7 @@ namespace orm {
   template<typename T, typename K>
   static void setFields(string& os, K T::* val) {
 	constexpr auto schema = Schema<T>();
+	//std::cout<< std::get<1>(std::get<0>(schema));
 	ForEachTuple(schema, [&os, &val](auto field_schema) {
 	  if (typeid(&val) == typeid(&std::get<0>(field_schema))) {
 		os += std::get<1>(field_schema); os += ','; return;

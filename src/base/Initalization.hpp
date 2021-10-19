@@ -42,7 +42,7 @@ namespace orm {
   }
   static std::string Time2Str(const time_t* t) {
 	tm* _v; _v = std::localtime(t); std::ostringstream os;
-	os << std::setfill('0') << std::setw(4) << (_v->tm_year + 1900) << '-' << std::setw(2)
+	os << 20 << (_v->tm_year - 100) << '-' << std::setfill('0') << std::setw(2)
 	  << (_v->tm_mon + 1) << '-' << std::setw(2) << _v->tm_mday << ' ' << std::setw(2)
 	  << _v->tm_hour << ':' << std::setw(2) << _v->tm_min << ':' << std::setw(2)
 	  << _v->tm_sec; return os.str();

@@ -17,7 +17,7 @@ namespace orm {
 #ifdef _WIN32
 	friend typename T; const static char* _def_[]; static uint8_t _tc_[];
 #endif
-	static const char* _T_[]; static const size_t _[];
+	friend class Sql<T>; static const char* _T_[]; static const size_t _[];
 	template <typename N> constexpr N& getIdex(size_t i) {
 	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_[i]);
 	}
@@ -52,7 +52,7 @@ namespace orm {
 	//Insert the object (Excluding the primary key)
 	void Insert() {
 	  uint8_t i = 0; std::ostringstream os, ov; ov << "VALUES (";
-	  os << "INSERT INTO " << toSqlLowerCase(_name) << " (";
+	  os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov, this](auto& t, auto& k) {
 		TC tc = (TC)_tc_[i];
 		if (!is_PRIMARY_KEY(tc)) {
@@ -74,7 +74,7 @@ namespace orm {
 	}
 	//Update the object (The default condition is the value of the primary key)
 	void Update() {
-	  uint8_t i = 0; std::ostringstream os; os << "UPDATE " << toSqlLowerCase(_name) << " SET ";
+	  uint8_t i = 0; std::ostringstream os; os << "UPDATE " << _name << " SET ";
 	  std::string condition(" WHERE ");
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition, this](auto& t, auto& k) {
 		TC tc = (TC)_tc_[i];
@@ -101,7 +101,7 @@ namespace orm {
 	}
 	//Delete the object based on this object's primary key
 	void Delete() {
-	  uint8_t i = 0; std::ostringstream os; os << "DELETE FROM " << toSqlLowerCase(_name) << " WHERE ";
+	  uint8_t i = 0; std::ostringstream os; os << "DELETE FROM " << _name << " WHERE ";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, this](auto& t, auto& k) {
 		TC tc = (TC)_tc_[i];
 		if (is_PRIMARY_KEY(tc)) {
@@ -208,7 +208,7 @@ namespace orm {
 	  }
 	  auto DbQuery = static_cast<Sql<T>*>(__[0])->Query();
 	  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
-		std::string str_("select count(*) from pg_class where relname = '"); str_ += toSqlLowerCase(_name); str_ += "';";
+		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
 		if (DbQuery(str_).template r__<int>() == 0) {
 		  DbQuery(_create_.c_str()).flush_results();
 		}

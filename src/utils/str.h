@@ -14,7 +14,7 @@ extern "C" {
     while (i < l&& j < k) if (d[i] == s[j])i++, j++; else i = i - j + 1, j = 0;
     if (j == k){ return d + i - k;} return (char*)0;
   }
-  int strCmp(const char* c, const char* s) {
+  static int strCmp(const char* c, const char* s) {
     if (c[0] == 0 || s[0] == 0){return -1;} while (*s == *c && *c && *s)c++, s++;
     if (*c == *s){return 0;} if (*c > *s)return 1; return -1;
   }
