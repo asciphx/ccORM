@@ -10,7 +10,7 @@ namespace orm {
   template<typename T> class Table;
   template<typename T> struct Sql {
 	friend class Table<T>;
-	Sql<T>() : table_(T::_name), sql_("SELECT ") {}
+	Sql<T>() : table_(T::_name.c_str()), sql_("SELECT ") {}
 	~Sql<T>() {}
 	Sql<T>* limit(size_t limit);
 	Sql<T>* offset(size_t offset);

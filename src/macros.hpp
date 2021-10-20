@@ -208,7 +208,6 @@ inline const char* GetRealType(const char* s, const char* c) {
  template<> const char* orm::Table<o>::_T_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
 //
-
 #define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));
 #define COL_2(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_1(o,__VA_ARGS__))
 #define COL_3(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_2(o,__VA_ARGS__))
@@ -314,14 +313,13 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define STAR_30(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_29(o,__VA_ARGS__))
 #define STAR_31(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_30(o,__VA_ARGS__))
 #define STAR_32(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_31(o,__VA_ARGS__))
-/** Single init **///not use
 #define STARS_N(o,N,...) EXP(STAR_##N(o,__VA_ARGS__))
 #define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
 
 #define REGISTER_TABLE(o)\
-    template<> std::string orm::Table<o>::_create_ = std::string("CREATE TABLE IF NOT EXISTS "+toSqlLowerCase(#o" (\n")).c_str();\
-    template<> const char* orm::Table<o>::_drop_ = std::string("DROP TABLE IF EXISTS "+toSqlLowerCase(#o";")).c_str();\
-    template<> const char* orm::Table<o>::_name = #o;
+    template<> std::string orm::Table<o>::_create_ = std::string("CREATE TABLE IF NOT EXISTS "+toSqlLowerCase(#o" (\n"));\
+    template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
+    template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);
 #define CONSTRUCT(o,...)\
         ATTRS(o,__VA_ARGS__)\
         REGIST(o, __VA_ARGS__)\

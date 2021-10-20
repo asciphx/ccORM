@@ -12,7 +12,7 @@ struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B {
 int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
 namespace orm {
   template<typename T> class Table : public virtual_shared<T> {
-	const static char* _name, * _drop_, * $[]; static const uint8_t _size_;
+	static const std::string _name, _drop_; const static char* $[]; static const uint8_t _size_;
 	static bool _create_need; static uint8_t _idex; static std::string _create_;
 #ifdef _WIN32
 	friend typename T; const static char* _def_[]; static uint8_t _tc_[];
@@ -35,7 +35,7 @@ namespace orm {
 	using ptr = typename std::shared_ptr<T>; static Sql<T>* __[];//Not commonly used, but must be public
 	using ptr_arr = typename std::vector<typename std::shared_ptr<T>>;
 	Table& operator=(const Table&) = default;
-	Table(); ~Table() {} //Table(const Table&) = delete;
+	Table(); ~Table() {} Table(const Table&) = default;
 	template<typename ... Args> static ptr create(Args&& ... args);
 	ptr _asPointer() { return this->shared_from_this(); }
 	template<typename... U> void set(U... t) {
@@ -210,17 +210,17 @@ namespace orm {
 	  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
 		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
 		if (DbQuery(str_).template r__<int>() == 0) {
-		  DbQuery(_create_.c_str()).flush_results();
+		  DbQuery(_create_).flush_results();
 		}
 	  } else {
 		try {
-		  DbQuery(_create_.c_str()).flush_results();
+		  DbQuery(_create_).flush_results();
 		} catch (std::runtime_error e) {
 		  std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << static_cast<Sql<T>*>(__[0])->table_
 			<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n";
 		}
 	  }
-	  std::cout << _create_.c_str();
+	  std::cout << _create_;
 	}
 	static void _dropTable() { auto DbQuery = static_cast<Sql<T>*>(__[0])->Query(); DbQuery(_drop_).flush_results(); }
   };
