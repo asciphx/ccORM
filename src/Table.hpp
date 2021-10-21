@@ -18,21 +18,23 @@ namespace orm {
 	friend typename T; const static char* _def_[]; static uint8_t _tc_[];
 #endif
 	friend class Sql<T>; static const char* _T_[]; static const size_t _[];
+	friend class crow::sqlite_statement_result; friend class crow::pgsql_result;
+	friend class crow::mysql_result<crow::mysql_functions_blocking>;
 	template <typename N> constexpr N& getIdex(size_t i) {
 	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_[i]);
 	}
 	template <typename U> void $et(uint8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) getIdex<std::string>(i) = *v; else getIdex<U>(i) = *v;
 	}
-	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);
-	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);
+	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//Object serialized as string
+	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<Object> serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, Table<U>* c);
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U> c);
   public:
 #ifndef _WIN32
 	const static char* _def_[]; static uint8_t _tc_[];
 #endif
-	using ptr = typename std::shared_ptr<T>; static Sql<T>* __[];//Not commonly used, but must be public
+	using ptr = typename std::shared_ptr<T>; static Sql<T>* __[];
 	using ptr_arr = typename std::vector<typename std::shared_ptr<T>>;
 	Table& operator=(const Table&) = default;
 	Table(); ~Table() {} Table(const Table&) = default;
@@ -45,15 +47,15 @@ namespace orm {
 	//Query builder
 	static Sql<T>* Q() {
 	_: if (++_idex > HARDWARE_CORE) _idex = 0; Sql<T>* q = __[_idex];
-	  if (q->prepare_) { q->prepare_ = false; return q; }
-	  std::this_thread::yield(); goto _;
+	  if (q->prepare_) { q->prepare_ = false; return q; } std::this_thread::yield(); goto _;
 	};
+	//Object serialized as JSON
 	json get() { return json(*dynamic_cast<T*>(this)); };
-	//Insert the object (Excluding the primary key)
-	void Insert() {
+	//Insert the object (Returns the inserted ID)
+	long long Insert() {
 	  uint8_t i = 0; std::ostringstream os, ov; ov << "VALUES (";
 	  os << "INSERT INTO " << _name << " (";
-	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov, this](auto& t, auto& k) {
+	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov, this](auto& t) {
 		TC tc = (TC)_tc_[i];
 		if (!is_PRIMARY_KEY(tc)) {
 		  const char* def = _def_[i];
@@ -66,33 +68,32 @@ namespace orm {
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) ov << '\'' << toQuotes(def) << "',"; else ov << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
-		  os << k << ',';
+		  os << $[i] << ',';
 		} ++i;
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str() << ";";
-	  Q()->Query()(os.str());//.last_insert_id()
+	  crow::sql_result<decltype(D)::db_rs>*rs = &Q()->Query()(os.str());
+	  if (_tc_[0] & TC::PRIMARY_KEY) { return rs->last_insert_id(); } else { return 0LL; }
 	}
 	//Update the object (The default condition is the value of the primary key)
 	void Update() {
 	  uint8_t i = 0; std::ostringstream os; os << "UPDATE " << _name << " SET ";
-	  std::string condition(" WHERE ");
-	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition, this](auto& t, auto& k) {
+	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
+	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+		condition += std::to_string(t);
+	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
+	  }
+	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition, this](auto& t) {
 		TC tc = (TC)_tc_[i];
-		if (is_PRIMARY_KEY(tc)) {
-		  condition += k; condition.push_back('=');
-		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			condition += std::to_string(t);
-		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-			condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
-		  }
-		}
 		if (!is_AUTOINCREMENT(tc)) {
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			os << k << '=' << t << ',';
+			os << $[i] << '=' << t << ',';
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-			os << k << '=' << '\'' << t << "',";
+			os << $[i] << '=' << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-			os << k << '=' << '\'' << toQuotes(t.c_str()) << "',";
+			os << $[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
 		} ++i;
 		});
@@ -101,18 +102,13 @@ namespace orm {
 	}
 	//Delete the object based on this object's primary key
 	void Delete() {
-	  uint8_t i = 0; std::ostringstream os; os << "DELETE FROM " << _name << " WHERE ";
-	  ForEachField(dynamic_cast<T*>(this), [&i, &os, this](auto& t, auto& k) {
-		TC tc = (TC)_tc_[i];
-		if (is_PRIMARY_KEY(tc)) {
-		  os << k << '=';
-		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			os << t;
-		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-			os << '\'' << toQuotes(t.c_str()) << '\'';
-		  }
-		} ++i;
-		}); os << ";";
+	  std::ostringstream os; os << "DELETE FROM " << _name << " WHERE " << $[0] << '=';
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
+	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+		os << t;
+	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		os << '\'' << toQuotes(t.c_str()) << '\'';
+	  } os << ";";
 	  Q()->Query()(os.str());
 	}
 	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
@@ -178,7 +174,7 @@ namespace orm {
 			if (is_PRIMARY_KEY(tc) || (is_PRIMARY_KEY(tc) && is_AUTOINCREMENT(tc))) { _create_ += " PRIMARY KEY"; }
 		  }
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value) {
-			if (is_PRIMARY_KEY(tc))  _create_ += " PRIMARY KEY"; if (is_AUTOINCREMENT(tc))_create_ += " AUTO_INCREMENT";
+			if (is_PRIMARY_KEY(tc)) _create_ += " PRIMARY KEY"; if (is_AUTOINCREMENT(tc)) _create_ += " AUTO_INCREMENT";
 		  }
 		$://String type detection system
 		  if (is_NOT_NULL(tc)) { _create_ += " NOT NULL"; }
@@ -228,9 +224,9 @@ namespace orm {
   template<typename T> template<typename ... Args>
   typename Table<T>::ptr Table<T>::create(Args&& ... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
-	s.push_back('{'); bool b = true;
-	ForEachField(dynamic_cast<T*>(c), [&s, &b](auto& t, auto& k) {
-	  if (b) { s.push_back('\"'), b = false; } else { s += ",\""; } s += k;
+	s.push_back('{'); bool b = true; int8_t i = -1;
+	ForEachField(dynamic_cast<T*>(c), [&i, c, &s, &b](auto& t) {
+	  if (b) { s.push_back('\"'), b = false; } else { s += ",\""; } s += c->$[++i];
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":\""; std::ostringstream os; const tm* time = &t;
 		os << 20 << (time->tm_year - 100) << '-' << std::setfill('0')

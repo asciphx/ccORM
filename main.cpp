@@ -11,13 +11,14 @@ void test() {
   *t = json::parse(u8R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
-  t->Insert();//插入
+  cout << u8"编号为" << t->Insert() << u8"的id已经插入\n";//插入
   cout << Tab::Q()->select()->FindArr();
   t->Delete();//删除
   *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';
 }
 int main() {
-  InitializationOrm<Type, Tab>(); clock_t start = clock(); test(); return 0;
+  InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
+  printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC); return 0;
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 5999; ++i) {

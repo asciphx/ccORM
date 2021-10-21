@@ -21,6 +21,8 @@ namespace orm {
 	Sql<T>* where(const string& str);
 	vector<T> FindArr();
 	T FindOne(const char* where);
+	template<typename K>
+	static void setFields(string& os, K T::* val);
 	static decltype(D)::connection_type Query();
   private: uint32_t limit_{ 10 }, offset_{ 0 }; string sql_; const std::string table_; bool prepare_{ true };
 		 inline void clear() { sql_ = "SELECT "; limit_ = 10; offset_ = 0; prepare_ = true; }
@@ -28,17 +30,17 @@ namespace orm {
   template<typename T>inline Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T>inline Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
   template<typename T>inline Sql<T>* Sql<T>::orderBy(const string& col, const Sort& ord) {
-	sql_ += formattedString(" ORDER BY %s ", col.c_str()); if (ord == Sort::DESC)sql_ += "DESC"; return this;
+	sql_ += " ORDER BY " + col; if (ord == Sort::DESC)sql_ += " DESC"; return this;
 	//sql_.push_back(','); sql_ += col; if (ord == Sort::DESC)sql_ += " DESC";
   }
-  template<typename T, typename K>
-  static void setFields(string& os, K T::* val) {
-	constexpr auto schema = Schema<T>();
-	//std::cout<< std::get<1>(std::get<0>(schema));
-	ForEachTuple(schema, [&os, &val](auto field_schema) {
-	  if (typeid(&val) == typeid(&std::get<0>(field_schema))) {
-		os += std::get<1>(field_schema); os += ','; return;
-	  }});
+  template<typename T>
+  template<typename K>
+  void Sql<T>::setFields(string& os, K T::* val) {
+	constexpr auto schema = Schema<T>(); int8_t i = -1;
+	ForEachTuple(schema, [&i, &os, &val](auto field) {
+	  ++i; if (typeid(&val) == typeid(&field)) {
+		os += T::$[i]; os += ','; return;
+	  }}, std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
   }
   template<typename T>
   template<typename... K>inline Sql<T>* Sql<T>::select(K T::*... sc) {
@@ -52,11 +54,11 @@ namespace orm {
   template<typename T>inline vector<T> Sql<T>::FindArr()noexcept(false) {
 	string sql(sql_); sql += " LIMIT " + to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
 	if (offset_ > 0) { sql += " OFFSET " + to_string(offset_); }
-	this->clear(); //cout << sql << '\n';
+	this->clear();// cout << sql << '\n';
 	decltype(D)::connection_type q_ = D.conn(); return q_(sql).findArray<T>();
   }
   template<typename T>inline T Sql<T>::FindOne(const char* where)noexcept(false) {
-	string sql(sql_); sql += " WHERE "; sql += where; this->clear(); //cout << sql << '\n';
+	string sql(sql_); sql += " WHERE "; sql += where; this->clear();// cout << sql << '\n';
 	decltype(D)::connection_type q_ = D.conn(); return q_(sql).findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::Query() { return D.conn(); }

@@ -22,9 +22,8 @@ namespace orm {
   template <class T>
   static typename std::enable_if<std::is_same<T, tm>::value, std::string>::type DuckTyping(const T& _v) {
 	std::ostringstream os; os << 20 << (_v.tm_year - 100) << '-' << std::setfill('0') << std::setw(2)
-	  << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
-	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec;
-	return os.str();
+	  << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2) << _v.tm_hour << ':'
+	  << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
   }
   template <class T>
   static inline typename std::enable_if<!std::is_same<T, tm>::value, T>::type DuckTyping(const T& _v) { return _v; }
@@ -40,27 +39,19 @@ namespace orm {
   static inline typename std::enable_if<!std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* str, const json& j) {
 	j.at(str).get_to(_v);
   }
-  template <typename Fn, typename Tuple, std::size_t... I>
-  inline constexpr void ForEachTuple(Tuple& tuple, Fn& fn,
+  template <typename T, typename Fn, std::size_t... I>
+  inline constexpr void ForEachTuple(T& tuple, Fn& fn,
 	std::index_sequence<I...>) {
 	using Expander = int[];
 	(void)Expander { 0, ((void)fn(std::get<I>(tuple)), 0)... };
   }
-  template <typename Fn, typename Tuple>
-  inline constexpr void ForEachTuple(Tuple&& tuple, Fn&& fn) {
-	ForEachTuple(tuple, fn,
-	  std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
-  }
   template <typename T>
   inline constexpr auto Schema() { return std::make_tuple(); }
   template <typename T, typename Fn>
-  inline constexpr void ForEachField(T* value, Fn&& fn) {
-	constexpr auto struct_schema = Schema<std::decay_t<T>>();
-	static_assert(std::tuple_size<decltype(struct_schema)>::value != 0,
-	  "Schema tuples, like ((&T::field, field_name), ...)");
-	ForEachTuple(struct_schema, [value, &fn](auto field_schema) {
-	  fn(value->*(std::get<0>(field_schema)), std::get<1>(field_schema));
-	  });
+  inline constexpr void ForEachField(T* value, Fn& fn) {
+	constexpr auto schema = Schema<T>();
+	ForEachTuple(schema, [value, &fn](auto field) { fn(value->*(field)); },
+	  std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
@@ -68,15 +59,6 @@ namespace orm {
   static bool is_NOT_NULL(TC specs) { return (specs & TC::NOT_NULL); }
   static bool is_DEFAULT(TC specs) { return (specs & TC::DEFAULT); }
   static bool is_AUTOINCREMENT(TC specs) { return (specs & TC::AUTO_INCREMENT); }
-}
-static std::string formattedString(const char* f, ...) {
-  std::string s(128, 0); va_list vl, backup; va_start(vl, f); va_copy(backup, vl);
-  auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
-  if ((r >= 0) && ((std::string::size_type)r < s.size())) s.resize(r); else while (true) {
-	if (r < 0) s.resize(s.size() * 2); else s.resize(r + 1);
-	va_copy(backup, vl); auto r = vsnprintf((char*)s.data(), s.size(), f, backup); va_end(backup);
-	if ((r >= 0) && ((std::string::size_type)r < s.size())) { s.resize(r); break; }
-  } va_end(vl); return s;
 }
 #if 1
 #define Inject(T, N) (size_t)(&reinterpret_cast<char const volatile&>(((T*)0)->N))
@@ -199,12 +181,9 @@ inline const char* GetRealType(const char* s, const char* c) {
 #endif
 #define REGIST(o,...)\
  template<> const uint8_t orm::Table<o>::_size_ = NUM_ARGS(__VA_ARGS__);\
- template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
- template<> uint8_t orm::Table<o>::_idex = 0;\
  template<> const size_t orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)]={ OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
- template<> bool orm::Table<o>::_create_need = true;\
  template<> uint8_t orm::Table<o>::_tc_[NUM_ARGS(__VA_ARGS__)]={};\
- template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={}; \
+ template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={};\
  template<> const char* orm::Table<o>::_T_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
 //
@@ -281,45 +260,48 @@ inline const char* GetRealType(const char* s, const char* c) {
 static void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
 static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
 
-#define STAR_1(o,k)      std::make_tuple(&o::k, #k)
-#define STAR_2(o,k,...)  std::make_tuple(&o::k, #k), EXP(STAR_1(o,__VA_ARGS__))
-#define STAR_3(o,k,...)  std::make_tuple(&o::k, #k), EXP(STAR_2(o,__VA_ARGS__))
-#define STAR_4(o,k,...)  std::make_tuple(&o::k, #k), EXP(STAR_3(o,__VA_ARGS__))
-#define STAR_5(o,k,...)  std::make_tuple(&o::k, #k), EXP(STAR_4(o,__VA_ARGS__))
-#define STAR_6(o,k,...)  std::make_tuple(&o::k, #k), EXP(STAR_5(o,__VA_ARGS__))
-#define STAR_7(o,k,...)  std::make_tuple(&o::k, #k), EXP(STAR_6(o,__VA_ARGS__))
-#define STAR_8(o,k,...)  std::make_tuple(&o::k, #k), EXP(STAR_7(o,__VA_ARGS__))
-#define STAR_9(o,k,...)  std::make_tuple(&o::k, #k), EXP(STAR_8(o,__VA_ARGS__))
-#define STAR_10(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_9(o,__VA_ARGS__))
-#define STAR_11(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_10(o,__VA_ARGS__))
-#define STAR_12(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_11(o,__VA_ARGS__))
-#define STAR_13(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_12(o,__VA_ARGS__))
-#define STAR_14(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_13(o,__VA_ARGS__))
-#define STAR_15(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_14(o,__VA_ARGS__))
-#define STAR_16(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_15(o,__VA_ARGS__))
-#define STAR_17(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_16(o,__VA_ARGS__))
-#define STAR_18(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_17(o,__VA_ARGS__))
-#define STAR_19(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_18(o,__VA_ARGS__))
-#define STAR_20(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_19(o,__VA_ARGS__))
-#define STAR_21(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_20(o,__VA_ARGS__))
-#define STAR_22(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_21(o,__VA_ARGS__))
-#define STAR_23(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_22(o,__VA_ARGS__))
-#define STAR_24(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_23(o,__VA_ARGS__))
-#define STAR_25(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_24(o,__VA_ARGS__))
-#define STAR_26(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_25(o,__VA_ARGS__))
-#define STAR_27(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_26(o,__VA_ARGS__))
-#define STAR_28(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_27(o,__VA_ARGS__))
-#define STAR_29(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_28(o,__VA_ARGS__))
-#define STAR_30(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_29(o,__VA_ARGS__))
-#define STAR_31(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_30(o,__VA_ARGS__))
-#define STAR_32(o,k,...) std::make_tuple(&o::k, #k), EXP(STAR_31(o,__VA_ARGS__))
+#define STAR_1(o,k)      &o::k
+#define STAR_2(o,k,...)  &o::k, EXP(STAR_1(o,__VA_ARGS__))
+#define STAR_3(o,k,...)  &o::k, EXP(STAR_2(o,__VA_ARGS__))
+#define STAR_4(o,k,...)  &o::k, EXP(STAR_3(o,__VA_ARGS__))
+#define STAR_5(o,k,...)  &o::k, EXP(STAR_4(o,__VA_ARGS__))
+#define STAR_6(o,k,...)  &o::k, EXP(STAR_5(o,__VA_ARGS__))
+#define STAR_7(o,k,...)  &o::k, EXP(STAR_6(o,__VA_ARGS__))
+#define STAR_8(o,k,...)  &o::k, EXP(STAR_7(o,__VA_ARGS__))
+#define STAR_9(o,k,...)  &o::k, EXP(STAR_8(o,__VA_ARGS__))
+#define STAR_10(o,k,...) &o::k, EXP(STAR_9(o,__VA_ARGS__))
+#define STAR_11(o,k,...) &o::k, EXP(STAR_10(o,__VA_ARGS__))
+#define STAR_12(o,k,...) &o::k, EXP(STAR_11(o,__VA_ARGS__))
+#define STAR_13(o,k,...) &o::k, EXP(STAR_12(o,__VA_ARGS__))
+#define STAR_14(o,k,...) &o::k, EXP(STAR_13(o,__VA_ARGS__))
+#define STAR_15(o,k,...) &o::k, EXP(STAR_14(o,__VA_ARGS__))
+#define STAR_16(o,k,...) &o::k, EXP(STAR_15(o,__VA_ARGS__))
+#define STAR_17(o,k,...) &o::k, EXP(STAR_16(o,__VA_ARGS__))
+#define STAR_18(o,k,...) &o::k, EXP(STAR_17(o,__VA_ARGS__))
+#define STAR_19(o,k,...) &o::k, EXP(STAR_18(o,__VA_ARGS__))
+#define STAR_20(o,k,...) &o::k, EXP(STAR_19(o,__VA_ARGS__))
+#define STAR_21(o,k,...) &o::k, EXP(STAR_20(o,__VA_ARGS__))
+#define STAR_22(o,k,...) &o::k, EXP(STAR_21(o,__VA_ARGS__))
+#define STAR_23(o,k,...) &o::k, EXP(STAR_22(o,__VA_ARGS__))
+#define STAR_24(o,k,...) &o::k, EXP(STAR_23(o,__VA_ARGS__))
+#define STAR_25(o,k,...) &o::k, EXP(STAR_24(o,__VA_ARGS__))
+#define STAR_26(o,k,...) &o::k, EXP(STAR_25(o,__VA_ARGS__))
+#define STAR_27(o,k,...) &o::k, EXP(STAR_26(o,__VA_ARGS__))
+#define STAR_28(o,k,...) &o::k, EXP(STAR_27(o,__VA_ARGS__))
+#define STAR_29(o,k,...) &o::k, EXP(STAR_28(o,__VA_ARGS__))
+#define STAR_30(o,k,...) &o::k, EXP(STAR_29(o,__VA_ARGS__))
+#define STAR_31(o,k,...) &o::k, EXP(STAR_30(o,__VA_ARGS__))
+#define STAR_32(o,k,...) &o::k, EXP(STAR_31(o,__VA_ARGS__))
 #define STARS_N(o,N,...) EXP(STAR_##N(o,__VA_ARGS__))
 #define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
 
 #define REGISTER_TABLE(o)\
-    template<> std::string orm::Table<o>::_create_ = std::string("CREATE TABLE IF NOT EXISTS "+toSqlLowerCase(#o" (\n"));\
-    template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
-    template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);
+	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
+	template<> uint8_t orm::Table<o>::_idex = 0;\
+	template<> std::string orm::Table<o>::_create_ = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
+	template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
+	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
+	template<> bool orm::Table<o>::_create_need = true;
 #define CONSTRUCT(o,...)\
         ATTRS(o,__VA_ARGS__)\
         REGIST(o, __VA_ARGS__)\
@@ -371,12 +353,11 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define RGB_MAGENTA  "\033[35m"
 #define RGB_AZURE    "\033[36m"
 #define RGB_NULL 	 "\033[0m"
-//regist PROPERTY
+//regist PROPERTY,主键规定只能在第一个位置，同时于此也允许没有主键（不然不好处理）
 #define REGIST_PROTO(o,...)\
   o::o(bool b){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
-    for(uint8_t i=0;i<NUM_ARGS(__VA_ARGS__);++i){\
-       if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;}else{\
-throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }\
-    }\
-  }
+    if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(uint8_t i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
+       if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
+throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
+else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}
 #endif
