@@ -39,7 +39,7 @@ namespace orm {
 	constexpr auto schema = Schema<T>(); int8_t i = -1;
 	ForEachTuple(schema, [&i, &os, &val](auto field) {
 	  ++i; if (typeid(&val) == typeid(&field)) {
-		os += T::$[i]; os += ','; return;
+		os += T::$[i]; os += ',';
 	  }}, std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
   }
   template<typename T>
