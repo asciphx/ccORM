@@ -73,13 +73,15 @@ namespace orm {
 	}
 	//Update the object (The default condition is the value of the primary key)
 	void Update() {
-	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
+	  int8_t i = 0; std::ostringstream os; os << "UPDATE " << _name << " SET ";
 	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
-	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
-	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-		condition += std::to_string(t);
-	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
+	  if (!is_PRIMARY_KEY((TC)_tc_[0])) {
+		auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
+		if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+		  condition += std::to_string(t);
+		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		  condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
+		}
 	  }
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition, this](auto& t) {
 		TC tc = (TC)_tc_[++i];
