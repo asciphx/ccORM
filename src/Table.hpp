@@ -17,9 +17,7 @@ namespace orm {
 #ifdef _WIN32
 	friend typename T; const static char* _def_[]; static uint8_t _tc_[];
 #endif
-	friend class Sql<T>; static const char* _T_[]; static const size_t _[];
-	friend class crow::sqlite_statement_result; friend class crow::pgsql_result;
-	friend class crow::mysql_result<crow::mysql_functions_blocking>;
+	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _T_[]; static const size_t _[];
 	template <typename N> constexpr N& getIdex(size_t i) {
 	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_[i]);
 	}
@@ -39,7 +37,6 @@ namespace orm {
 	Table& operator=(const Table&) = default;
 	Table(); ~Table() {} Table(const Table&) = default;
 	template<typename ... Args> static ptr create(Args&& ... args);
-	ptr _asPointer() { return this->shared_from_this(); }
 	template<typename... U> void set(U... t) {
 	  assert(_size_ >= sizeof...(U));
 	  uint8_t idex = 0; (void)std::initializer_list<int>{($et(idex++, &t), void(), 0)...};
@@ -53,10 +50,9 @@ namespace orm {
 	json get() { return json(*dynamic_cast<T*>(this)); };
 	//Insert the object (Returns the inserted ID)
 	long long Insert() {
-	  uint8_t i = 0; std::ostringstream os, ov; ov << "VALUES (";
-	  os << "INSERT INTO " << _name << " (";
+	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov, this](auto& t) {
-		TC tc = (TC)_tc_[i];
+		TC tc = (TC)_tc_[++i];
 		if (!is_PRIMARY_KEY(tc)) {
 		  const char* def = _def_[i];
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
@@ -69,7 +65,7 @@ namespace orm {
 			if (!*((char*)&t)) ov << '\'' << toQuotes(def) << "',"; else ov << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
 		  os << $[i] << ',';
-		} ++i;
+		}
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str() << ";";
 	  crow::sql_result<decltype(D)::db_rs>&& rs = Q()->Query()(os.str());
@@ -77,7 +73,7 @@ namespace orm {
 	}
 	//Update the object (The default condition is the value of the primary key)
 	void Update() {
-	  uint8_t i = 0; std::ostringstream os; os << "UPDATE " << _name << " SET ";
+	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
 	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
 	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
@@ -86,7 +82,7 @@ namespace orm {
 		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
 	  }
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition, this](auto& t) {
-		TC tc = (TC)_tc_[i];
+		TC tc = (TC)_tc_[++i];
 		if (!is_AUTOINCREMENT(tc)) {
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			os << $[i] << '=' << t << ',';
@@ -95,7 +91,7 @@ namespace orm {
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			os << $[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
-		} ++i;
+		}
 		});
 	  os.seekp(-1, os.cur); os << condition << ";";
 	  Q()->Query()(os.str());
@@ -202,7 +198,7 @@ namespace orm {
 		  }
 		} _create_ += "\n);";
 	  }
-	  auto DbQuery = static_cast<Sql<T>*>(__[0])->Query();
+	  auto&& DbQuery = static_cast<Sql<T>*>(__[0])->Query();
 	  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
 		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
 		if (DbQuery(str_).template r__<int>() == 0) {
@@ -218,7 +214,7 @@ namespace orm {
 	  }
 	  std::cout << _create_;
 	}
-	static void _dropTable() { auto DbQuery = static_cast<Sql<T>*>(__[0])->Query(); DbQuery(_drop_).flush_results(); }
+	static void _dropTable() { static_cast<Sql<T>*>(__[0])->Query()(_drop_).flush_results(); }
   };
   template<typename T> Table<T>::Table() {}
   template<typename T> template<typename ... Args>

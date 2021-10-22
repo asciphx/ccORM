@@ -4,6 +4,16 @@
 
  ![Benchmark results (not cached)](./test.png)
 
+ ## Advantage
+- [x] powerful static reflection, maximum performance, minimum overhead, minimum memory consumption, fastest response, and minimum code
+- [x] supports serializing objects or vector objects to strings, serializing objects to get JSON, and deserializing JSON format strings to objects
+- [x] allows TM type, that is, date type (and serialization and deserialization of date type)
+- [x] tolerate multithreading and high concurrency. SQLite supports dual threads, while MySQL and PgSQL support complete CPU threads
+- [x] intelligent automatic table creation and deep binding between model classes and database is a function similar to decorator realized by macro
+- [x] the function of automatically Ping the database at an interval, so that the database does not sleep and is always in the state of wake-up and recovery
+- [x] add, delete, modify and query based on OOP. The insertion function also returns the new ID
+- [x] surpassing RTTI and protobuf, it is the fastest, fastest and most violent idea similar to "dynamic type C + +"
+- [x] you can nest structs with structs, so as to realize one-to-one or one to many, or self nesting, etc
 ## Model layer
 ```c++
 struct Type : Table<Type> {

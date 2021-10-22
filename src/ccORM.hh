@@ -1299,7 +1299,6 @@ namespace crow {
 	std::unordered_map<std::string, std::shared_ptr<pgsql_statement_data>>& stm_cache_;
 	PGconn* connection_;
 	typedef pgsql_tag db_tag;
-	typedef pgsql_result db_rs;
 	inline pgsql_connection(const pgsql_connection&) = delete;
 	inline pgsql_connection& operator=(const pgsql_connection&) = delete;
 	inline pgsql_connection(pgsql_connection&& o) = default;
@@ -1394,6 +1393,7 @@ namespace crow {
 	typedef pgsql_connection_data connection_data_type;
 	typedef pgsql_tag db_tag;
 	typedef pgsql_connection connection_type;
+	typedef pgsql_result db_rs;
 	std::string host_, user_, passwd_, database_;
 	unsigned int port_;
 	std::string character_set_, conninfo_;
