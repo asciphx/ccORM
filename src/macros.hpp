@@ -40,7 +40,7 @@ namespace orm {
 	j.at(str).get_to(_v);
   }
   template <typename T, typename Fn, std::size_t... I>
-  inline constexpr void ForEachTuple(T& tuple, Fn& fn,
+  inline constexpr void ForEachTuple(T& tuple, Fn&& fn,
 	std::index_sequence<I...>) {
 	using Expander = int[];
 	(void)Expander { 0, ((void)fn(std::get<I>(tuple)), 0)... };
@@ -48,8 +48,8 @@ namespace orm {
   template <typename T>
   inline constexpr auto Schema() { return std::make_tuple(); }
   template <typename T, typename Fn>
-  inline constexpr void ForEachField(T* value, Fn& fn) {
-	constexpr auto schema = Schema<T>();
+  inline constexpr void ForEachField(T* value, Fn&& fn) {
+	constexpr const auto schema = Schema<T>();
 	ForEachTuple(schema, [value, &fn](auto field) { fn(value->*(field)); },
 	  std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
   }

@@ -72,8 +72,8 @@ namespace orm {
 		} ++i;
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str() << ";";
-	  crow::sql_result<decltype(D)::db_rs>*rs = &Q()->Query()(os.str());
-	  if (_tc_[0] & TC::PRIMARY_KEY) { return rs->last_insert_id(); } else { return 0LL; }
+	  crow::sql_result<decltype(D)::db_rs>&& rs = Q()->Query()(os.str());
+	  if (_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); } else { return 0LL; }
 	}
 	//Update the object (The default condition is the value of the primary key)
 	void Update() {
