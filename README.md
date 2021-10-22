@@ -1,11 +1,11 @@
-﻿# ccORM[version 0.6]
+﻿# ccORM[version 0.7]
 > ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
 > 🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is pure static reflection.
 
  ![Benchmark results (not cached)](./test.png)
 
  ## Advantage
-- [x] powerful static reflection, maximum performance, minimum overhead, minimum memory consumption, fastest response, and minimum code
+- [x] powerful static reflection, maximum performance, minimum overhead, the fastest response, the easiest to maintain, and the low code
 - [x] supports serializing objects or vector objects to strings, serializing objects to get JSON, and deserializing JSON format strings to objects
 - [x] allows TM type, that is, date type (and serialization and deserialization of date type)
 - [x] tolerate multithreading and high concurrency. SQLite supports dual threads, while MySQL and PgSQL support complete CPU threads
@@ -55,7 +55,7 @@ void test() {
   *t = json::parse(u8R"({"id":4,"ok":false,"name":"Flawless masterpiece","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
-  t->Insert();//insert
+  t->Insert();//insert, the return value is the primary key of long long type
   cout << Tab::Q()->select()->FindArr();
   t->Delete();//delete
   *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';

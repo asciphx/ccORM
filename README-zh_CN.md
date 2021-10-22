@@ -1,11 +1,11 @@
-﻿# ccORM[版本 0.6]
+﻿# ccORM[版本 0.7]
 > ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
 > 🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是纯粹的静态反射。
 
  ![基准结果(未缓存)](./test.png)
 
 ## 优势
-- [x] 强大静态反射，最高性能，最低开销，最小内存消耗，最迅速的反应，以及最少的代码
+- [x] 强大静态反射，最高性能，最低开销，最迅速的反应，最容易维护，以及最少代码
 - [x] 支持序列化对象或者vector对象到字符串，序列化对象得到JSON，反序列化Json格式字符串到对象
 - [x] 允许tm类型，也就是日期类型（以及日期类型的序列化反序列化）
 - [x] 容忍多线程高并发，sqlite支持到了双线程，而mysql和pgsql支持完整的cpu线程
@@ -56,7 +56,7 @@ void test() {
   *t = json::parse(u8R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
-  t->Insert();//插入
+  t->Insert();//插入,返回值是long long类型的主键
   cout << Tab::Q()->select()->FindArr();
   t->Delete();//删除
   *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';
