@@ -55,7 +55,7 @@ void test() {
   *t = json::parse(u8R"({"id":4,"ok":false,"name":"Flawless masterpiece","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
-  t->Insert();//insert, the return value is the primary key of long long type
+  t->Insert();//insert, the return value is long long type
   cout << Tab::Q()->select()->FindArr();
   t->Delete();//delete
   *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';

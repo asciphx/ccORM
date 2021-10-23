@@ -22,15 +22,15 @@ namespace orm {
   void regist() {
 	unsigned int i = HARDWARE_ASYNCHRONOUS; while (i--) { orm::Table<T>::__[i] = new Sql<T>(); }
 	try {
-	  T(true);
+	  T(true);//Build and check whether the table creation statement of table is correct
 	} catch (const std::exception&e) {
 	  std::cerr << e.what(); return;
 	}
-	T::_addTable();// std::cout << typeid(T).name()+6 <<"[created!]"<<std::endl;
+	T::_addTable();//Create table
   }
   template <typename ...Args>//Registration Center
   static void InitializationOrm() {
-	(void)std::initializer_list<int>{(regist<Args>(), void(), 0)...};
+	(void)std::initializer_list<int>{(regist<Args>(), 0)...};
 	time_t RES_ti; std::time(&RES_ti);
 #if defined(_MSC_VER) || defined(__MINGW32__)
 	system("chcp 65001");

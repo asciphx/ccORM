@@ -43,7 +43,7 @@ namespace orm {
   inline constexpr void ForEachTuple(T& tuple, Fn&& fn,
 	std::index_sequence<I...>) {
 	using Expander = int[];
-	(void)Expander { 0, ((void)fn(std::get<I>(tuple)), 0)... };
+	(void)Expander { ((void)fn(std::get<I>(tuple)), 0)... };
   }
   template <typename T>
   inline constexpr auto Schema() { return std::make_tuple(); }
@@ -55,10 +55,10 @@ namespace orm {
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
-  static bool is_PRIMARY_KEY(TC specs) { return (specs & TC::PRIMARY_KEY); }
-  static bool is_NOT_NULL(TC specs) { return (specs & TC::NOT_NULL); }
-  static bool is_DEFAULT(TC specs) { return (specs & TC::DEFAULT); }
-  static bool is_AUTOINCREMENT(TC specs) { return (specs & TC::AUTO_INCREMENT); }
+  inline bool is_PRIMARY_KEY(TC specs) { return (specs & TC::PRIMARY_KEY); }
+  inline bool is_NOT_NULL(TC specs) { return (specs & TC::NOT_NULL); }
+  inline bool is_DEFAULT(TC specs) { return (specs & TC::DEFAULT); }
+  inline bool is_AUTOINCREMENT(TC specs) { return (specs & TC::AUTO_INCREMENT); }
 }
 #if 1
 #define Inject(T, N) (size_t)(&reinterpret_cast<char const volatile&>(((T*)0)->N))
@@ -356,7 +356,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 //regist PROPERTY,主键规定只能在第一个位置，同时于此也允许没有主键（不然不好处理）
 #define REGIST_PROTO(o,...)\
   o::o(bool b){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
-    if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(uint8_t i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
+    if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
        if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
 else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}

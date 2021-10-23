@@ -56,7 +56,7 @@ void test() {
   *t = json::parse(u8R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
-  t->Insert();//插入,返回值是long long类型的主键
+  t->Insert();//插入,返回值是long long类型
   cout << Tab::Q()->select()->FindArr();
   t->Delete();//删除
   *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';

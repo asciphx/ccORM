@@ -15,9 +15,10 @@ namespace orm {
 	static const std::string _name, _drop_; const static char* $[]; static const uint8_t _size_;
 	static bool _create_need; static uint8_t _idex; static std::string _create_;
 #ifdef _WIN32
-	friend typename T; const static char* _def_[]; static uint8_t _tc_[];
+	friend typename T; const static char* _def_[];/*Store default values*/ static uint8_t _tc_[];/*Store type*/
 #endif
-	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _T_[]; static const size_t _[];
+	friend typename decltype(D)::db_rs; friend class Sql<T>;
+	static const char* _T_[];/*Store type character*/ static const size_t _[];/*Store offset value*/
 	template <typename N> constexpr N& getIdex(size_t i) {
 	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_[i]);
 	}
@@ -39,7 +40,7 @@ namespace orm {
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
 	  assert(_size_ >= sizeof...(U));
-	  uint8_t idex = 0; (void)std::initializer_list<int>{($et(idex++, &t), void(), 0)...};
+	  uint8_t idex = 0; (void)std::initializer_list<int>{($et(idex++, &t), 0)...};
 	}
 	//Query builder
 	static Sql<T>* Q() {
@@ -98,7 +99,7 @@ namespace orm {
 	  os.seekp(-1, os.cur); os << condition << ";";
 	  Q()->Query()(os.str());
 	}
-	//Delete the object based on this object's primary key
+	//Delete the object based on this object's frist key
 	void Delete() {
 	  std::ostringstream os; os << "DELETE FROM " << _name << " WHERE " << $[0] << '=';
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
