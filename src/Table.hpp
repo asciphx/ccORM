@@ -53,8 +53,7 @@ namespace orm {
 	long long Insert() {
 	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov, this](auto& t) {
-		TC tc = (TC)_tc_[++i];
-		if (!is_PRIMARY_KEY(tc)) {
+		if (!is_PRIMARY_KEY((TC)_tc_[++i])) {
 		  const char* def = _def_[i];
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
@@ -72,21 +71,18 @@ namespace orm {
 	  crow::sql_result<decltype(D)::db_rs>&& rs = Q()->Query()(os.str());
 	  if (_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); } else { return 0LL; }
 	}
-	//Update the object (The default condition is the value of the primary key)
+	//Update the object (The default condition is the value of the frist key)
 	void Update() {
 	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
 	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
-	  if (is_PRIMARY_KEY((TC)_tc_[0])) {
-		auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
-		if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-		  condition += std::to_string(t);
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-		  condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
-		}
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
+	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+		condition += std::to_string(t);
+	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
 	  }
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition, this](auto& t) {
-		TC tc = (TC)_tc_[++i];
-		if (!is_AUTOINCREMENT(tc)) {
+		if (!is_AUTOINCREMENT((TC)_tc_[++i])) {
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			os << $[i] << '=' << t << ',';
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -211,7 +207,7 @@ namespace orm {
 		try {
 		  DbQuery(_create_).flush_results();
 		} catch (std::runtime_error e) {
-		  std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << static_cast<Sql<T>*>(__[0])->table_
+		  std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << _name
 			<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n";
 		}
 	  }
@@ -225,7 +221,7 @@ namespace orm {
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
 	s.push_back('{'); bool b = true; int8_t i = -1;
 	ForEachField(dynamic_cast<T*>(c), [&i, c, &s, &b](auto& t) {
-	  if (b) { s.push_back('\"'), b = false; } else { s += ",\""; } s += c->$[++i];
+	  if (b) { s.push_back('"'), b = false; } else { s += ",\""; } s += c->$[++i];
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":\""; std::ostringstream os; const tm* time = &t;
 		os << 20 << (time->tm_year - 100) << '-' << std::setfill('0')

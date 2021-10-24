@@ -10,7 +10,7 @@ namespace orm {
   template<typename T> class Table;
   template<typename T> struct Sql {
 	friend class Table<T>;
-	Sql<T>() : table_(T::_name.c_str()), sql_("SELECT ") {}
+	Sql<T>() : sql_("SELECT ") {}
 	~Sql<T>() {}
 	Sql<T>* limit(size_t limit);
 	Sql<T>* offset(size_t offset);
@@ -24,7 +24,7 @@ namespace orm {
 	template<typename K>
 	static void setFields(string& os, K T::** val);
 	decltype(D)::connection_type Query();
-  private: size_t limit_{ 10 }, offset_{ 0 }; string sql_; const std::string table_; bool prepare_{ true };
+  private: size_t limit_{ 10 }, offset_{ 0 }; string sql_; bool prepare_{ true };
 		 inline void clear() { sql_ = "SELECT "; limit_ = 10; offset_ = 0; prepare_ = true; }
   };
   template<typename T>inline Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
@@ -44,9 +44,9 @@ namespace orm {
   }
   template<typename T>
   template<typename... K>inline Sql<T>* Sql<T>::select(K T::*&&... __) {
-	if (sizeof...(K) == 0) { sql_ += "* FROM "; sql_ += table_; return this; }
-	(void)initializer_list<int>{(setFields(sql_, std::forward<K T::**>(&__)), void(), 0)...};
-	sql_.pop_back(); sql_ += " FROM "; sql_ += table_; return this;
+	if (sizeof...(K) == 0) { sql_ += "* FROM "; sql_ += T::_name; return this; }
+	(void)initializer_list<int>{(setFields(sql_, std::forward<K T::**>(&__)), 0)...};
+	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
   }
   template<typename T>inline Sql<T>* Sql<T>::alias(const char* alias) { sql_.push_back(' '); sql_ += alias; return this; }
   template<typename T>inline Sql<T>* Sql<T>::where(const string& str) { sql_ += " WHERE " + str; return this; }

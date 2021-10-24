@@ -2,7 +2,7 @@
 > ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
 > 🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is pure static reflection.
 
- ![Benchmark results (not cached)](./test.png)
+ ![Benchmark results (not cached)](./test.jpg)
 
  ## Advantage
 - [x] powerful static reflection, maximum performance, minimum overhead, the fastest response, the easiest to maintain, and the low code
