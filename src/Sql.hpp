@@ -69,7 +69,7 @@ namespace orm {
   };
   template<typename T> decltype(D)::connection_type Sql<T>::Query() { prepare_ = true; return D.conn(); }
   template<typename T> long long Sql<T>::Insert(typename T::ptr& input) {
-	int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
+	int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << T::_name << " (";
 	ForEachField(dynamic_cast<T*>(input.get()), [&i, &os, &ov](auto& t) {
 	  if (!(T::_tc_[++i] & TC::PRIMARY_KEY & TC::AUTO_INCREMENT)) {
 		const char* def = T::_def_[i];
@@ -91,7 +91,7 @@ namespace orm {
   }
   //DataMapper
   template<typename T> long long Sql<T>::Insert(T* input) {
-	int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
+	int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << T::_name << " (";
 	ForEachField(dynamic_cast<T*>(input), [&i, &os, &ov](auto& t) {
 	  if (!(T::_tc_[++i] & TC::PRIMARY_KEY & TC::AUTO_INCREMENT)) {
 		const char* def = T::_def_[i];
@@ -112,7 +112,7 @@ namespace orm {
 	if (T::_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); } else { return 0LL; }
   }
   template<typename T> void Sql<T>::Delete(typename T::ptr& input) {
-	std::ostringstream os; os << "DELETE FROM " << _name << " WHERE " << T::$[0] << '=';
+	std::ostringstream os; os << "DELETE FROM " << T::_name << " WHERE " << T::$[0] << '=';
 	auto& t = dynamic_cast<T*>(input.get())->*std::get<0>(Schema<T>());
 	if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 	  os << t;
@@ -121,7 +121,7 @@ namespace orm {
 	} os << ";"; D.conn()(os.str());
   }
   template<typename T> void Sql<T>::Delete(T* input) {
-	std::ostringstream os; os << "DELETE FROM " << _name << " WHERE " << T::$[0] << '=';
+	std::ostringstream os; os << "DELETE FROM " << T::_name << " WHERE " << T::$[0] << '=';
 	auto& t = dynamic_cast<T*>(input)->*std::get<0>(Schema<T>());
 	if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 	  os << t;
