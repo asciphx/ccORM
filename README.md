@@ -14,6 +14,7 @@
 - [x] add, delete, modify and query based on OOP. The insertion function also returns the new ID
 - [x] surpassing RTTI and protobuf, it is the fastest, fastest and most violent idea similar to "dynamic type C + +"
 - [x] you can nest structs with structs, so as to realize one-to-one or one to many, or self nesting, etc
+- [x] Provide DataMapper and ActiveRecord for curd
 ## Model layer
 ```c++
 struct Type : Table<Type> {

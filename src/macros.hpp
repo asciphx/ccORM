@@ -55,10 +55,6 @@ namespace orm {
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
-  inline bool is_PRIMARY_KEY(TC specs) { return (specs & TC::PRIMARY_KEY); }
-  inline bool is_NOT_NULL(TC specs) { return (specs & TC::NOT_NULL); }
-  inline bool is_DEFAULT(TC specs) { return (specs & TC::DEFAULT); }
-  inline bool is_AUTOINCREMENT(TC specs) { return (specs & TC::AUTO_INCREMENT); }
 }
 #if 1
 #define Inject(T, N) (size_t)(&reinterpret_cast<char const volatile&>(((T*)0)->N))

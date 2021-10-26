@@ -10,7 +10,7 @@ template<typename T> struct virtual_shared : virtual enable_virtual {
 };/** multiple inheritance from std::enable_shared_from_this<T> => needed for
 struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B { };
 int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
-namespace orm {
+namespace orm { //ActiveRecord
   template<typename T> class Table : public virtual_shared<T> {
 	static const std::string _name, _drop_; const static char* $[]; static const uint8_t _size_;
 	static bool _create_need; static uint8_t _idex; static std::string _create_;
@@ -49,12 +49,13 @@ namespace orm {
 	};
 	//Object serialized as JSON
 	json get() { return json(*dynamic_cast<T*>(this)); };
+	//ActiveRecord
 	//Insert the object (Returns the inserted ID)
 	long long Insert() {
 	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
-	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov, this](auto& t) {
-		if (!is_PRIMARY_KEY((TC)_tc_[++i])) {
-		  const char* def = _def_[i];
+	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
+		if (!(_tc_[++i] & TC::PRIMARY_KEY & TC::AUTO_INCREMENT)) {
+		  const char* def = T::_def_[i];
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 			  ov << t << ',';
@@ -64,12 +65,12 @@ namespace orm {
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) ov << '\'' << toQuotes(def) << "',"; else ov << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
-		  os << $[i] << ',';
+		  os << T::$[i] << ',';
 		}
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str() << ";";
 	  crow::sql_result<decltype(D)::db_rs>&& rs = Q()->Query()(os.str());
-	  if (_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); } else { return 0LL; }
+	  if (T::_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); } else { return 0LL; }
 	}
 	//Update the object (The default condition is the value of the frist key)
 	void Update() {
@@ -81,14 +82,14 @@ namespace orm {
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
 	  }
-	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition, this](auto& t) {
-		if (!is_AUTOINCREMENT((TC)_tc_[++i])) {
+	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition](auto& t) {
+		if (++i && !(T::_tc_[i] & TC::AUTO_INCREMENT)) {
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			os << $[i] << '=' << t << ',';
+			os << T::$[i] << '=' << t << ',';
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-			os << $[i] << '=' << '\'' << t << "',";
+			os << T::$[i] << '=' << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-			os << $[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
+			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
 		}
 		});
@@ -114,7 +115,7 @@ namespace orm {
 		  TC tc = (TC)_tc_[i]; const char* def = _def_[i];
 		  if (i)_create_ += ",\n"; _create_ += $[i];
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
-			if (is_PRIMARY_KEY(tc) || is_AUTOINCREMENT(tc)) {
+			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {
 			  switch (hack4Str(_T_[i])) {
 			  case 'x':
 			  case "__int64"_i: _create_ += " BIGSERIAL PRIMARY KEY"; break;
@@ -138,9 +139,9 @@ namespace orm {
 			_create_ += " SMALLINT";
 		  } else { _create_ += " TINYINT"; } goto $;
 		  case 'b':
-		  case 'bool': _create_ += " BOOLEAN"; if (is_NOT_NULL(tc)) { _create_ += " NOT NULL"; }
+		  case 'bool': _create_ += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
 					 if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) { goto $; }
-					 if (is_DEFAULT(tc) && so2s<bool>(def)) {
+					 if (tc & TC::DEFAULT && so2s<bool>(def)) {
 					   _create_ += " DEFAULT "; _create_.push_back('\''); if (def[0] == 't') {
 						 _create_.push_back('1');
 					   } else { _create_.push_back('0'); } _create_.push_back('\'');
@@ -153,8 +154,8 @@ namespace orm {
 		  case "struct tm"_i:  if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
 			_create_ += " timestamp without time zone";
 		  } else { _create_ += " DATETIME"; }
-		  if (is_NOT_NULL(tc)) { _create_ += " NOT NULL"; }
-		  if (is_DEFAULT(tc)) {
+		  if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
+		  if (tc & TC::DEFAULT) {
 			if (so2s<tm>(def)) { _create_ += " DEFAULT '"; _create_ += def; _create_.push_back('\''); continue; }
 			if constexpr (std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value) {
 			  _create_ += " DEFAULT (datetime('now','localtime'))";
@@ -166,14 +167,14 @@ namespace orm {
 		  case "class s"_i: _create_ += " VARCHAR(255)"; goto $;
 		  }
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value) {
-			if (is_PRIMARY_KEY(tc) || (is_PRIMARY_KEY(tc) && is_AUTOINCREMENT(tc))) { _create_ += " PRIMARY KEY"; }
+			if (tc & TC::PRIMARY_KEY || (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT)) { _create_ += " PRIMARY KEY"; }
 		  }
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value) {
-			if (is_PRIMARY_KEY(tc)) _create_ += " PRIMARY KEY"; if (is_AUTOINCREMENT(tc)) _create_ += " AUTO_INCREMENT";
+			if (tc & TC::PRIMARY_KEY) _create_ += " PRIMARY KEY"; if (tc & TC::AUTO_INCREMENT) _create_ += " AUTO_INCREMENT";
 		  }
 		$://String type detection system
-		  if (is_NOT_NULL(tc)) { _create_ += " NOT NULL"; }
-		  if (is_DEFAULT(tc)) {
+		  if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
+		  if (tc & TC::DEFAULT) {
 			switch (hack4Str(_T_[i])) {
 			case 'd':
 			case "double"_i: if (!so2s<double>(def)) { break; } goto _;
