@@ -10,7 +10,7 @@ template<typename T> struct virtual_shared : virtual enable_virtual {
 };/** multiple inheritance from std::enable_shared_from_this<T> => needed for
 struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B { };
 int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
-namespace orm { //ActiveRecord
+namespace orm {
   template<typename T> class Table : public virtual_shared<T> {
 	static const std::string _name, _drop_; const static char* $[]; static const uint8_t _size_;
 	static bool _create_need; static uint8_t _idex; static std::string _create_;
@@ -49,12 +49,12 @@ namespace orm { //ActiveRecord
 	};
 	//Object serialized as JSON
 	json get() { return json(*dynamic_cast<T*>(this)); };
-	//ActiveRecord
+	//-------------------------------------ActiveRecord-------------------------------------
 	//Insert the object (Returns the inserted ID)
 	long long Insert() {
 	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
-		if (!(_tc_[++i] & TC::PRIMARY_KEY & TC::AUTO_INCREMENT)) {
+		if (!(_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  const char* def = T::_def_[i];
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {

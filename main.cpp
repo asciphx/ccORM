@@ -5,14 +5,13 @@ auto D =
 D_sqlite("any.db");
 #include "module.hpp"
 void test() {
-  Tab::ptr t = Tab::create(1, true, u8"日期更变", now(), vector<Type>{ Type{ 1,"typescript" } });
-  //t->Update();//更新,ActiveRecord
-  Tab::Q()->Update(t);//DataMapper
-  t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
-  *t = json::parse(u8R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
+  Tab::ptr t = Tab::create(1, true, "日期更变", now(), vector<Type>{ Type{ 1,"typescript" } });
+  t->Update();//更新
+  t->set(5, false, "更变", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
+  *t = json::parse(R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
-  cout << u8"编号为" << t->Insert() << u8"的id已经插入\n";//插入，将会有一个新增的id返回
+  cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
   cout << Tab::Q()->select()->FindArr();
   t->Delete();//删除
   *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';
