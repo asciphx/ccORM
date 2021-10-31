@@ -261,7 +261,7 @@ namespace orm {
   template <typename T> std::string& operator<<(std::string& s, std::vector<T> c) {
 	s.push_back('['); size_t i = 0, l = c.size();
 	for (; i < l; ++i) { s << &c[i], s.push_back(','); }
-	l == 0 ? s.push_back(']') : s[s.size() - 1] = ']'; return s;
+	l == 0 ? s.push_back(']') : s.pop_back(), s.push_back(']'); return s;
   }
   template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
 	std::string s; s << dynamic_cast<T*>(c); return o << s;
