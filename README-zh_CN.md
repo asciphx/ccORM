@@ -1,6 +1,6 @@
-﻿# ccORM[版本 0.7]
+﻿# ccORM[版本 0.8]
 > ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
-> 🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是纯粹的静态反射。
+> 🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是编译期的静态反射。
 
  ![基准结果(未缓存)](./test.jpg)
 
@@ -15,6 +15,10 @@
 - [x] 超越RTTI以及protobuf，是目前最快最迅速最猛烈的类似于"动态类型c++"的思想理念
 - [x] 可以结构体嵌套结构体，从而实现类似一对一或者一对多，或者自身嵌套自身等等
 - [x] 提供DataMapper，ActiveRecord两种方式进行curd
+- [x] 具备编译期类型检测，运行时候会忽略错误，也会打印出被忽略的位置
+
+## 即将推出
+一对多查询，多对多查询，索引列建立，以及缓存查询
 
 ## 模型层
 ```c++
@@ -51,10 +55,10 @@ auto D =
 D_sqlite("any.db");//选择数据库
 #include "module.hpp"
 void test() {
-  Tab::ptr t = Tab::create(1, true, u8"日期更变", now(), vector<Type>{ Type{ 1,"typescript" } });
+  Tab::ptr t = Tab::create(1, true, "日期更变", now(), vector<Type>{ Type{ 1,"typescript" } });
   t->Update();//更新
   t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
-  *t = json::parse(u8R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
+  *t = json::parse(R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   t->Insert();//插入,返回值是long long类型
@@ -103,9 +107,6 @@ g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
     - Linux: G++ 9.2, Clang++ 9.0
     - MacOS: Apple clang version 12.0.0 
     - Windows: MSVC C++ compiler version 1930.
-
-## 即将推出
-一对多查询，多对多查询，完善的条件，索引列建立，以及缓存查询
 
 ### 归属
     ccORM使用以下库。

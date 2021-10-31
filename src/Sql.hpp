@@ -12,27 +12,27 @@ namespace orm {
 	friend class Table<T>;
 	Sql<T>() : sql_("SELECT ") {}
 	~Sql<T>() {}
-	Sql<T>* limit(size_t limit);
-	Sql<T>* offset(size_t offset);
-	Sql<T>* orderBy(const string& col, const Sort& ord = Sort::ASC);
+	inline Sql<T>* limit(size_t limit);
+	inline Sql<T>* offset(size_t offset);
+	inline Sql<T>* orderBy(const string& col, const Sort& ord = Sort::ASC);
 	template <typename... K>
 	Sql<T>* select(K T::*&&...sc);
-	Sql<T>* alias(const char* alias);
-	Sql<T>* where(const string& str);
+	inline Sql<T>* alias(const char* alias);
+	inline Sql<T>* where(const string& str);
 	vector<T> FindArr();
 	T FindOne(const char* where);
 	template<typename K>
 	static void setFields(string& os, K T::** val);
-	decltype(D)::connection_type Query();
-	//-------------------------------------DataMapper-------------------------------------只为批量插入提供便利
+	inline decltype(D)::connection_type Query();
+	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
   private: size_t limit_{ 10 }, offset_{ 0 }; string sql_; bool prepare_{ true };
 		 inline void clear() { sql_ = "SELECT "; limit_ = 10; offset_ = 0; prepare_ = true; }
   };
-  template<typename T>inline Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
-  template<typename T>inline Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
-  template<typename T>inline Sql<T>* Sql<T>::orderBy(const string& col, const Sort& ord) {
+  template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
+  template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
+  template<typename T> Sql<T>* Sql<T>::orderBy(const string& col, const Sort& ord) {
 	sql_ += " ORDER BY " + col; if (ord == Sort::DESC)sql_ += " DESC"; return this;
 	//sql_.push_back(','); sql_ += col; if (ord == Sort::DESC)sql_ += " DESC";
   }
@@ -46,13 +46,13 @@ namespace orm {
 	  }}, std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
   }
   template<typename T>
-  template<typename... K>inline Sql<T>* Sql<T>::select(K T::*&&... __) {
+  template<typename... K> Sql<T>* Sql<T>::select(K T::*&&... __) {
 	if (sizeof...(K) == 0) { sql_ += "* FROM "; sql_ += T::_name; return this; }
 	(void)initializer_list<int>{(setFields(sql_, std::forward<K T::**>(&__)), 0)...};
 	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
   }
-  template<typename T>inline Sql<T>* Sql<T>::alias(const char* alias) { sql_.push_back(' '); sql_ += alias; return this; }
-  template<typename T>inline Sql<T>* Sql<T>::where(const string& str) { sql_ += " WHERE " + str; return this; }
+  template<typename T> Sql<T>* Sql<T>::alias(const char* alias) { sql_.push_back(' '); sql_ += alias; return this; }
+  template<typename T> Sql<T>* Sql<T>::where(const string& str) { sql_ += " WHERE " + str; return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T>inline vector<T> Sql<T>::FindArr()noexcept(false) {
 	string sql(sql_); sql += " LIMIT " + to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);

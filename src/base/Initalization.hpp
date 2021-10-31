@@ -2,7 +2,7 @@
 namespace orm {
   static tm RES_NOW;
   static auto RES_last = std::chrono::steady_clock::now();
-  tm& now() {
+  static tm& now() {
 	if (std::chrono::steady_clock::now() - RES_last < std::chrono::seconds(2)) return RES_NOW;
 	time_t rawtime; std::time(&rawtime);
 #if defined(_MSC_VER) || defined(__MINGW32__)
@@ -17,7 +17,6 @@ namespace orm {
   typename std::enable_if<std::is_fundamental<T>::value, std::string>::type stringify(const T& t) { return std::to_string(t); }
   template<typename T>
   typename std::enable_if<!std::is_fundamental<T>::value, std::string>::type stringify(const T& t) { return t; }
-
   template<typename T>
   void regist() {
 	unsigned int i = HARDWARE_ASYNCHRONOUS; while (i--) { orm::Table<T>::__[i] = new Sql<T>(); }

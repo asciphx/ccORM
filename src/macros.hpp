@@ -57,7 +57,6 @@ namespace orm {
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
 }
 #if 1
-#define Inject(T, N) (size_t)(&reinterpret_cast<char const volatile&>(((T*)0)->N))
 #define EXP(O) O
 #ifdef _MSC_VER
 #define InjectTS(U, T) typeid(U::T).name()[11]==118?"St6v":typeid(U::T).name()//(#U[3] == 0x3a?#U+5:#U)
@@ -139,48 +138,13 @@ inline const char* GetRealType(const char* s, const char* c) {
 #define TYPE_32(o,k,...) InjectTS(o, k), EXP(TYPE_31(o,__VA_ARGS__))
 #define TYPE_N1(o,N,...) EXP(TYPE_##N(o,__VA_ARGS__))
 #define TYPE_N(o,N,...) TYPE_N1(o,N,__VA_ARGS__)
-#define OFFSET_1(o,k)      Inject(o, k)
-#define OFFSET_2(o,k,...)  Inject(o, k), EXP(OFFSET_1(o,__VA_ARGS__))
-#define OFFSET_3(o,k,...)  Inject(o, k), EXP(OFFSET_2(o,__VA_ARGS__))
-#define OFFSET_4(o,k,...)  Inject(o, k), EXP(OFFSET_3(o,__VA_ARGS__))
-#define OFFSET_5(o,k,...)  Inject(o, k), EXP(OFFSET_4(o,__VA_ARGS__))
-#define OFFSET_6(o,k,...)  Inject(o, k), EXP(OFFSET_5(o,__VA_ARGS__))
-#define OFFSET_7(o,k,...)  Inject(o, k), EXP(OFFSET_6(o,__VA_ARGS__))
-#define OFFSET_8(o,k,...)  Inject(o, k), EXP(OFFSET_7(o,__VA_ARGS__))
-#define OFFSET_9(o,k,...)  Inject(o, k), EXP(OFFSET_8(o,__VA_ARGS__))
-#define OFFSET_10(o,k,...) Inject(o, k), EXP(OFFSET_9(o,__VA_ARGS__))
-#define OFFSET_11(o,k,...) Inject(o, k), EXP(OFFSET_10(o,__VA_ARGS__))
-#define OFFSET_12(o,k,...) Inject(o, k), EXP(OFFSET_11(o,__VA_ARGS__))
-#define OFFSET_13(o,k,...) Inject(o, k), EXP(OFFSET_12(o,__VA_ARGS__))
-#define OFFSET_14(o,k,...) Inject(o, k), EXP(OFFSET_13(o,__VA_ARGS__))
-#define OFFSET_15(o,k,...) Inject(o, k), EXP(OFFSET_14(o,__VA_ARGS__))
-#define OFFSET_16(o,k,...) Inject(o, k), EXP(OFFSET_15(o,__VA_ARGS__))
-#define OFFSET_17(o,k,...) Inject(o, k), EXP(OFFSET_16(o,__VA_ARGS__))
-#define OFFSET_18(o,k,...) Inject(o, k), EXP(OFFSET_17(o,__VA_ARGS__))
-#define OFFSET_19(o,k,...) Inject(o, k), EXP(OFFSET_18(o,__VA_ARGS__))
-#define OFFSET_20(o,k,...) Inject(o, k), EXP(OFFSET_19(o,__VA_ARGS__))
-#define OFFSET_21(o,k,...) Inject(o, k), EXP(OFFSET_20(o,__VA_ARGS__))
-#define OFFSET_22(o,k,...) Inject(o, k), EXP(OFFSET_21(o,__VA_ARGS__))
-#define OFFSET_23(o,k,...) Inject(o, k), EXP(OFFSET_22(o,__VA_ARGS__))
-#define OFFSET_24(o,k,...) Inject(o, k), EXP(OFFSET_23(o,__VA_ARGS__))
-#define OFFSET_25(o,k,...) Inject(o, k), EXP(OFFSET_24(o,__VA_ARGS__))
-#define OFFSET_26(o,k,...) Inject(o, k), EXP(OFFSET_25(o,__VA_ARGS__))
-#define OFFSET_27(o,k,...) Inject(o, k), EXP(OFFSET_26(o,__VA_ARGS__))
-#define OFFSET_28(o,k,...) Inject(o, k), EXP(OFFSET_27(o,__VA_ARGS__))
-#define OFFSET_29(o,k,...) Inject(o, k), EXP(OFFSET_28(o,__VA_ARGS__))
-#define OFFSET_30(o,k,...) Inject(o, k), EXP(OFFSET_29(o,__VA_ARGS__))
-#define OFFSET_31(o,k,...) Inject(o, k), EXP(OFFSET_30(o,__VA_ARGS__))
-#define OFFSET_32(o,k,...) Inject(o, k), EXP(OFFSET_31(o,__VA_ARGS__))
-#define OFFSET_N1(o,N,...) EXP(OFFSET_##N(o,__VA_ARGS__))
-#define OFFSET_N(o,N,...) OFFSET_N1(o,N,__VA_ARGS__)
 //REGIST(Tab, id, kg, date);
 #endif
 #define REGIST(o,...)\
  template<> const uint8_t orm::Table<o>::_size_ = NUM_ARGS(__VA_ARGS__);\
- template<> const size_t orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)]={ OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> uint8_t orm::Table<o>::_tc_[NUM_ARGS(__VA_ARGS__)]={};\
  template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={};\
- template<> const char* orm::Table<o>::_T_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
+ template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
 //
 #define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));

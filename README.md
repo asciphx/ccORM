@@ -1,6 +1,6 @@
-﻿# ccORM[version 0.7]
+﻿# ccORM[version 0.8]
 > ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
-> 🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is pure static reflection.
+> 🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is compile time static reflection. As the name suggests, it is already an optimized machine code.
 
  ![Benchmark results (not cached)](./test.jpg)
 
@@ -15,6 +15,11 @@
 - [x] surpassing RTTI and protobuf, it is the fastest, fastest and most violent idea similar to "dynamic type C + +"
 - [x] you can nest structs with structs, so as to realize one-to-one or one to many, or self nesting, etc
 - [x] Provide DataMapper and ActiveRecord for curd
+- [x] with compile time type detection, errors will be ignored and ignored locations will be printed at run time
+
+## Coming soon
+One to many query, many to many query, index column establishment, and cache query
+
 ## Model layer
 ```c++
 struct Type : Table<Type> {
@@ -50,7 +55,7 @@ auto D =
 D_sqlite("any.db");//Select database
 #include "module.hpp"
 void test() {
-  Tab::ptr t = Tab::create(1, true, u8"Date change", now(), vector<Type>{ Type{ 1,"typescript" } });
+  Tab::ptr t = Tab::create(1, true, "Date change", now(), vector<Type>{ Type{ 1,"typescript" } });
   t->Update();//update
   t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
   *t = json::parse(u8R"({"id":4,"ok":false,"name":"Flawless masterpiece","date":"2021-09-08 01:04:30",
@@ -101,9 +106,6 @@ g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
     - Linux: G++ 9.2, Clang++ 9.0
     - MacOS: Apple clang version 12.0.0 
     - Windows: MSVC C++ compiler version 1930.
-
-## Coming soon
-One to many query, many to many query, perfect conditions, index column establishment, and cache query
 
 ### Attributions
     ccORM uses the following libraries.

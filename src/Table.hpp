@@ -17,13 +17,19 @@ namespace orm {
 #ifdef _WIN32
 	friend typename T; const static char* _def_[];/*Store default values*/ static uint8_t _tc_[];/*Store type*/
 #endif
-	friend typename decltype(D)::db_rs; friend class Sql<T>;
-	static const char* _T_[];/*Store type character*/ static const size_t _[];/*Store offset value*/
-	template <typename N> constexpr N& getIdex(size_t i) {
-	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_[i]);
-	}
-	template <typename U> void $et(uint8_t i, const U* v) {
-	  if constexpr (std::is_same<U, const char*>::value) getIdex<std::string>(i) = *v; else getIdex<U>(i) = *v;
+	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character*/
+	//Compile time type detection
+	template <typename U> void $et(char i, const U* v) {
+	  ForEachField(dynamic_cast<T*>(this), [&i, v](auto& t) {
+		if (i--) return;
+		if constexpr (std::is_same<U, std::remove_reference_t<decltype(t)>>::value) {
+		  t = *v;
+		} else if constexpr (std::is_same<U, const char*>::value && std::is_same<string, std::remove_reference_t<decltype(t)>>::value) {
+		  t = *v;
+		} else {
+		  printf("Check: File:%s, Line:%d, %s\n", __FILE__, __LINE__, __FUNCTION__);
+		}
+		});
 	}
 	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//Object serialized as string
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<Object> serialized as string
@@ -40,7 +46,7 @@ namespace orm {
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
 	  assert(_size_ >= sizeof...(U));
-	  uint8_t idex = 0; (void)std::initializer_list<int>{($et(idex++, &t), 0)...};
+	  char idex = 0; (void)std::initializer_list<int>{($et(idex++, &t), 0)...};
 	}
 	//Query builder
 	static Sql<T>* Q() {
@@ -111,12 +117,12 @@ namespace orm {
 	  if (_create_need) {
 		_create_need = false;
 		for (uint8_t i = 0; i < _size_; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
-		  if (_T_[i][0] == 'S') { continue; }
+		  if (_[i][0] == 'S') { continue; }
 		  TC tc = (TC)_tc_[i]; const char* def = _def_[i];
 		  if (i)_create_ += ",\n"; _create_ += $[i];
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
 			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {
-			  switch (hack4Str(_T_[i])) {
+			  switch (hack4Str(_[i])) {
 			  case 'x':
 			  case "__int64"_i: _create_ += " BIGSERIAL PRIMARY KEY"; break;
 			  case 's':
@@ -127,7 +133,7 @@ namespace orm {
 			  } continue;
 			}
 		  }
-		  switch (hack4Str(_T_[i])) {
+		  switch (hack4Str(_[i])) {
 		  case 'd':
 		  case 'f':
 		  case "double"_i:
@@ -175,7 +181,7 @@ namespace orm {
 		$://String type detection system
 		  if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
 		  if (tc & TC::DEFAULT) {
-			switch (hack4Str(_T_[i])) {
+			switch (hack4Str(_[i])) {
 			case 'd':
 			case "double"_i: if (!so2s<double>(def)) { break; } goto _;
 			case 'f':
@@ -220,9 +226,9 @@ namespace orm {
   template<typename T> template<typename ... Args>
   typename Table<T>::ptr Table<T>::create(Args&& ... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
-	s.push_back('{'); bool b = true; int8_t i = -1;
-	ForEachField(dynamic_cast<T*>(c), [&i, c, &s, &b](auto& t) {
-	  if (b) { s.push_back('"'), b = false; } else { s += ",\""; } s += c->$[++i];
+	s.push_back('{'); int8_t i = -1;
+	ForEachField(dynamic_cast<T*>(c), [&i, c, &s](auto& t) {
+	  s.push_back('"'); s += c->$[++i];
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":\""; std::ostringstream os; const tm* time = &t;
 		os << 20 << (time->tm_year - 100) << '-' << std::setfill('0')
@@ -249,23 +255,20 @@ namespace orm {
 		s += "\":\"" + t + "\"";
 	  } else {
 		s += "\":"; s << t;
-	  }
-	  }); s.push_back('}'); return s;
-  }
+	  } s.push_back(',');
+	  }); s[s.size() - 1] = '}'; return s;
+  }//Compile into most optimized machine code
   template <typename T> std::string& operator<<(std::string& s, std::vector<T> c) {
-	s.push_back('['); bool b = true;
-	for (auto t : c) {
-	  if (b) s << &t, b = false; else s.push_back(','), s << &t;
-	}
-	s.push_back(']'); return s;
+	s.push_back('['); size_t i = 0, l = c.size();
+	for (; i < l; ++i) { s << &c[i], s.push_back(','); }
+	l == 0 ? s.push_back(']') : s[s.size() - 1] = ']'; return s;
   }
   template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
 	std::string s; s << dynamic_cast<T*>(c); return o << s;
   };
   template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T> c) {
-	o << '['; bool b = true;
-	for (auto t : c) {
-	  if (b) o << &t, b = false; else o << ',' << &t;
-	} o << ']'; return o;
+	o << '['; size_t l = c.size(); if (l > 0) { o << &c[0]; }
+	for (size_t i = 1; i < l; ++i) { o << ',' << &c[i]; }
+	o << ']'; return o;
   }
 }
