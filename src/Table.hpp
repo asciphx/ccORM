@@ -21,13 +21,12 @@ namespace orm {
 	//Compile time type detection
 	template <typename U> void $et(char i, const U* v) {
 	  ForEachField(dynamic_cast<T*>(this), [&i, v](auto& t) {
-		if (i--) return;
-		if constexpr (std::is_same<U, std::remove_reference_t<decltype(t)>>::value) {
-		  t = *v;
-		} else if constexpr (std::is_same<U, const char*>::value && std::is_same<string, std::remove_reference_t<decltype(t)>>::value) {
-		  t = *v;
-		} else {
-		  printf("Check: File:%s, Line:%d, %s\n", __FILE__, __LINE__, __FUNCTION__);
+		if (!--i) {
+		  if constexpr (std::is_same<U, const char*>::value && std::is_same<string, std::remove_reference_t<decltype(t)>>::value) {
+			t = *v;
+		  } else if constexpr (std::is_same<U, std::remove_reference_t<decltype(t)>>::value) {
+			t = *v;
+		  } else { printf("Check: File:%s, Line:%d, %s\n", __FILE__, __LINE__, __FUNCTION__); }
 		}
 		});
 	}
@@ -41,12 +40,12 @@ namespace orm {
 #endif
 	using ptr = typename std::shared_ptr<T>; static Sql<T>* __[];
 	using ptr_arr = typename std::vector<typename std::shared_ptr<T>>;
-	Table& operator=(const Table&) = default;
+	Table& operator=(const Table&) = default; static void Init();//Initalization Table
 	Table(); ~Table() {} Table(const Table&) = default;
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
 	  assert(_size_ >= sizeof...(U));
-	  char idex = 0; (void)std::initializer_list<int>{($et(idex++, &t), 0)...};
+	  char idex = 0; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
 	}
 	//Query builder
 	static Sql<T>* Q() {
@@ -259,15 +258,16 @@ namespace orm {
 	  }); s[s.size() - 1] = '}'; return s;
   }//Compile into most optimized machine code
   template <typename T> std::string& operator<<(std::string& s, std::vector<T> c) {
-	s.push_back('['); size_t i = 0, l = c.size();
-	for (; i < l; ++i) { s << &c[i], s.push_back(','); }
+	s.push_back('['); size_t l = c.size();
+	for (size_t i = 0; i < l; ++i) { s << &c[i], s.push_back(','); }
 	l == 0 ? s.push_back(']') : s.pop_back(), s.push_back(']'); return s;
   }
   template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
 	std::string s; s << dynamic_cast<T*>(c); return o << s;
   };
   template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T> c) {
-	o << '['; size_t l = c.size(); if (l > 0) { o << &c[0]; }
+	o << '['; size_t l = c.size();
+	if (l > 0) { o << &c[0]; }
 	for (size_t i = 1; i < l; ++i) { o << ',' << &c[i]; }
 	o << ']'; return o;
   }

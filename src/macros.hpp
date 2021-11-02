@@ -30,14 +30,14 @@ namespace orm {
 
   template <typename T>
   static typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* str, const json& j) {
-	std::string d_; j.at(str).get_to(d_); int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+	std::string d_; try { j.at(str).get_to(d_); } catch (const std::exception&) {} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
 	}
   }
   template <typename T>
   static inline typename std::enable_if<!std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* str, const json& j) {
-	j.at(str).get_to(_v);
+	try { j.at(str).get_to(_v); } catch (const std::exception&) {}
   }
   template <typename T, typename Fn, std::size_t... I>
   inline constexpr void ForEachTuple(T& tuple, Fn&& fn,
@@ -262,6 +262,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
 	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
 	template<> bool orm::Table<o>::_create_need = true;
+
 #define CONSTRUCT(o,...)\
         ATTRS(o,__VA_ARGS__)\
         REGIST(o, __VA_ARGS__)\
@@ -315,8 +316,8 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define RGB_NULL 	 "\033[0m"
 //regist PROPERTY,主键规定只能在第一个位置，同时于此也允许没有主键（不然不好处理）
 #define REGIST_PROTO(o,...)\
-  o::o(bool b){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
-    if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
+  template<> void orm::Table<o>::Init(){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
+    bool b=true;if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
        if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
 else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}

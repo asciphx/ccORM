@@ -21,7 +21,7 @@ namespace orm {
   void regist() {
 	unsigned int i = HARDWARE_ASYNCHRONOUS; while (i--) { orm::Table<T>::__[i] = new Sql<T>(); }
 	try {
-	  T(true);//Build and check whether the table creation statement of table is correct
+	  T::Init();//Build and check whether the table creation statement of table is correct
 	} catch (const std::exception&e) {
 	  std::cerr << e.what(); return;
 	}
