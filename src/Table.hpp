@@ -22,9 +22,9 @@ namespace orm {
 	template <typename U> void $et(char i, const U* v) {
 	  ForEachField(dynamic_cast<T*>(this), [&i, v](auto& t) {
 		if (!--i) {
-		  if constexpr (std::is_same<U, const char*>::value && std::is_same<string, std::remove_reference_t<decltype(t)>>::value) {
+		  if constexpr (std::is_same<U, std::remove_reference_t<decltype(t)>>::value) {
 			t = *v;
-		  } else if constexpr (std::is_same<U, std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (std::is_same<U, const char*>::value && std::is_same<string, std::remove_reference_t<decltype(t)>>::value) {
 			t = *v;
 		  } else { printf("Check: File:%s, Line:%d, %s\n", __FILE__, __LINE__, __FUNCTION__); }
 		}
@@ -44,7 +44,7 @@ namespace orm {
 	Table(); ~Table() {} Table(const Table&) = default;
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
-	  assert(_size_ >= sizeof...(U));
+	  static_assert(_size_ >= sizeof...(U));
 	  char idex = 0; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
 	}
 	//Query builder
@@ -60,17 +60,15 @@ namespace orm {
 	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
 		if (!(_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
-		  const char* def = T::_def_[i];
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			  ov << t << ',';
-			} else { if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; } }
+			  ov << t << ','; os << T::$[i] << ',';
+			} else { if (*((char*)&t)) { ov << t << ','; os << T::$[i] << ','; } }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-			if (!*((char*)&t)) ov << '\'' << def << "',"; else ov << '\'' << t << "',";
+			if (*((char*)&t)) { ov << '\'' << t << "',"; os << T::$[i] << ','; }
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-			if (!*((char*)&t)) ov << '\'' << toQuotes(def) << "',"; else ov << '\'' << toQuotes(t.c_str()) << "',";
-		  } else { return; }
-		  os << T::$[i] << ',';
+			if (*((char*)&t)) { ov << '\'' << toQuotes(t.c_str()) << "',"; os << T::$[i] << ','; }
+		  }
 		}
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str() << ";";
@@ -168,8 +166,10 @@ namespace orm {
 			  _create_ += " DEFAULT now()";
 			} else { _create_ += " DEFAULT CURRENT_TIMESTAMP"; }
 		  } continue;
+		  case '4tex': {_create_ += " VARCHAR("; int c = 8; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
+		  case 'text': {_create_ += " VARCHAR("; int c = 5; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
 		  case 'NSt7':
-		  case "class s"_i: _create_ += " VARCHAR(255)"; goto $;
+		  case "class s"_i: _create_ += " TEXT"; goto $;
 		  }
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value) {
 			if (tc & TC::PRIMARY_KEY || (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT)) { _create_ += " PRIMARY KEY"; }

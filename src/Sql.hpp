@@ -67,7 +67,7 @@ namespace orm {
   template<typename T> void Sql<T>::InsertArr(typename T::ptr_arr& input) {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size_; ++i) {
-	  if (!(T::_tc_[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) os << T::$[i] << ',';
+	  if (T::_[i][0] != 'S' && !(T::_tc_[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) os << T::$[i] << ',';
 	} os.seekp(-1, os.cur);
 	for (auto o : *input.get()) {
 	  i = -1; ov << '(';
@@ -91,7 +91,7 @@ namespace orm {
   template<typename T> void Sql<T>::InsertArr(std::vector<T>* input) {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size_; ++i) {
-	  if (!(T::_tc_[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) os << T::$[i] << ',';
+	  if (T::_[i][0] != 'S' && !(T::_tc_[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) os << T::$[i] << ',';
 	} os.seekp(-1, os.cur);
 	for (auto o : *input) {
 	  i = -1; ov << '(';

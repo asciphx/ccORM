@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include "json.hpp"
 #include "./utils/str.h"
+#include "./utils/text.hpp"
 namespace orm {
   static const unsigned int HARDWARE_ASYNCHRONOUS = 0x6;//It is best to set the maximum number of threads
   template <class T>
@@ -26,18 +27,24 @@ namespace orm {
 	  << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
   }
   template <class T>
-  static inline typename std::enable_if<!std::is_same<T, tm>::value, T>::type DuckTyping(const T& _v) { return _v; }
+  static inline typename std::enable_if<is_text<T>::value, const char*>::type DuckTyping(const T& _v) { return _v.c(); }
+  template <class T>
+  static inline typename std::enable_if<!std::is_same<T, tm>::value && !is_text<T>::value, T>::type DuckTyping(const T& _v) { return _v; }
 
   template <typename T>
-  static typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* str, const json& j) {
-	std::string d_; try { j.at(str).get_to(d_); } catch (const std::exception&) {} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+  static typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
 	}
   }
+  template <class T>
+  static typename std::enable_if<is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+	try { _v = j.at(s); } catch (const std::exception&) {}
+  }
   template <typename T>
-  static inline typename std::enable_if<!std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* str, const json& j) {
-	try { j.at(str).get_to(_v); } catch (const std::exception&) {}
+  static typename std::enable_if<!std::is_same<T, tm>::value && !is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
   }
   template <typename T, typename Fn, std::size_t... I>
   inline constexpr void ForEachTuple(T& tuple, Fn&& fn,
@@ -59,7 +66,10 @@ namespace orm {
 #if 1
 #define EXP(O) O
 #ifdef _MSC_VER
-#define InjectTS(U, T) typeid(U::T).name()[11]==118?"St6v":typeid(U::T).name()//(#U[3] == 0x3a?#U+5:#U)
+static const char* GetRealType(const char* s) {
+  if (s[11] == 118)return "S"; if (s[11] == 60) { return s + 7; } return s;
+}
+#define InjectTS(U, T) GetRealType(typeid(U::T).name())//(#U[3] == 0x3a?#U+5:#U)
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
@@ -271,40 +281,40 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
       return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
     }
 //----------------------------------------------------------
-#define PTR_2(a,o,k,v)      _tc_[a] = k; _def_[a] = v;
-#define PTR_4(a,o,k,v,...)  _tc_[a] = k; _def_[a] = v; EXP(PTR_2(a+1,o,__VA_ARGS__))
-#define PTR_6(a,o,k,v,...)  _tc_[a] = k; _def_[a] = v; EXP(PTR_4(a+1,o,__VA_ARGS__))
-#define PTR_8(a,o,k,v,...)  _tc_[a] = k; _def_[a] = v; EXP(PTR_6(a+1,o,__VA_ARGS__))
-#define PTR_10(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_8(a+1,o,__VA_ARGS__))
-#define PTR_12(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_10(a+1,o,__VA_ARGS__))
-#define PTR_14(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_12(a+1,o,__VA_ARGS__))
-#define PTR_16(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_14(a+1,o,__VA_ARGS__))
-#define PTR_18(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_16(a+1,o,__VA_ARGS__))
-#define PTR_20(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_18(a+1,o,__VA_ARGS__))
-#define PTR_22(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_20(a+1,o,__VA_ARGS__))
-#define PTR_24(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_22(a+1,o,__VA_ARGS__))
-#define PTR_26(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_24(a+1,o,__VA_ARGS__))
-#define PTR_28(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_26(a+1,o,__VA_ARGS__))
-#define PTR_30(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_28(a+1,o,__VA_ARGS__))
-#define PTR_32(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_30(a+1,o,__VA_ARGS__))
-#define PTR_34(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_32(a+1,o,__VA_ARGS__))
-#define PTR_36(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_34(a+1,o,__VA_ARGS__))
-#define PTR_38(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_36(a+1,o,__VA_ARGS__))
-#define PTR_40(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_38(a+1,o,__VA_ARGS__))
-#define PTR_42(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_40(a+1,o,__VA_ARGS__))
-#define PTR_44(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_42(a+1,o,__VA_ARGS__))
-#define PTR_46(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_44(a+1,o,__VA_ARGS__))
-#define PTR_48(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_46(a+1,o,__VA_ARGS__))
-#define PTR_50(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_48(a+1,o,__VA_ARGS__))
-#define PTR_52(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_50(a+1,o,__VA_ARGS__))
-#define PTR_54(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_52(a+1,o,__VA_ARGS__))
-#define PTR_56(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_54(a+1,o,__VA_ARGS__))
-#define PTR_58(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_56(a+1,o,__VA_ARGS__))
-#define PTR_60(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_58(a+1,o,__VA_ARGS__))
-#define PTR_62(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_60(a+1,o,__VA_ARGS__))
-#define PTR_64(a,o,k,v,...) _tc_[a] = k; _def_[a] = v; EXP(PTR_62(a+1,o,__VA_ARGS__))
-#define PTRS_N(o,N,...) EXP(PTR_##N(0,o,__VA_ARGS__))
-#define PTRS(o,N,...) PTRS_N(o,N,__VA_ARGS__)
+#define PTR_2(k,t,v)      _tc_[k] = t; _def_[k] = v;
+#define PTR_4(k,t,v,...)  _tc_[k] = t; _def_[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
+#define PTR_6(k,t,v,...)  _tc_[k] = t; _def_[k] = v; EXP(PTR_4(k+1,__VA_ARGS__))
+#define PTR_8(k,t,v,...)  _tc_[k] = t; _def_[k] = v; EXP(PTR_6(k+1,__VA_ARGS__))
+#define PTR_10(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_8(k+1,__VA_ARGS__))
+#define PTR_12(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_10(k+1,__VA_ARGS__))
+#define PTR_14(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_12(k+1,__VA_ARGS__))
+#define PTR_16(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_14(k+1,__VA_ARGS__))
+#define PTR_18(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_16(k+1,__VA_ARGS__))
+#define PTR_20(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_18(k+1,__VA_ARGS__))
+#define PTR_22(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_20(k+1,__VA_ARGS__))
+#define PTR_24(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_22(k+1,__VA_ARGS__))
+#define PTR_26(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_24(k+1,__VA_ARGS__))
+#define PTR_28(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_26(k+1,__VA_ARGS__))
+#define PTR_30(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_28(k+1,__VA_ARGS__))
+#define PTR_32(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_30(k+1,__VA_ARGS__))
+#define PTR_34(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_32(k+1,__VA_ARGS__))
+#define PTR_36(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_34(k+1,__VA_ARGS__))
+#define PTR_38(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_36(k+1,__VA_ARGS__))
+#define PTR_40(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_38(k+1,__VA_ARGS__))
+#define PTR_42(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_40(k+1,__VA_ARGS__))
+#define PTR_44(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_42(k+1,__VA_ARGS__))
+#define PTR_46(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_44(k+1,__VA_ARGS__))
+#define PTR_48(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_46(k+1,__VA_ARGS__))
+#define PTR_50(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_48(k+1,__VA_ARGS__))
+#define PTR_52(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_50(k+1,__VA_ARGS__))
+#define PTR_54(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_52(k+1,__VA_ARGS__))
+#define PTR_56(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_54(k+1,__VA_ARGS__))
+#define PTR_58(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_56(k+1,__VA_ARGS__))
+#define PTR_60(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_58(k+1,__VA_ARGS__))
+#define PTR_62(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_60(k+1,__VA_ARGS__))
+#define PTR_64(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_62(k+1,__VA_ARGS__))
+#define PTRS_N(N,...) EXP(PTR_##N(0,__VA_ARGS__))
+#define PTRS(N,...) PTRS_N(N,__VA_ARGS__)
 //`1;`->加粗，`4`->下划线，`0`->还原,`m`<=>`\033[`
 #define RGB_BLACK  	 "\033[30m"
 #define RGB_RED  	 "\033[31m"
@@ -316,7 +326,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define RGB_NULL 	 "\033[0m"
 //regist PROPERTY,主键规定只能在第一个位置，同时于此也允许没有主键（不然不好处理）
 #define REGIST_PROTO(o,...)\
-  template<> void orm::Table<o>::Init(){ PTRS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
+  template<> void orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
     bool b=true;if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
        if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
