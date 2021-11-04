@@ -1,5 +1,5 @@
-#pragma once
-//ÆäÊµÊÇvarcharÀàĞÍ£¬µ«ÊÇ¸öÈËÏ²ºÃ¼òĞ´£¬varcharÌ«³¤ÁË£¬ÓÚÊÇ²ÉÓÃÁËtext
+ï»¿#pragma once
+//å…¶å®æ˜¯varcharç±»å‹ï¼Œä½†æ˜¯ä¸ªäººå–œå¥½ç®€å†™ï¼Œvarcharå¤ªé•¿äº†ï¼Œäºæ˜¯é‡‡ç”¨äº†text
 template<unsigned char I = 255>
 struct text {
   ~text() { delete[]_; _ = nullptr; };
