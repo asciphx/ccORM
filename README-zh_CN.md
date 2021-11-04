@@ -16,6 +16,7 @@
 - [x] 可以结构体嵌套结构体，从而实现类似一对一或者一对多，或者自身嵌套自身等等
 - [x] 提供DataMapper，ActiveRecord两种方式进行curd
 - [x] 具备编译期类型检测，运行时候会忽略错误，也会打印出被忽略的位置
+- [x] VARCHAR数据类型采用text<>，原来的string用作TEXT数据类型
 
 ## 即将推出
 一对多查询，多对多查询，索引列建立，以及缓存查询
@@ -24,7 +25,7 @@
 ```c++
 struct Type : Table<Type> {
   int id;
-  string language;
+  text<20> language;
   Type(int a = 0, string b = "") :
 	id(a), language(b) {}
 }; CONSTRUCT(Type, id, language)
@@ -34,7 +35,7 @@ REGIST_PROTO(Type,
 struct Tab : Table<Tab> {
   int id;
   bool ok;
-  string name;
+  text<25> name;
   tm date;
   vector<Type> lang;
   Tab(int a = 0, bool b = false, string c = "", tm d = now(), vector<Type> e = {}) :

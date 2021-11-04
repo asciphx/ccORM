@@ -16,7 +16,7 @@
 - [x] you can nest structs with structs, so as to realize one-to-one or one to many, or self nesting, etc
 - [x] Provide DataMapper and ActiveRecord for curd
 - [x] with compile time type detection, errors will be ignored and ignored locations will be printed at run time
-
+- [x] the VARCHAR data type is text<>, and the original string is used as the TEXT data type
 ## Coming soon
 One to many query, many to many query, index column establishment, and cache query
 
@@ -24,7 +24,7 @@ One to many query, many to many query, index column establishment, and cache que
 ```c++
 struct Type : Table<Type> {
   int id;
-  string language;
+  text<20> language;
   Type(int a = 0, string b = "") :
 	id(a), language(b) {}
 }; CONSTRUCT(Type, id, language)
@@ -34,7 +34,7 @@ REGIST_PROTO(Type,
 struct Tab : Table<Tab> {
   int id;
   bool ok;
-  string name;
+  text<25> name;
   tm date;
   vector<Type> lang;
   Tab(int a = 0, bool b = false, string c = "", tm d = now(), vector<Type> e = {}) :

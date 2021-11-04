@@ -1,7 +1,8 @@
 #pragma once
+//其实是varchar类型，但是个人喜好简写，varchar太长了，于是采用了text
 template<unsigned char I = 255>
 struct text {
-  ~text() { /*std::cout << '<' << _ << '>';*/ delete[]_; _ = nullptr; };
+  ~text() { delete[]_; _ = nullptr; };
   text(const char* c_str = 0) {
 	size_t i = strlen(c_str); if (i <= I)l = i; strncpy(_, c_str, I);
   };
@@ -27,7 +28,6 @@ struct text {
   }
   const char* c() const { return _; }
   const short length() const { return l; }
-  const std::string s() { return std::string(_); }
   char& operator[](unsigned char i) { return _[i]; }
   text& operator += (const char* c) {
 	while (*c && l < I) { _[l++] = *c++; } _[I] = 0; return *this;
