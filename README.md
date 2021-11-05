@@ -15,8 +15,8 @@
 - [x] surpassing RTTI and protobuf, it is the fastest, fastest and most violent idea similar to "dynamic type C + +"
 - [x] you can nest structs with structs, so as to realize one-to-one or one to many, or self nesting, etc
 - [x] Provide DataMapper and ActiveRecord for curd
-- [x] with compile time type detection, errors will be ignored and ignored locations will be printed at run time
-- [x] the VARCHAR data type is text<>, and the original string is used as the TEXT data type
+- [x] with compile time type detection
+- [x] the VARCHAR data type is text<>
 ## Coming soon
 One to many query, many to many query, index column establishment, and cache query
 
