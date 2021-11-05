@@ -27,7 +27,7 @@ namespace orm {
 	  << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
   }
   template <class T>
-  static inline typename std::enable_if<is_text<T>::value, const char*>::type DuckTyping(const T& _v) { return _v.c(); }
+  static inline typename std::enable_if<is_text<T>::value, const char*>::type DuckTyping(const T& _v) { return _v.c_str(); }
   template <class T>
   static inline typename std::enable_if<!std::is_same<T, tm>::value && !is_text<T>::value, T>::type DuckTyping(const T& _v) { return _v; }
 

@@ -1,5 +1,4 @@
 ﻿#pragma once
-//其实是varchar类型，但是个人喜好简写，varchar太长了，于是采用了text
 template<unsigned char I = 255>
 struct text {
   ~text() { delete[]_; _ = nullptr; };
@@ -13,7 +12,7 @@ struct text {
 	size_t i = str.length(); strncpy(_, str.c_str(), I); if (i <= I)l = i;
   }
   text& operator = (const char* str) {
-	delete[]_; _ = new char[I + 1]; strncpy(_, str, I); return *this;
+	delete[]_; _ = new char[I + 1]; strncpy(_, str, I); size_t n = strlen(str); l = I < n ? I : n; return *this;
   }
   text& operator = (const std::string& str) {
 	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I);
@@ -24,16 +23,16 @@ struct text {
   }
   template<unsigned char L>
   text& operator = (const text<L>& str) {
-	delete[]_; _ = new char[I + 1]; strncpy(_, str.c(), I); l = str.length(); return *this;
+	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); l = str.length(); return *this;
   }
-  const char* c() const { return _; }
+  const char* c_str() const { return _; }
   const short length() const { return l; }
   char& operator[](unsigned char i) { return _[i]; }
   text& operator += (const char* c) {
 	while (*c && l < I) { _[l++] = *c++; } _[I] = 0; return *this;
   }
   text& operator += (const text& t) {
-	const char* s = t.c(); unsigned char i = 0xff;
+	const char* s = t.c_str(); unsigned char i = 0xff;
 	while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0; return *this;
   }
   text& push_back(const char c) {
@@ -43,13 +42,13 @@ struct text {
 	_[--l] = 0; return *this;
   }
   friend std::string& operator<<(std::string& s, text<I>& c) {
-	s.push_back('"'); s += c.c(); s.push_back('"'); return s;
+	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
   };
 private: char* _ = new char[I + 1]; unsigned char l = I;
 };
 template<unsigned char I>
 text<I> operator+(const text<I>& t, const char* c) {
-  unsigned char l = t.length(); char* s = (char*)t.c(); while (*c && l < I) { s[l++] = *c++; } s[l] = 0; return t;
+  unsigned char l = t.length(); char* s = (char*)t.c_str(); while (*c && l < I) { s[l++] = *c++; } s[l] = 0; return t;
 }
 template<class T>
 struct is_text : std::false_type {};

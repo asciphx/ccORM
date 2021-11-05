@@ -24,6 +24,8 @@ namespace orm {
 		if (!--i) {
 		  if constexpr (std::is_same<U, std::remove_reference_t<decltype(t)>>::value) {
 			t = *v;
+		  } else if constexpr (std::is_same<U, const char*>::value && is_text<std::remove_reference_t<decltype(t)>>::value) {
+			t = *v;
 		  } else if constexpr (std::is_same<U, const char*>::value && std::is_same<string, std::remove_reference_t<decltype(t)>>::value) {
 			t = *v;
 		  } else { printf("Check: File:%s, Line:%d, %s\n", __FILE__, __LINE__, __FUNCTION__); }
