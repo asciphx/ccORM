@@ -13,24 +13,16 @@ int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b 
 namespace orm {
   template<typename T> class Table : public virtual_shared<T> {
 	static const std::string _name, _drop_; const static char* $[]; static const uint8_t _size_;
-	static bool _create_need; static uint8_t _idex; static std::string _create_;
+	static bool _create_need; static uint8_t _idex; static std::string _create_; static const size_t _o$[];/*Store offset*/
 #ifdef _WIN32
 	friend typename T; const static char* _def_[];/*Store default values*/ static uint8_t _tc_[];/*Store type*/
 #endif
 	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character*/
-	//Compile time type detection
+	template <typename N> constexpr N& getIdex(size_t i) {
+	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_o$[i]);
+	}
 	template <typename U> void $et(char i, const U* v) {
-	  ForEachField(dynamic_cast<T*>(this), [&i, v](auto& t) {
-		if (!--i) {
-		  if constexpr (std::is_same<U, std::remove_reference_t<decltype(t)>>::value) {
-			t = *v;
-		  } else if constexpr (std::is_same<U, const char*>::value && is_text<std::remove_reference_t<decltype(t)>>::value) {
-			t = *v;
-		  } else if constexpr (std::is_same<U, const char*>::value && std::is_same<string, std::remove_reference_t<decltype(t)>>::value) {
-			t = *v;
-		  } else { printf("Check: File:%s, Line:%d, %s\n", __FILE__, __LINE__, __FUNCTION__); }
-		}
-		});
+	  if constexpr (std::is_same<U, const char*>::value) getIdex<std::string>(i) = *v; else getIdex<U>(i) = *v;
 	}
 	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//Object serialized as string
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<Object> serialized as string
@@ -47,7 +39,8 @@ namespace orm {
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
 	  static_assert(_size_ >= sizeof...(U));
-	  char idex = 0; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
+	  char idex = -1; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
+	  return; *this = T(t...);// compile time type detection
 	}
 	//Query builder
 	static Sql<T>* Q() {
