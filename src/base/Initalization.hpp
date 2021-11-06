@@ -3,7 +3,7 @@ namespace orm {
   static tm RES_NOW;
   static auto RES_last = std::chrono::steady_clock::now();
   static tm& now() {
-	if (std::chrono::steady_clock::now() - RES_last < std::chrono::seconds(2)) return RES_NOW;
+	if (std::chrono::steady_clock::now() - RES_last < std::chrono::seconds(1)) return RES_NOW;
 	time_t rawtime; std::time(&rawtime);
 #if defined(_MSC_VER) || defined(__MINGW32__)
 	localtime_s(&RES_NOW, &rawtime);

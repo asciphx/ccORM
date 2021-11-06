@@ -25,7 +25,7 @@ One to many query, many to many query, index column establishment, and cache que
 struct Type : Table<Type> {
   int id;
   text<10> language;
-  Type(int a = 0, string b = "") :
+  Type(int a = 0, const char* b = "") :
 	id(a), language(b) {}
 }; CONSTRUCT(Type, id, language)
 REGIST_PROTO(Type,
@@ -37,7 +37,7 @@ struct Tab : Table<Tab> {
   text<15> name;
   tm date;
   vector<Type> lang;
-  Tab(int a = 0, bool b = false, string c = "", tm d = now(), vector<Type> e = {}) :
+  Tab(int a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}) :
 	id(a), ok(b), name(c), date(d), lang(e) {}
 }; CONSTRUCT(Tab, id, ok, name, date, lang)
 REGIST_PROTO(Tab,
