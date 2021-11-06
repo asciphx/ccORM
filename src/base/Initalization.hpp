@@ -27,9 +27,8 @@ namespace orm {
 	}
 	T::_addTable();//Create table
   }
-  template <typename ...Args>//Registration Center
+  template <typename ...Args>//Create Center
   static void InitializationOrm() {
-	(void)std::initializer_list<int>{(regist<Args>(), 0)...};
 	time_t RES_ti; std::time(&RES_ti);
 #if defined(_MSC_VER) || defined(__MINGW32__)
 	system("chcp 65001");
@@ -38,6 +37,7 @@ namespace orm {
 	localtime_r(&RES_ti, &RES_NOW);
 	std::locale::global(std::locale("en_US.UTF8"));
 #endif
+	(void)std::initializer_list<int>{(regist<Args>(), 0)...};
   }
   static std::string Time2Str(const time_t* t) {
 	tm* _v; _v = std::localtime(t); std::ostringstream os;

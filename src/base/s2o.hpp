@@ -146,7 +146,7 @@ namespace orm {
   }
   template <>
   bool s2o<tm>(const std::string& str, tm& value) {
-	int year = 0;
+	short year = 0;
 	int month = 0;
 	int day = 0;
 	int hour = 0;

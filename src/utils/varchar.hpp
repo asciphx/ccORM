@@ -3,7 +3,7 @@ template<unsigned char I = 255>
 struct text {
   ~text() { delete[]_; _ = nullptr; };
   text(const char* c_str = 0) {
-	size_t i = strlen(c_str); if (i <= I)l = i; strncpy(_, c_str, I);
+	size_t i = strlen(c_str); if (i < I)l = i; strncpy(_, c_str, I);
   };
   text(const text& str) {
 	strcpy(_, str._); l = str.l;
@@ -15,8 +15,7 @@ struct text {
 	delete[]_; _ = new char[I + 1]; strncpy(_, str, I); size_t n = strlen(str); l = I < n ? I : n; return *this;
   }
   text& operator = (const std::string& str) {
-	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I);
-	size_t n = str.length(); l = I < n ? I : n; return *this;
+	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); size_t n = str.length(); l = I < n ? I : n; return *this;
   }
   text& operator = (const text& str) {
 	delete[]_; _ = new char[I + 1]; strcpy(_, str._); l = str.l; return *this;
@@ -32,8 +31,20 @@ struct text {
 	while (*c && l < I) { _[l++] = *c++; } _[I] = 0; return *this;
   }
   text& operator += (const text& t) {
-	const char* s = t.c_str(); unsigned char i = 0xff;
-	while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0; return *this;
+	const char* s = t.c_str();
+	if (&t == this) {
+	  short i = 2 * l, k = -1; if (i > I)i = I; while (l < i) { _[l++] = s[++k]; } _[i] = 0;
+	} else {
+	  unsigned char i = 0xff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0;
+	}
+	return *this;
+  }
+  template<unsigned char L>
+  text& operator += (const text<L>& t) {
+	const char* s = t.c_str(); unsigned char i = 0xff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0; return *this;
+  }
+  text& operator += (const std::string& t) {
+	unsigned char i = 0xff; while (t[++i] && l < I) { _[l++] = t[i]; } _[I] = 0; return *this;
   }
   text& push_back(const char c) {
 	if (l < I) _[l++] = c; return *this;
@@ -43,6 +54,9 @@ struct text {
   }
   friend std::string& operator<<(std::string& s, text<I>& c) {
 	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
+  };
+  friend std::ostream& operator<<(std::ostream& s, text<I>& c) {
+	return s << c.c_str();
   };
 private: char* _ = new char[I + 1]; unsigned char l = I;
 };

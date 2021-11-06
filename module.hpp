@@ -3,7 +3,7 @@
 using namespace std; using namespace orm;
 struct Type : Table<Type> {
   int id;
-  text<20> language;
+  text<10> language;
   Type(int a = 0, string b = "") :
 	id(a), language(b) {}
 }; CONSTRUCT(Type, id, language)
@@ -13,7 +13,7 @@ REGIST_PROTO(Type,
 struct Tab : Table<Tab> {
   int id;
   bool ok;
-  text<25> name;
+  text<15> name;
   tm date;
   vector<Type> lang;
   Tab(int a = 0, bool b = false, string c = "", tm d = now(), vector<Type> e = {}) :

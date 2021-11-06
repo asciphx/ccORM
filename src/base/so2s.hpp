@@ -132,7 +132,7 @@ namespace orm {
   }
   template <>
   bool so2s<tm>(const char* str) {
-	int year = 0;
+	short year = 0;
 	int month = 0;
 	int day = 0;
 	int hour = 0;

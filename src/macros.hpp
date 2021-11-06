@@ -33,7 +33,7 @@ namespace orm {
 
   template <typename T>
   static typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
-	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} short year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
 	}

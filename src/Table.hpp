@@ -12,7 +12,7 @@ struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B {
 int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
 namespace orm {
   template<typename T> class Table : public virtual_shared<T> {
-	static const std::string _name, _drop_; const static char* $[]; static const uint8_t _size_;
+	static const std::string _name, _drop_; static const uint8_t _size_; const static char* $[];/*Store key name*/
 	static bool _create_need; static uint8_t _idex; static std::string _create_; static const size_t _o$[];/*Store offset*/
 #ifdef _WIN32
 	friend typename T; const static char* _def_[];/*Store default values*/ static uint8_t _tc_[];/*Store type*/
@@ -22,7 +22,14 @@ namespace orm {
 	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_o$[i]);
 	}
 	template <typename U> void $et(char i, const U* v) {
-	  if constexpr (std::is_same<U, const char*>::value) getIdex<std::string>(i) = *v; else getIdex<U>(i) = *v;
+	  if constexpr (std::is_same<U, const char*>::value) {
+		switch (hack4Str(_[i])) {
+		case '4tex':
+		case 'text':getIdex<text<>>(i) = *v; break;
+		case 'NSt7':
+		case "class s"_i:getIdex<std::string>(i) = *v;
+		}
+	  } else getIdex<U>(i) = *v;
 	}
 	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//Object serialized as string
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<Object> serialized as string
@@ -40,7 +47,7 @@ namespace orm {
 	template<typename... U> void set(U... t) {
 	  static_assert(_size_ >= sizeof...(U));
 	  char idex = -1; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
-	  return; *this = T(t...);// compile time type detection
+	  return; /*This code will never arrive*/ *this = T(t...);//detect types
 	}
 	//Query builder
 	static Sql<T>* Q() {
@@ -191,6 +198,8 @@ namespace orm {
 			case 'i':
 			case 'int': if (!so2s<int>(def)) { break; } _: _create_ += " DEFAULT ";
 			  _create_.push_back('\''); _create_ += def; _create_.push_back('\''); break;
+			case '4tex':
+			case 'text':
 			case 'NSt7':
 			case "class s"_i:
 			default: _create_ += " DEFAULT "; _create_.push_back('\''); _create_ += toQuotes(def); _create_.push_back('\'');
