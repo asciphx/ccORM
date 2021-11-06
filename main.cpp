@@ -14,7 +14,6 @@ void test() {
   cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
   cout << Tab::Q()->select()->FindArr();
   t->Delete();//删除
-  *t = Tab::Q()->select(&Tab::id, &Tab::name)->FindOne("id = 1"); cout << t << '\n';
 }
 int main() {
   InitializationOrm<Type, Tab>();//初始化建表语句和创建索引

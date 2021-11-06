@@ -146,12 +146,7 @@ namespace orm {
   }
   template <>
   bool s2o<tm>(const std::string& str, tm& value) {
-	short year = 0;
-	int month = 0;
-	int day = 0;
-	int hour = 0;
-	int min = 0;
-	int sec = 0;
+	short year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(str.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) != 6) {
 	  return false;
 	}

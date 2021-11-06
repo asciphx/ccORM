@@ -3,26 +3,26 @@ template<unsigned char I = 255>
 struct text {
   ~text() { delete[]_; _ = nullptr; };
   text(const char* c_str = 0) {
-	size_t i = strlen(c_str); if (i < I)l = i; strncpy(_, c_str, I);
+	size_t i = strlen(c_str); if (i < I)l = i; strncpy(_, c_str, I); _[l] = 0;
   };
   text(const text& str) {
 	strcpy(_, str._); l = str.l;
   }
   text(const std::string& str) {
-	size_t i = str.length(); strncpy(_, str.c_str(), I); if (i <= I)l = i;
+	size_t i = str.length(); strncpy(_, str.c_str(), I); if (i < I)l = i; _[l] = 0;
   }
   text& operator = (const char* str) {
-	delete[]_; _ = new char[I + 1]; strncpy(_, str, I); size_t n = strlen(str); l = I < n ? I : n; return *this;
+	delete[]_; _ = new char[I + 1]; strncpy(_, str, I); size_t n = strlen(str); l = I < n ? I : n; _[l] = 0; return *this;
   }
   text& operator = (const std::string& str) {
-	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); size_t n = str.length(); l = I < n ? I : n; return *this;
+	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); size_t n = str.length(); l = I < n ? I : n; _[l] = 0; return *this;
   }
   text& operator = (const text& str) {
 	delete[]_; _ = new char[I + 1]; strcpy(_, str._); l = str.l; return *this;
   }
   template<unsigned char L>
   text& operator = (const text<L>& str) {
-	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); l = str.length(); return *this;
+	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); l = str.length(); _[l] = 0; return *this;
   }
   const char* c_str() const { return _; }
   const short length() const { return l; }

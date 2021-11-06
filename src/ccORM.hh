@@ -54,7 +54,7 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #define INT8OID 20
 #define INT2OID 21
 #define INT4OID 23
-static const char RES_DATE_FORMAT[24] = "%4d-%2d-%2d %2d:%2d:%2d";
+static const char RES_DATE_FORMAT[] = "%4sd-%2sd-%2sd %2sd:%2sd:%2sd";
 struct Timer {
   template<typename F> void setTimeout(F func, uint32_t milliseconds);
   template<typename F> void setInterval(F func, uint32_t milliseconds);
@@ -546,12 +546,13 @@ namespace crow {
 		t = ntohl(*((uint32_t*)val)); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		t = be64toh(*((uint64_t*)val));  break;
-	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
+		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
 		t = val; break;
 #else
 		char* c = UnicodeToUtf8(val);
-		t = boost::lexical_cast<std::string>(c);
+		t = c;
 		free(c); c = nullptr; break;
 #endif 
 	  }
@@ -599,12 +600,13 @@ namespace crow {
 		  t = ntohl(*((uint32_t*)val)); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		  t = be64toh(*((uint64_t*)val));  break;
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
+		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
 		  t = val; break;
 #else
 		  char* c = UnicodeToUtf8(val);
-		  t = boost::lexical_cast<std::string>(c);
+		  t = c;
 		  free(c); c = nullptr; break;
 #endif 
 		}
@@ -925,12 +927,13 @@ namespace crow {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_int64(stmt_, i); break;
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
+		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
 		  t = (const char*)sqlite3_column_text(stmt_, i); break;
 #else
 		  char* c = UnicodeToUtf8((const char*)sqlite3_column_text(stmt_, i));
-		  t = boost::lexical_cast<std::string>(c); free(c); c = nullptr; break;
+		  t = c; free(c); c = nullptr; break;
 #endif 
 		}
 	  }
@@ -960,7 +963,8 @@ namespace crow {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_int64(stmt_, i); break;
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
+		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
 		  t = (const char*)sqlite3_column_text(stmt_, i); break;
 #else
@@ -1826,13 +1830,13 @@ namespace crow {
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<long long>(
 		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
-	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
+		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
-		t = boost::lexical_cast<std::string>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = current_row_[i]; break;
 #else
 		char* c = UnicodeToUtf8(current_row_[i]);
-		t = boost::lexical_cast<std::string>(std::string_view(c, current_row_lengths_[i]));
+		t = c;
 		free(c); c = nullptr; break;
 #endif 
 	  }
@@ -1876,13 +1880,13 @@ namespace crow {
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<long long>(
 		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
-	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
+		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
-		t = boost::lexical_cast<std::string>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = current_row_[i]; break;
 #else
 		char* c = UnicodeToUtf8(current_row_[i]);
-		t = boost::lexical_cast<std::string>(std::string_view(c, current_row_lengths_[i]));
+		t = c;
 		free(c); c = nullptr; break;
 #endif 
 	  }

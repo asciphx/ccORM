@@ -70,6 +70,8 @@ namespace orm {
 			if (*((char*)&t)) { ov << '\'' << t << "',"; os << T::$[i] << ','; }
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			if (*((char*)&t)) { ov << '\'' << toQuotes(t.c_str()) << "',"; os << T::$[i] << ','; }
+		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+			if (*((char*)&t)) { ov << '\'' << toQuotes(t.c_str()) << "',"; os << T::$[i] << ','; }
 		  }
 		}
 		});
@@ -95,6 +97,8 @@ namespace orm {
 			os << T::$[i] << '=' << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
+		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
 		}
 		});
@@ -108,6 +112,8 @@ namespace orm {
 	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 		os << t;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		os << '\'' << toQuotes(t.c_str()) << '\'';
+	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
 		os << '\'' << toQuotes(t.c_str()) << '\'';
 	  } os << ";";
 	  Q()->Query()(os.str());

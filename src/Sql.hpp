@@ -81,7 +81,9 @@ namespace orm {
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) ov << '\'' << def << "',"; else ov << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-			if (!*((char*)&t)) ov << '\'' << toQuotes(def) << "',"; else ov << '\'' << toQuotes(t.c_str()) << "',";
+			if (!*((char*)&t)) { ov << '\'' << toQuotes(def) << "',"; } else ov << '\'' << toQuotes(t.c_str()) << "',";
+		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+			if (!*((char*)&t)) { ov << '\'' << toQuotes(def) << "',"; } else ov << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
 		}
 		}); ov.seekp(-1, ov.cur); ov << "),";
@@ -105,7 +107,9 @@ namespace orm {
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) ov << '\'' << def << "',"; else ov << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-			if (!*((char*)&t)) ov << '\'' << toQuotes(def) << "',"; else ov << '\'' << toQuotes(t.c_str()) << "',";
+			if (!*((char*)&t)) { ov << '\'' << toQuotes(def) << "',"; } else ov << '\'' << toQuotes(t.c_str()) << "',";
+		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+			if (!*((char*)&t)) { ov << '\'' << toQuotes(def) << "',"; } else ov << '\'' << toQuotes(t.c_str()) << "',";
 		  } else { return; }
 		}
 		}); ov.seekp(-1, ov.cur); ov << "),";

@@ -132,12 +132,7 @@ namespace orm {
   }
   template <>
   bool so2s<tm>(const char* str) {
-	short year = 0;
-	int month = 0;
-	int day = 0;
-	int hour = 0;
-	int min = 0;
-	int sec = 0;
+	short year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(str, RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) != 6) {
 	  return false;
 	}
