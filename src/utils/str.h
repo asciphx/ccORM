@@ -118,8 +118,8 @@ static std::string toQuotes(const char* s) {
   } return e;
 }
 std::ostream& operator<<(std::ostream& os, const tm& time) {
-  os << (time.tm_year + 1900) << std::setfill('0')
-	<< '-' << std::setw(2) << (time.tm_mon + 1) << '-' << std::setw(2) << time.tm_mday
+  os << 20 << (time.tm_year - 100) << '-' << std::setfill('0')
+	<< std::setw(2) << (time.tm_mon + 1) << '-' << std::setw(2) << time.tm_mday
 	<< ' ' << std::setw(2) << time.tm_hour << ':' << std::setw(2) << time.tm_min
 	<< ':' << std::setw(2) << time.tm_sec; return os;
 }

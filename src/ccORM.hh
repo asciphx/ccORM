@@ -928,9 +928,8 @@ namespace crow {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_int64(stmt_, i); break;
-		} else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
-		  t = (const char*)sqlite3_column_text(stmt_, i); break;
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
+		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
 		  t = (const char*)sqlite3_column_text(stmt_, i); break;
 #else

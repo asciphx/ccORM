@@ -57,11 +57,11 @@ namespace orm {
   template<typename T>inline vector<T> Sql<T>::FindArr()noexcept(false) {
 	string sql(sql_); sql += " LIMIT " + to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
 	if (offset_ > 0) { sql += " OFFSET " + to_string(offset_); } this->clear();// cout << sql << '\n';
-	return D.conn()(sql).findArray<T>();
+	return D.conn()(sql).template findArray<T>();
   }
   template<typename T>inline T Sql<T>::FindOne(const char* where)noexcept(false) {
 	string sql(sql_); sql += " WHERE "; sql += where; this->clear();// cout << sql << '\n';
-	return D.conn()(sql).findOne<T>();
+	return D.conn()(sql).template findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::Query() { prepare_ = true; return D.conn(); }
   template<typename T> void Sql<T>::InsertArr(typename T::ptr_arr& input) {
