@@ -17,7 +17,6 @@
 #include <stdexcept>
 #include "json.hpp"
 #include "./utils/str.h"
-#include "./utils/varchar.hpp"
 namespace orm {
   static const unsigned int HARDWARE_ASYNCHRONOUS = 0x6;//It is best to set the maximum number of threads
   template <class T>

@@ -23,6 +23,7 @@
 #include <mysql/mysql.h>
 #include <libpq-fe.h>
 #include <sqlite3.h>
+#include "./utils/varchar.hpp"
 #define EXPECT_THROW(STM)\
 try {STM;std::cerr << "This must have thrown an exception: " << #STM << std::endl; } catch (...) {}
 #define EXPECT_EQUAL(A, B)\
@@ -927,8 +928,9 @@ namespace crow {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_int64(stmt_, i); break;
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
-		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
+		} else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+		  t = (const char*)sqlite3_column_text(stmt_, i); break;
+		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
 		  t = (const char*)sqlite3_column_text(stmt_, i); break;
 #else
