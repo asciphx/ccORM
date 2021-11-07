@@ -268,16 +268,15 @@ namespace orm {
 	  }); s[s.size() - 1] = '}'; return s;
   }//Compile into most optimized machine code
   template <typename T> std::string& operator<<(std::string& s, std::vector<T> c) {
-	s.push_back('['); size_t l = c.size();
-	for (size_t i = 0; i < l; ++i) { s << &c[i], s.push_back(','); }
-	l == 0 ? s.push_back(']') : s.pop_back(), s.push_back(']'); return s;
+	s.push_back('['); size_t l = c.size(); if (l > 0) { s << &c[0]; }
+	for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c[i]; }
+	s.push_back(']'); return s;
   }
   template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
 	std::string s; s << dynamic_cast<T*>(c); return o << s;
   };
   template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T> c) {
-	o << '['; size_t l = c.size();
-	if (l > 0) { o << &c[0]; }
+	o << '['; size_t l = c.size(); if (l > 0) { o << &c[0]; }
 	for (size_t i = 1; i < l; ++i) { o << ',' << &c[i]; }
 	o << ']'; return o;
   }
