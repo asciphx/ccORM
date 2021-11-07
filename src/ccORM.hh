@@ -23,7 +23,7 @@
 #include <mysql/mysql.h>
 #include <libpq-fe.h>
 #include <sqlite3.h>
-#include "./utils/varchar.hpp"
+#include "./utils/text.hpp"
 #define EXPECT_THROW(STM)\
 try {STM;std::cerr << "This must have thrown an exception: " << #STM << std::endl; } catch (...) {}
 #define EXPECT_EQUAL(A, B)\
