@@ -88,6 +88,8 @@ namespace orm {
 		condition += std::to_string(t);
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
+	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
 	  }
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition](auto& t) {
 		if (++i && !(T::_tc_[i] & TC::AUTO_INCREMENT)) {
@@ -99,7 +101,7 @@ namespace orm {
 			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
 		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
 			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
-		  } else { return; }
+		  }
 		}
 		});
 	  os.seekp(-1, os.cur); os << condition << ";";

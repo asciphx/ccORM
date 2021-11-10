@@ -124,14 +124,14 @@ std::ostream& operator<<(std::ostream& os, const tm& time) {
 	<< ':' << std::setw(2) << time.tm_sec; return os;
 }
 std::string operator&& (const std::string& o, const std::string& c) {
-  std::ostringstream os; os << "(" << o << " AND " << c << ")"; return os.str();
+  std::ostringstream os; os << '(' << o << " AND " << c << ')'; return os.str();
 };
 std::string operator|| (const std::string& o, const std::string& c) {
-  std::ostringstream os; os << "(" << o << " OR " << c << ")"; return os.str();
+  std::ostringstream os; os << '(' << o << " OR " << c << ')'; return os.str();
 };
 template<typename T>
 std::string operator<(const std::string& o, const T& v) {
-  std::ostringstream os; os << o << "<" << v; return os.str();
+  std::ostringstream os; os << o << '<' << v; return os.str();
 }
 template<typename T>
 std::string operator<=(const std::string& o, const T& v) {
@@ -143,6 +143,6 @@ std::string operator>=(const std::string& o, const T& v) {
 }
 template<typename T>
 std::string operator>(const std::string& o, const T& v) {
-  std::ostringstream os; os << o << ">" << v; return os.str();
+  std::ostringstream os; os << o << '>' << v; return os.str();
 }
 #endif
