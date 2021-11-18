@@ -434,8 +434,8 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define ATTR_N1(o,N,...) EXP(ATTR_##N(o,__VA_ARGS__))
 #define ATTR_N(o,N,...) ATTR_N1(o,N,__VA_ARGS__)
 #define ATTRS(o,...)\
-friend static void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
-friend static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
+friend void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
+friend void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
 
 #define FIELD(o,...) ATTRS(o, __VA_ARGS__)\
 public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
