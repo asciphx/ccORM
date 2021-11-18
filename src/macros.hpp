@@ -190,80 +190,7 @@ inline const char* GetRealType(const char* s, const char* c) {
  template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)]={ OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={};\
  template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
- template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
-//
-#define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));
-#define COL_2(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_1(o,__VA_ARGS__))
-#define COL_3(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_2(o,__VA_ARGS__))
-#define COL_4(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_3(o,__VA_ARGS__))
-#define COL_5(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_4(o,__VA_ARGS__))
-#define COL_6(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_5(o,__VA_ARGS__))
-#define COL_7(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_6(o,__VA_ARGS__))
-#define COL_8(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_7(o,__VA_ARGS__))
-#define COL_9(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_8(o,__VA_ARGS__))
-#define COL_10(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_9(o,__VA_ARGS__))
-#define COL_11(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_10(o,__VA_ARGS__))
-#define COL_12(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_11(o,__VA_ARGS__))
-#define COL_13(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_12(o,__VA_ARGS__))
-#define COL_14(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_13(o,__VA_ARGS__))
-#define COL_15(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_14(o,__VA_ARGS__))
-#define COL_16(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_15(o,__VA_ARGS__))
-#define COL_17(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_16(o,__VA_ARGS__))
-#define COL_18(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_17(o,__VA_ARGS__))
-#define COL_19(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_18(o,__VA_ARGS__))
-#define COL_20(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_19(o,__VA_ARGS__))
-#define COL_21(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_20(o,__VA_ARGS__))
-#define COL_22(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_21(o,__VA_ARGS__))
-#define COL_23(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_22(o,__VA_ARGS__))
-#define COL_24(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_23(o,__VA_ARGS__))
-#define COL_25(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_24(o,__VA_ARGS__))
-#define COL_26(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_25(o,__VA_ARGS__))
-#define COL_27(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_26(o,__VA_ARGS__))
-#define COL_28(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_27(o,__VA_ARGS__))
-#define COL_29(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_28(o,__VA_ARGS__))
-#define COL_30(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_29(o,__VA_ARGS__))
-#define COL_31(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_30(o,__VA_ARGS__))
-#define COL_32(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_31(o,__VA_ARGS__))
-#define COL_N1(o,N,...) EXP(COL_##N(o,__VA_ARGS__))
-#define COL_N(o,N,...) COL_N1(o,N,__VA_ARGS__)
-
-#define ATTR_1(o,k)      orm::OriginalType(o.k,#k,j);
-#define ATTR_2(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_1(o,__VA_ARGS__))
-#define ATTR_3(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_2(o,__VA_ARGS__))
-#define ATTR_4(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_3(o,__VA_ARGS__))
-#define ATTR_5(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_4(o,__VA_ARGS__))
-#define ATTR_6(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_5(o,__VA_ARGS__))
-#define ATTR_7(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_6(o,__VA_ARGS__))
-#define ATTR_8(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_7(o,__VA_ARGS__))
-#define ATTR_9(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_8(o,__VA_ARGS__))
-#define ATTR_10(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_9(o,__VA_ARGS__))
-#define ATTR_11(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_10(o,__VA_ARGS__))
-#define ATTR_12(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_11(o,__VA_ARGS__))
-#define ATTR_13(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_12(o,__VA_ARGS__))
-#define ATTR_14(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_13(o,__VA_ARGS__))
-#define ATTR_15(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_14(o,__VA_ARGS__))
-#define ATTR_16(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_15(o,__VA_ARGS__))
-#define ATTR_17(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_16(o,__VA_ARGS__))
-#define ATTR_18(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_17(o,__VA_ARGS__))
-#define ATTR_19(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_18(o,__VA_ARGS__))
-#define ATTR_20(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_19(o,__VA_ARGS__))
-#define ATTR_21(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_20(o,__VA_ARGS__))
-#define ATTR_22(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_21(o,__VA_ARGS__))
-#define ATTR_23(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_22(o,__VA_ARGS__))
-#define ATTR_24(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_23(o,__VA_ARGS__))
-#define ATTR_25(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_24(o,__VA_ARGS__))
-#define ATTR_26(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_25(o,__VA_ARGS__))
-#define ATTR_27(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_26(o,__VA_ARGS__))
-#define ATTR_28(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_27(o,__VA_ARGS__))
-#define ATTR_29(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_28(o,__VA_ARGS__))
-#define ATTR_30(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_29(o,__VA_ARGS__))
-#define ATTR_31(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_30(o,__VA_ARGS__))
-#define ATTR_32(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_31(o,__VA_ARGS__))
-#define ATTR_N1(o,N,...) EXP(ATTR_##N(o,__VA_ARGS__))
-#define ATTR_N(o,N,...) ATTR_N1(o,N,__VA_ARGS__)
-#define ATTRS(o,...)\
-static void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
-static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
+ template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
 
 #define PRO_1(t,k)      const char* t::$##k = #k;
 #define PRO_2(t,k,...)  const char* t::$##k = #k; EXP(PRO_1(t,__VA_ARGS__))
@@ -345,7 +272,6 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 
 #define CONSTRUCT(o,...)\
         PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
-        ATTRS(o,__VA_ARGS__)\
         REGIST(o, __VA_ARGS__)\
         REGISTER_TABLE(o)\
     template <> inline constexpr auto orm::Schema<o>() {\
@@ -402,6 +328,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
        if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
 else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}
+
 #define FIELD_1(k)      static const char* $##k;
 #define FIELD_2(k,...)  static const char* $##k; EXP(FIELD_1(__VA_ARGS__))
 #define FIELD_3(k,...)  static const char* $##k; EXP(FIELD_2(__VA_ARGS__))
@@ -434,8 +361,82 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define FIELD_30(k,...) static const char* $##k; EXP(FIELD_29(__VA_ARGS__))
 #define FIELD_31(k,...) static const char* $##k; EXP(FIELD_30(__VA_ARGS__))
 #define FIELD_32(k,...) static const char* $##k; EXP(FIELD_31(__VA_ARGS__))
-//FIELDS(Tab, id, kg, date);
 #define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
-#define FIELD(...) public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
+
+#define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));
+#define COL_2(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_1(o,__VA_ARGS__))
+#define COL_3(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_2(o,__VA_ARGS__))
+#define COL_4(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_3(o,__VA_ARGS__))
+#define COL_5(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_4(o,__VA_ARGS__))
+#define COL_6(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_5(o,__VA_ARGS__))
+#define COL_7(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_6(o,__VA_ARGS__))
+#define COL_8(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_7(o,__VA_ARGS__))
+#define COL_9(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_8(o,__VA_ARGS__))
+#define COL_10(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_9(o,__VA_ARGS__))
+#define COL_11(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_10(o,__VA_ARGS__))
+#define COL_12(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_11(o,__VA_ARGS__))
+#define COL_13(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_12(o,__VA_ARGS__))
+#define COL_14(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_13(o,__VA_ARGS__))
+#define COL_15(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_14(o,__VA_ARGS__))
+#define COL_16(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_15(o,__VA_ARGS__))
+#define COL_17(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_16(o,__VA_ARGS__))
+#define COL_18(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_17(o,__VA_ARGS__))
+#define COL_19(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_18(o,__VA_ARGS__))
+#define COL_20(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_19(o,__VA_ARGS__))
+#define COL_21(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_20(o,__VA_ARGS__))
+#define COL_22(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_21(o,__VA_ARGS__))
+#define COL_23(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_22(o,__VA_ARGS__))
+#define COL_24(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_23(o,__VA_ARGS__))
+#define COL_25(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_24(o,__VA_ARGS__))
+#define COL_26(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_25(o,__VA_ARGS__))
+#define COL_27(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_26(o,__VA_ARGS__))
+#define COL_28(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_27(o,__VA_ARGS__))
+#define COL_29(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_28(o,__VA_ARGS__))
+#define COL_30(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_29(o,__VA_ARGS__))
+#define COL_31(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_30(o,__VA_ARGS__))
+#define COL_32(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_31(o,__VA_ARGS__))
+#define COL_N1(o,N,...) EXP(COL_##N(o,__VA_ARGS__))
+#define COL_N(o,N,...) COL_N1(o,N,__VA_ARGS__)
+
+#define ATTR_1(o,k)      orm::OriginalType(o.k,#k,j);
+#define ATTR_2(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_1(o,__VA_ARGS__))
+#define ATTR_3(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_2(o,__VA_ARGS__))
+#define ATTR_4(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_3(o,__VA_ARGS__))
+#define ATTR_5(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_4(o,__VA_ARGS__))
+#define ATTR_6(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_5(o,__VA_ARGS__))
+#define ATTR_7(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_6(o,__VA_ARGS__))
+#define ATTR_8(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_7(o,__VA_ARGS__))
+#define ATTR_9(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_8(o,__VA_ARGS__))
+#define ATTR_10(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_9(o,__VA_ARGS__))
+#define ATTR_11(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_10(o,__VA_ARGS__))
+#define ATTR_12(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_11(o,__VA_ARGS__))
+#define ATTR_13(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_12(o,__VA_ARGS__))
+#define ATTR_14(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_13(o,__VA_ARGS__))
+#define ATTR_15(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_14(o,__VA_ARGS__))
+#define ATTR_16(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_15(o,__VA_ARGS__))
+#define ATTR_17(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_16(o,__VA_ARGS__))
+#define ATTR_18(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_17(o,__VA_ARGS__))
+#define ATTR_19(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_18(o,__VA_ARGS__))
+#define ATTR_20(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_19(o,__VA_ARGS__))
+#define ATTR_21(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_20(o,__VA_ARGS__))
+#define ATTR_22(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_21(o,__VA_ARGS__))
+#define ATTR_23(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_22(o,__VA_ARGS__))
+#define ATTR_24(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_23(o,__VA_ARGS__))
+#define ATTR_25(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_24(o,__VA_ARGS__))
+#define ATTR_26(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_25(o,__VA_ARGS__))
+#define ATTR_27(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_26(o,__VA_ARGS__))
+#define ATTR_28(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_27(o,__VA_ARGS__))
+#define ATTR_29(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_28(o,__VA_ARGS__))
+#define ATTR_30(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_29(o,__VA_ARGS__))
+#define ATTR_31(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_30(o,__VA_ARGS__))
+#define ATTR_32(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_31(o,__VA_ARGS__))
+#define ATTR_N1(o,N,...) EXP(ATTR_##N(o,__VA_ARGS__))
+#define ATTR_N(o,N,...) ATTR_N1(o,N,__VA_ARGS__)
+#define ATTRS(o,...)\
+friend static void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
+friend static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
+
+#define FIELD(o,...) ATTRS(o, __VA_ARGS__)\
+public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 #endif

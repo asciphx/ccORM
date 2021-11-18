@@ -1,5 +1,5 @@
 ﻿#pragma once
-template<unsigned short I = 255>//Max 65535, Min 0
+template<unsigned short I = 255>//Max 65535, Min 1
 struct text {
   ~text() { delete[]_; _ = nullptr; };
   text(const char* c_str = 0) {

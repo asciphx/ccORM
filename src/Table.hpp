@@ -24,9 +24,9 @@ namespace orm {
 	template <typename U> void $et(char i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
 		switch (hack4Str(_[i])) {
-		case '4tex':
-		case 'text':getIdex<text<>>(i) = *v; break;
-		case 'NSt7':
+		case 880043384://'4tex'
+		case 1952807028:getIdex<text<>>(i) = *v; break;//'text'
+		case 1314092087://'NSt7'
 		case "class s"_i:getIdex<std::string>(i) = *v;
 		}
 	  } else getIdex<U>(i) = *v;
