@@ -12,10 +12,10 @@ struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B {
 int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
 namespace orm {
   template<typename T> class Table : public virtual_shared<T> {
-	static const std::string _name, _drop_; static const uint8_t _size_; const static char* $[];/*Store key name*/
-	static bool _create_need; static uint8_t _idex; static std::string _create_; static const size_t _o$[];/*Store offset*/
+	static const std::string _name, _drop_; static const unsigned char _size_; const static char* $[];/*Store key name*/
+	static bool _create_need; static unsigned char _idex; static std::string _create_; static const size_t _o$[];/*Store offset*/
 #ifdef _WIN32
-	friend typename T; const static char* _def_[];/*Store default values*/ static uint8_t _tc_[];/*Store key type*/
+	friend typename T; const static char* _def_[];/*Store default values*/ static unsigned char _tc_[];/*Store key type*/
 #endif
 	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character*/
 	template <typename N> constexpr N& getIdex(size_t i) {
@@ -37,7 +37,7 @@ namespace orm {
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U> c);
   public:
 #ifndef _WIN32
-	const static char* _def_[]; static uint8_t _tc_[];
+	const static char* _def_[]; static unsigned char _tc_[];
 #endif
 	using ptr = typename std::shared_ptr<T>; static Sql<T>* __[];
 	using ptr_arr = typename std::vector<typename std::shared_ptr<T>>;
@@ -59,7 +59,7 @@ namespace orm {
 	//-------------------------------------ActiveRecord-------------------------------------
 	//Insert the object (Returns the inserted ID)
 	long long Insert() {
-	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
+	  char i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
 		if (!(_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
@@ -81,7 +81,7 @@ namespace orm {
 	}
 	//Update the object (The default condition is the value of the frist key)
 	void Update() {
-	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
+	  char i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
 	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
 	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
@@ -123,7 +123,7 @@ namespace orm {
 	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
 	  if (_create_need) {
 		_create_need = false;
-		for (uint8_t i = 0; i < _size_; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
+		for (unsigned char i = 0; i < _size_; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
 		  if (_[i][0] == 'S') { continue; }
 		  TC tc = (TC)_tc_[i]; const char* def = _def_[i];
 		  if (i)_create_ += ",\n"; _create_ += $[i];
@@ -237,7 +237,7 @@ namespace orm {
   template<typename T> template<typename ... Args>
   typename Table<T>::ptr Table<T>::create(Args&& ... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
-	s.push_back('{'); int8_t i = -1;
+	s.push_back('{'); char i = -1;
 	ForEachField(dynamic_cast<T*>(c), [&i, c, &s](auto& t) {
 	  s.push_back('"'); s += c->$[++i];
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {

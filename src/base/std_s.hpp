@@ -3,9 +3,10 @@
 #include <stdexcept>
 namespace std {
   inline short stos(const string& _Str) {
-	const char* _Ptr = _Str.c_str(); int _Base = 10;
+	// convert string to short
+	const char* _Ptr = _Str.c_str();
 	char* _Eptr;
-	const long _Ans = ::strtol(_Ptr, &_Eptr, _Base);
+	const long _Ans = ::strtol(_Ptr, &_Eptr, 10);
 	if (_Ptr == _Eptr) {
 	  throw std::runtime_error("invalid stos argument");
 	}
@@ -15,9 +16,10 @@ namespace std {
 	return static_cast<short>(_Ans);
   }
   inline signed char stot(const string& _Str) {
-	const char* _Ptr = _Str.c_str(); int _Base = 10;
+	// convert string to tiny int
+	const char* _Ptr = _Str.c_str();
 	char* _Eptr;
-	const long _Ans = ::strtol(_Ptr, &_Eptr, _Base);
+	const long _Ans = ::strtol(_Ptr, &_Eptr, 10);
 	if (_Ptr == _Eptr) {
 	  throw std::runtime_error("invalid stot argument");
 	}

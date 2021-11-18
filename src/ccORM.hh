@@ -513,7 +513,7 @@ namespace crow {
 	  out = ntohs(*((uint16_t*)val));
   }
   template <typename T> void pgsql_result::readOne(T* j) {
-	int nfields; int8_t z = -1;
+	int nfields; char z = -1;
 	if (!current_result_) {
 	  if (current_result_) {
 		PQclear(current_result_); current_result_ = nullptr;
@@ -561,7 +561,7 @@ namespace crow {
 	  });
   }
   template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
-	int nfields; int8_t z;
+	int nfields; char z;
 	if (!current_result_ || row_i_ == current_result_nrows_) {
 	  if (current_result_) {
 		PQclear(current_result_); current_result_ = nullptr;
@@ -905,9 +905,9 @@ namespace crow {
 	int last_step_ret_; uint32_t rowcount_ = 0;
 	inline void flush_results() { sqlite3_reset(stmt_); }
 	template <typename T> void readOne(T* j) {
-	  int8_t ncols = sqlite3_column_count(stmt_), z = -1;
+	  char ncols = sqlite3_column_count(stmt_), z = -1;
 	  ForEachField(j, [&ncols, &z, this](auto& t) { ++z;
-	  for (int8_t i = 0; i < ncols; ++i) {
+	  for (char i = 0; i < ncols; ++i) {
 		if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
@@ -941,9 +941,9 @@ namespace crow {
 		});
 	}
 	template <typename T> void readArr(std::vector<T>* output) {
-	  T j; int8_t ncols = sqlite3_column_count(stmt_), z; _: z = -1;
+	  T j; char ncols = sqlite3_column_count(stmt_), z; _: z = -1;
 	  ForEachField(&j, [&ncols, &z, this](auto& t) { ++z;
-	  for (int8_t i = 0; i < ncols; ++i) {
+	  for (char i = 0; i < ncols; ++i) {
 		if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
@@ -1797,7 +1797,7 @@ namespace crow {
   }
   template <typename B> template <typename T> void mysql_result<B>::readOne(T* j) {
 	next_row(); if (end_of_result_) return;
-	MYSQL_FIELD* field; int8_t z = -1;
+	MYSQL_FIELD* field; char z = -1;
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
 	  field = mysql_fetch_field(result_);
 	  strcpy(proto_name_[i], field->name);
@@ -1811,34 +1811,25 @@ namespace crow {
 		  t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
 		} break;
 	  } else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<signed char>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = boost::lexical_cast<signed char>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<double>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = boost::lexical_cast<double>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<float>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = boost::lexical_cast<float>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<bool>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = boost::lexical_cast<bool>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<short>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = boost::lexical_cast<short>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<int>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = boost::lexical_cast<int>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<long long>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		t = boost::lexical_cast<long long>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
 		t = current_row_[i]; break;
 #else
-		char* c = UnicodeToUtf8(current_row_[i]);
-		t = c;
-		free(c); c = nullptr; break;
+		char* c = UnicodeToUtf8(current_row_[i]); t = c; free(c); c = nullptr; break;
 #endif 
 	  }
 	}
@@ -1846,7 +1837,7 @@ namespace crow {
   }
   template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>* output) {
 	next_row(); if (end_of_result_) return; T j;
-	MYSQL_FIELD* field; int8_t z;
+	MYSQL_FIELD* field; char z;
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
 	  field = mysql_fetch_field(result_);
 	  strcpy(proto_name_[i], field->name);
@@ -1862,25 +1853,25 @@ namespace crow {
 		} break;
 	  } else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<signed char>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<double>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<float>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<bool>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<short>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<int>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		t = boost::lexical_cast<long long>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 #if SYS_IS_UTF8
@@ -1913,27 +1904,25 @@ namespace crow {
 	  switch (proto_type[i]) {
 	  case enum_field_types::MYSQL_TYPE_DOUBLE:
 		j[proto_name_[i]] = boost::lexical_cast<double>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_FLOAT:
 		j[proto_name_[i]] = boost::lexical_cast<float>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_TINY:
 		if (current_row_lengths_[i] == 1) {
-		  j[proto_name_[i]] = boost::lexical_cast<bool>(
-			std::string_view(current_row_[i], 1));
+		  j[proto_name_[i]] = boost::lexical_cast<bool>(current_row_[i]);
 		} else {
-		  j[proto_name_[i]] = boost::lexical_cast<short>(
-			std::string_view(current_row_[i], current_row_lengths_[i]));
+		  j[proto_name_[i]] = boost::lexical_cast<short>(current_row_[i]);
 		} break;
 	  case enum_field_types::MYSQL_TYPE_INT24:
 		j[proto_name_[i]] = boost::lexical_cast<int>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_SHORT:
 		j[proto_name_[i]] = boost::lexical_cast<short>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_LONGLONG:
 		j[proto_name_[i]] = boost::lexical_cast<long long>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		  current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_STRING:
 	  case enum_field_types::MYSQL_TYPE_VAR_STRING:
 	  case enum_field_types::MYSQL_TYPE_LONG_BLOB:
@@ -1941,16 +1930,15 @@ namespace crow {
 	  case enum_field_types::MYSQL_TYPE_TINY_BLOB:
 	  case enum_field_types::MYSQL_TYPE_BLOB: {
 #if SYS_IS_UTF8
-		j[proto_name_[i]] = boost::lexical_cast<std::string>(
-		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		j[proto_name_[i]] = boost::lexical_cast<std::string>(current_row_[i]); break;
 #else
 		char* c = UnicodeToUtf8(current_row_[i]);
-		j[proto_name_[i]] = boost::lexical_cast<std::string>(std::string_view(c, current_row_lengths_[i]));
+		j[proto_name_[i]] = boost::lexical_cast<std::string>(c);
 		free(c); c = nullptr; break;
 #endif 
 	  } break;
 	  default: j[proto_name_[i]] = boost::lexical_cast<std::string>(
-		std::string_view(current_row_[i], current_row_lengths_[i])); break;
+		current_row_[i]); break;
 	  }
 	}
 	if (!(current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
@@ -1969,7 +1957,7 @@ namespace crow {
 		boost::lexical_cast<std::string>(std::tuple_size_v<std::decay_t<T>>) + ")");
 	crow::tuple_map(std::forward<T>(output), [&](auto& v) {
 	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(
-		std::string_view(current_row_[i], current_row_lengths_[i]));
+		current_row_[i]);
 	  ++i;
 	  });
 	return true;

@@ -35,16 +35,16 @@ struct text {
 	if (&t == this) {
 	  short i = 2 * l, k = -1; if (i > I)i = I; while (l < i) { _[l++] = s[++k]; } _[i] = 0;
 	} else {
-	  unsigned short i = 0xff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0;
+	  unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0;
 	}
 	return *this;
   }
   template<unsigned short L>
   text& operator += (const text<L>& t) {
-	const char* s = t.c_str(); unsigned short i = 0xff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0; return *this;
+	const char* s = t.c_str(); unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0; return *this;
   }
   text& operator += (const std::string& t) {
-	unsigned short i = 0xff; while (t[++i] && l < I) { _[l++] = t[i]; } _[I] = 0; return *this;
+	unsigned short i = 0xffff; while (t[++i] && l < I) { _[l++] = t[i]; } _[I] = 0; return *this;
   }
   text& push_back(const char c) {
 	if (l < I) _[l++] = c; return *this;
@@ -62,7 +62,24 @@ private: char* _ = new char[I + 1]; unsigned short l = I;
 };
 template<unsigned short I>
 text<I> operator+(const text<I>& t, const char* c) {
-  unsigned short l = t.length(); char* s = (char*)t.c_str(); while (*c && l < I) { s[l++] = *c++; } s[l] = 0; return t;
+  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(); while (*c && ++l < I) { s[l] = *c++; } s[++l] = 0; return t;
+}
+template<unsigned short I>
+text<I> operator+(const text<I>& t, const std::string& $) {
+  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(), * c = (char*)$.c_str(); while (*c && ++l < I) { s[l] = *c++; } s[++l] = 0; return t;
+}
+template<unsigned short I, unsigned short K>
+text<I> operator+(const text<I>& t, const text<K>& $) {
+  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(), * c = (char*)$.c_str(); while (*c && ++l < I) { s[l] = *c++; } s[++l] = 0; return t;
+}
+template<unsigned short I>
+std::string operator+(std::string& t, const text<I>& $) {
+  char* c = (char*)$.c_str(); while (*c) { t.push_back(*c); *++c; } t.push_back(0); return t;
+}
+template<unsigned short I>
+text<I> operator+(const char* c, text<I>& t) {
+  text<I> f(t); unsigned short r = strlen(c), l = t.length(), i = 0; while (l < I) { t[r++] = f[i]; ++i; ++l; }
+  char* s = (char*)t.c_str(); i = 0; while (*c) { s[i] = *c++; ++i; } s[l] = 0; return t;
 }
 template<class T>
 struct is_text : std::false_type {};

@@ -12,7 +12,7 @@ void test() {
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "go programing"; cout << t << '\n';
   cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
-  cout << Tab::Q()->select(t->$id, t->$name, t->$date, t->$ok)->FindArr();
+  cout << Tab::Q()->select(t->$id, t->$name, t->$date, t->$ok)->GetArr();
   t->Delete();//删除
 }
 int main() {
@@ -21,12 +21,12 @@ int main() {
   Timer t; bool run = true;//标记第二个线程的运行状态
   t.setTimeout([&run] {
 	int i = 0; for (; i < 5999; ++i) {
-	  Tab::Q()->select()->FindOne("id = 2");
+	  Tab::Q()->select()->where("id = 2")->GetOne();
 	} printf("<%d>", i);
 	run = false;//代表副线程结束
 	}, 6);
   int i = 0; for (; i < 4999; ++i) {
-	Tab::Q()->select(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->FindOne("id = 1");
+	Tab::Q()->select(&Tab::id, &Tab::name, &Tab::date, &Tab::ok)->where("id = 1")->GetOne();
   }//多线程测试，这里是第一个线程也就是主线程
   printf("<%d>", i);
   while (run) { this_thread::yield(); }//run为true则阻止程序提前结束

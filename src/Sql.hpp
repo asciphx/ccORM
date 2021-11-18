@@ -3,15 +3,10 @@
 #include<string>
 #include<vector>
 #include<stdarg.h>
-#include <utility>
-template <typename F, typename... Args, typename = decltype(std::declval<F>()(std::declval<Args&&>()...))>
-std::true_type isValidImpl(void*);
-template <typename F, typename... Args>
-std::false_type isValidImpl(...);
 #include"macros.hpp"
 #define MAX_LIMIT 100
 namespace orm {
-  enum class Sort { ASC, DESC }; using namespace std;
+  enum class Sort { ASC, DESC };
   template<typename T> class Table;
   template<typename T> struct Sql {
 	friend class Table<T>;
@@ -19,70 +14,69 @@ namespace orm {
 	~Sql<T>() {}
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
-	inline Sql<T>* orderBy(const string& col, const Sort& ord = Sort::ASC);
-	Sql<T>* select() { sql_ += "* FROM "; sql_ += T::_name; return this; };
+	inline Sql<T>* orderBy(const std::string& col, const Sort& ord = Sort::ASC);
+	inline Sql<T>* select() { sql_ += "* FROM "; sql_ += T::_name; return this; };
 	template <typename... K>
-	Sql<T>* select(K T::*&&...sc);
+	inline Sql<T>* select(K T::*&&...sc);
 	template <typename... K>
-	Sql<T>* select(K&&...k);
+	inline Sql<T>* select(K&&...k);
 
 	inline Sql<T>* alias(const char* alias);
-	inline Sql<T>* where(const string& str);
-	vector<T> FindArr();
-	T FindOne(const char* where);
+	inline Sql<T>* where(const std::string& str);
+	std::vector<T> GetArr();
+	T GetOne();
 	template<typename K>
-	static void setFields(string& os, K T::** val);
-	static void setFields(string& os, const char* val);
+	static void setFields(std::string& os, K T::** val);
+	static void setFields(std::string& os, const char* val);
 	inline decltype(D)::connection_type Query();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
-  private: size_t limit_{ 10 }, offset_{ 0 }; string sql_; bool prepare_{ true };
+  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_; bool prepare_{ true };
 		 inline void clear() { sql_ = "SELECT "; limit_ = 10; offset_ = 0; prepare_ = true; }
   };
   template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
-  template<typename T> Sql<T>* Sql<T>::orderBy(const string& col, const Sort& ord) {
+  template<typename T> Sql<T>* Sql<T>::orderBy(const std::string& col, const Sort& ord) {
 	sql_ += " ORDER BY " + col; if (ord == Sort::DESC)sql_ += " DESC"; return this;
 	//sql_.push_back(','); sql_ += col; if (ord == Sort::DESC)sql_ += " DESC";
   }
   template<typename T>
   template<typename K>
-  void Sql<T>::setFields(string& ios, K T::** $$$) {
-	constexpr auto schema = Schema<T>(); int8_t i = -1;
+  void Sql<T>::setFields(std::string& ios, K T::** $$$) {
+	constexpr auto schema = Schema<T>(); char i = -1;
 	ForEachTuple(schema, [&i, &ios, $$$](auto ___) {
 	  ++i; if (typeid($$$) == typeid(&___)) {
 		ios += T::$[i]; ios += ',';
 	  }}, std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
   }
   template<typename T>
-  void Sql<T>::setFields(string& os, const char* val) { os += val; os += ','; };
+  void Sql<T>::setFields(std::string& os, const char* val) { os += val; os += ','; };
   template<typename T>
   template<typename... K> Sql<T>* Sql<T>::select(K T::*&&... __) {
-	(void)initializer_list<int>{(setFields(sql_, std::forward<K T::**>(&__)), 0)...};
+	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K T::**>(&__)), 0)...};
 	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
   }
   template<typename T>
-  template <typename... K>
-  Sql<T>* Sql<T>::select(K&&...k) {
-	(void)initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
+  template <typename... K> Sql<T>* Sql<T>::select(K&&...k) {
+	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
 	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
   };
   template<typename T> Sql<T>* Sql<T>::alias(const char* alias) { sql_.push_back(' '); sql_ += alias; return this; }
-  template<typename T> Sql<T>* Sql<T>::where(const string& str) { sql_ += " WHERE " + str; return this; }
+  template<typename T> Sql<T>* Sql<T>::where(const  std::string& str) { sql_ += " WHERE " + str; return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
-  template<typename T>inline vector<T> Sql<T>::FindArr()noexcept(false) {
-	string sql(sql_); sql += " LIMIT " + to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
+  template<typename T>inline std::vector<T> Sql<T>::GetArr()noexcept(false) {
+	std::string sql(sql_); sql += " LIMIT " + to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
 	if (offset_ > 0) { sql += " OFFSET " + to_string(offset_); } this->clear();// cout << sql << '\n';
 	return D.conn()(sql).template findArray<T>();
   }
-  template<typename T>inline T Sql<T>::FindOne(const char* where)noexcept(false) {
-	string sql(sql_); sql += " WHERE "; sql += where; this->clear();// cout << sql << '\n';
+  template<typename T>inline T Sql<T>::GetOne()noexcept(false) {
+	std::string sql(sql_); this->clear();// cout << sql << '\n';
 	return D.conn()(sql).template findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::Query() { prepare_ = true; return D.conn(); }
   template<typename T> void Sql<T>::InsertArr(typename T::ptr_arr& input) {
-	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
+	char i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size_; ++i) {
 	  if (T::_[i][0] != 'S' && !(T::_tc_[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) os << T::$[i] << ',';
 	} os.seekp(-1, os.cur);
@@ -108,7 +102,7 @@ namespace orm {
 	os << ')'; os << ' ' << ov.str(); os.seekp(-1, os.cur); os << ";"; D.conn()(os.str());
   }
   template<typename T> void Sql<T>::InsertArr(std::vector<T>* input) {
-	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
+	char i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size_; ++i) {
 	  if (T::_[i][0] != 'S' && !(T::_tc_[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) os << T::$[i] << ',';
 	} os.seekp(-1, os.cur);

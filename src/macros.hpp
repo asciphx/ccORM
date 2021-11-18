@@ -20,7 +20,7 @@
 namespace orm {
   static const unsigned int HARDWARE_ASYNCHRONOUS = 0x6;//It is best to set the maximum number of threads
   template <class T>
-  static typename std::enable_if<std::is_same<T, tm>::value, std::string>::type DuckTyping(const T& _v) {
+  inline typename std::enable_if<std::is_same<T, tm>::value, std::string>::type DuckTyping(const T& _v) {
 	std::ostringstream os; os << 20 << (_v.tm_year - 100) << '-' << std::setfill('0') << std::setw(2)
 	  << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2) << _v.tm_hour << ':'
 	  << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
@@ -31,7 +31,7 @@ namespace orm {
   static inline typename std::enable_if<!std::is_same<T, tm>::value && !is_text<T>::value, T>::type DuckTyping(const T& _v) { return _v; }
 
   template <typename T>
-  static typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+  inline typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
 	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
@@ -74,7 +74,7 @@ static const char* GetRealType(const char* s) {
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
 inline const char* GetRealType(const char* s, const char* c) {
-  uint8_t l = strLen(s); l > 9 ? l += 3 : l += 2; return c + l;
+  unsigned char l = strLen(s); l > 9 ? l += 3 : l += 2; return c + l;
 }
 #define InjectTS(U, T) GetRealType(#U,typeid(&U::T).name())
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
@@ -434,8 +434,8 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define ATTR_N1(o,N,...) EXP(ATTR_##N(o,__VA_ARGS__))
 #define ATTR_N(o,N,...) ATTR_N1(o,N,__VA_ARGS__)
 #define ATTRS(o,...)\
-friend static void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
-friend static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
+friend void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
+friend void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
 
 #define FIELD(o,...) ATTRS(o, __VA_ARGS__)\
 public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
