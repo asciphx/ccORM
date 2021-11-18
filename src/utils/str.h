@@ -15,7 +15,7 @@ extern "C" {
 	if (j == k) { return d + i - k; } return (char*)0;
   }
   static int strCmp(const char* c, const char* s) {
-	if (c[0] == 0 || s[0] == 0) { return -1; } while (*s == *c && *c && *s)c++, s++;
+	if (c[0] == 0 || s[0] == 0) { return -1; } while (*s == *c && *c && *s)++c, ++s;
 	if (*c == *s) { return 0; } if (*c > *s)return 1; return -1;
   }
   static int find1CharPosDESC(const char* c, const char d) {

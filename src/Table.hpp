@@ -15,7 +15,7 @@ namespace orm {
 	static const std::string _name, _drop_; static const uint8_t _size_; const static char* $[];/*Store key name*/
 	static bool _create_need; static uint8_t _idex; static std::string _create_; static const size_t _o$[];/*Store offset*/
 #ifdef _WIN32
-	friend typename T; const static char* _def_[];/*Store default values*/ static uint8_t _tc_[];/*Store type*/
+	friend typename T; const static char* _def_[];/*Store default values*/ static uint8_t _tc_[];/*Store key type*/
 #endif
 	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character*/
 	template <typename N> constexpr N& getIdex(size_t i) {

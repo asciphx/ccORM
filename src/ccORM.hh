@@ -55,7 +55,7 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #define INT8OID 20
 #define INT2OID 21
 #define INT4OID 23
-static const char RES_DATE_FORMAT[] = "%4sd-%2sd-%2sd %2sd:%2sd:%2sd";
+static const char RES_DATE_FORMAT[] = "%4d-%2d-%2d %2d:%2d:%2d";
 struct Timer {
   template<typename F> void setTimeout(F func, uint32_t milliseconds);
   template<typename F> void setInterval(F func, uint32_t milliseconds);
@@ -910,7 +910,7 @@ namespace crow {
 	  for (int8_t i = 0; i < ncols; ++i) {
 		if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  short year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 		  if (sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 			t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
 		  } break;
@@ -946,7 +946,7 @@ namespace crow {
 	  for (int8_t i = 0; i < ncols; ++i) {
 		if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  short year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 		  if (sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 			t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
 		  } break;
@@ -1806,7 +1806,7 @@ namespace crow {
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
 	  if (strcmp(proto_name_[i], T::$[z]) != 0 || current_row_[i] == 0) { continue; }
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		short year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+		int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 		if (sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 		  t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
 		} break;
@@ -1856,7 +1856,7 @@ namespace crow {
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
 	  if (strcmp(proto_name_[i], T::$[z]) != 0 || current_row_[i] == 0) { continue; }
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		short year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+		int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 		if (sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 		  t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
 		} break;

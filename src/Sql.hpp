@@ -3,6 +3,11 @@
 #include<string>
 #include<vector>
 #include<stdarg.h>
+#include <utility>
+template <typename F, typename... Args, typename = decltype(std::declval<F>()(std::declval<Args&&>()...))>
+std::true_type isValidImpl(void*);
+template <typename F, typename... Args>
+std::false_type isValidImpl(...);
 #include"macros.hpp"
 #define MAX_LIMIT 100
 namespace orm {
@@ -15,14 +20,19 @@ namespace orm {
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
 	inline Sql<T>* orderBy(const string& col, const Sort& ord = Sort::ASC);
+	Sql<T>* select() { sql_ += "* FROM "; sql_ += T::_name; return this; };
 	template <typename... K>
 	Sql<T>* select(K T::*&&...sc);
+	template <typename... K>
+	Sql<T>* select(K&&...k);
+
 	inline Sql<T>* alias(const char* alias);
 	inline Sql<T>* where(const string& str);
 	vector<T> FindArr();
 	T FindOne(const char* where);
 	template<typename K>
 	static void setFields(string& os, K T::** val);
+	static void setFields(string& os, const char* val);
 	inline decltype(D)::connection_type Query();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
@@ -46,11 +56,18 @@ namespace orm {
 	  }}, std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
   }
   template<typename T>
+  void Sql<T>::setFields(string& os, const char* val) { os += val; os += ','; };
+  template<typename T>
   template<typename... K> Sql<T>* Sql<T>::select(K T::*&&... __) {
-	if (sizeof...(K) == 0) { sql_ += "* FROM "; sql_ += T::_name; return this; }
 	(void)initializer_list<int>{(setFields(sql_, std::forward<K T::**>(&__)), 0)...};
 	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
   }
+  template<typename T>
+  template <typename... K>
+  Sql<T>* Sql<T>::select(K&&...k) {
+	(void)initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
+	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
+  };
   template<typename T> Sql<T>* Sql<T>::alias(const char* alias) { sql_.push_back(' '); sql_ += alias; return this; }
   template<typename T> Sql<T>* Sql<T>::where(const string& str) { sql_ += " WHERE " + str; return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"

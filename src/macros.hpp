@@ -32,17 +32,17 @@ namespace orm {
 
   template <typename T>
   static typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
-	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} short year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
 	}
   }
   template <class T>
-  static typename std::enable_if<is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+  static inline typename std::enable_if<is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
 	try { _v = j.at(s); } catch (const std::exception&) {}
   }
   template <typename T>
-  static typename std::enable_if<!std::is_same<T, tm>::value && !is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+  static inline typename std::enable_if<!std::is_same<T, tm>::value && !is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
 	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
   }
   template <typename T, typename Fn, std::size_t... I>
@@ -67,9 +67,9 @@ namespace orm {
 #define EXP(O) O
 #ifdef _MSC_VER
 static const char* GetRealType(const char* s) {
-  if (s[11] == 118)return "S"; if (s[11] == 60) { return s + 7; } return s;
+  if (s[11] == 118) { return "S"; } if (s[11] == 60) { return s + 7; } return s;
 }
-#define InjectTS(U, T) GetRealType(typeid(U::T).name())//(#U[3] == 0x3a?#U+5:#U)
+#define InjectTS(U, T) GetRealType(typeid(U::T).name())
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
@@ -265,6 +265,41 @@ inline const char* GetRealType(const char* s, const char* c) {
 static void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
 static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
 
+#define PRO_1(t,k)      const char* t::$##k = #k;
+#define PRO_2(t,k,...)  const char* t::$##k = #k; EXP(PRO_1(t,__VA_ARGS__))
+#define PRO_3(t,k,...)  const char* t::$##k = #k; EXP(PRO_2(t,__VA_ARGS__))
+#define PRO_4(t,k,...)  const char* t::$##k = #k; EXP(PRO_3(t,__VA_ARGS__))
+#define PRO_5(t,k,...)  const char* t::$##k = #k; EXP(PRO_4(t,__VA_ARGS__))
+#define PRO_6(t,k,...)  const char* t::$##k = #k; EXP(PRO_5(t,__VA_ARGS__))
+#define PRO_7(t,k,...)  const char* t::$##k = #k; EXP(PRO_6(t,__VA_ARGS__))
+#define PRO_8(t,k,...)  const char* t::$##k = #k; EXP(PRO_7(t,__VA_ARGS__))
+#define PRO_9(t,k,...)  const char* t::$##k = #k; EXP(PRO_8(t,__VA_ARGS__))
+#define PRO_10(t,k,...) const char* t::$##k = #k; EXP(PRO_9(t,__VA_ARGS__))
+#define PRO_11(t,k,...) const char* t::$##k = #k; EXP(PRO_10(t,__VA_ARGS__))
+#define PRO_12(t,k,...) const char* t::$##k = #k; EXP(PRO_11(t,__VA_ARGS__))
+#define PRO_13(t,k,...) const char* t::$##k = #k; EXP(PRO_12(t,__VA_ARGS__))
+#define PRO_14(t,k,...) const char* t::$##k = #k; EXP(PRO_13(t,__VA_ARGS__))
+#define PRO_15(t,k,...) const char* t::$##k = #k; EXP(PRO_14(t,__VA_ARGS__))
+#define PRO_16(t,k,...) const char* t::$##k = #k; EXP(PRO_15(t,__VA_ARGS__))
+#define PRO_17(t,k,...) const char* t::$##k = #k; EXP(PRO_16(t,__VA_ARGS__))
+#define PRO_18(t,k,...) const char* t::$##k = #k; EXP(PRO_17(t,__VA_ARGS__))
+#define PRO_19(t,k,...) const char* t::$##k = #k; EXP(PRO_18(t,__VA_ARGS__))
+#define PRO_20(t,k,...) const char* t::$##k = #k; EXP(PRO_19(t,__VA_ARGS__))
+#define PRO_21(t,k,...) const char* t::$##k = #k; EXP(PRO_20(t,__VA_ARGS__))
+#define PRO_22(t,k,...) const char* t::$##k = #k; EXP(PRO_21(t,__VA_ARGS__))
+#define PRO_23(t,k,...) const char* t::$##k = #k; EXP(PRO_22(t,__VA_ARGS__))
+#define PRO_24(t,k,...) const char* t::$##k = #k; EXP(PRO_23(t,__VA_ARGS__))
+#define PRO_25(t,k,...) const char* t::$##k = #k; EXP(PRO_24(t,__VA_ARGS__))
+#define PRO_26(t,k,...) const char* t::$##k = #k; EXP(PRO_25(t,__VA_ARGS__))
+#define PRO_27(t,k,...) const char* t::$##k = #k; EXP(PRO_26(t,__VA_ARGS__))
+#define PRO_28(t,k,...) const char* t::$##k = #k; EXP(PRO_27(t,__VA_ARGS__))
+#define PRO_29(t,k,...) const char* t::$##k = #k; EXP(PRO_28(t,__VA_ARGS__))
+#define PRO_30(t,k,...) const char* t::$##k = #k; EXP(PRO_29(t,__VA_ARGS__))
+#define PRO_31(t,k,...) const char* t::$##k = #k; EXP(PRO_30(t,__VA_ARGS__))
+#define PRO_32(t,k,...) const char* t::$##k = #k; EXP(PRO_31(t,__VA_ARGS__))
+#define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
+#define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
+
 #define STAR_1(o,k)      &o::k
 #define STAR_2(o,k,...)  &o::k, EXP(STAR_1(o,__VA_ARGS__))
 #define STAR_3(o,k,...)  &o::k, EXP(STAR_2(o,__VA_ARGS__))
@@ -309,6 +344,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> bool orm::Table<o>::_create_need = true;
 
 #define CONSTRUCT(o,...)\
+        PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
         ATTRS(o,__VA_ARGS__)\
         REGIST(o, __VA_ARGS__)\
         REGISTER_TABLE(o)\
@@ -366,4 +402,40 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
        if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
 else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}
+#define FIELD_1(k)      static const char* $##k;
+#define FIELD_2(k,...)  static const char* $##k; EXP(FIELD_1(__VA_ARGS__))
+#define FIELD_3(k,...)  static const char* $##k; EXP(FIELD_2(__VA_ARGS__))
+#define FIELD_4(k,...)  static const char* $##k; EXP(FIELD_3(__VA_ARGS__))
+#define FIELD_5(k,...)  static const char* $##k; EXP(FIELD_4(__VA_ARGS__))
+#define FIELD_6(k,...)  static const char* $##k; EXP(FIELD_5(__VA_ARGS__))
+#define FIELD_7(k,...)  static const char* $##k; EXP(FIELD_6(__VA_ARGS__))
+#define FIELD_8(k,...)  static const char* $##k; EXP(FIELD_7(__VA_ARGS__))
+#define FIELD_9(k,...)  static const char* $##k; EXP(FIELD_8(__VA_ARGS__))
+#define FIELD_10(k,...) static const char* $##k; EXP(FIELD_9(__VA_ARGS__))
+#define FIELD_11(k,...) static const char* $##k; EXP(FIELD_10(__VA_ARGS__))
+#define FIELD_12(k,...) static const char* $##k; EXP(FIELD_11(__VA_ARGS__))
+#define FIELD_13(k,...) static const char* $##k; EXP(FIELD_12(__VA_ARGS__))
+#define FIELD_14(k,...) static const char* $##k; EXP(FIELD_13(__VA_ARGS__))
+#define FIELD_15(k,...) static const char* $##k; EXP(FIELD_14(__VA_ARGS__))
+#define FIELD_16(k,...) static const char* $##k; EXP(FIELD_15(__VA_ARGS__))
+#define FIELD_17(k,...) static const char* $##k; EXP(FIELD_16(__VA_ARGS__))
+#define FIELD_18(k,...) static const char* $##k; EXP(FIELD_17(__VA_ARGS__))
+#define FIELD_19(k,...) static const char* $##k; EXP(FIELD_18(__VA_ARGS__))
+#define FIELD_20(k,...) static const char* $##k; EXP(FIELD_19(__VA_ARGS__))
+#define FIELD_21(k,...) static const char* $##k; EXP(FIELD_20(__VA_ARGS__))
+#define FIELD_22(k,...) static const char* $##k; EXP(FIELD_21(__VA_ARGS__))
+#define FIELD_23(k,...) static const char* $##k; EXP(FIELD_22(__VA_ARGS__))
+#define FIELD_24(k,...) static const char* $##k; EXP(FIELD_23(__VA_ARGS__))
+#define FIELD_25(k,...) static const char* $##k; EXP(FIELD_24(__VA_ARGS__))
+#define FIELD_26(k,...) static const char* $##k; EXP(FIELD_25(__VA_ARGS__))
+#define FIELD_27(k,...) static const char* $##k; EXP(FIELD_26(__VA_ARGS__))
+#define FIELD_28(k,...) static const char* $##k; EXP(FIELD_27(__VA_ARGS__))
+#define FIELD_29(k,...) static const char* $##k; EXP(FIELD_28(__VA_ARGS__))
+#define FIELD_30(k,...) static const char* $##k; EXP(FIELD_29(__VA_ARGS__))
+#define FIELD_31(k,...) static const char* $##k; EXP(FIELD_30(__VA_ARGS__))
+#define FIELD_32(k,...) static const char* $##k; EXP(FIELD_31(__VA_ARGS__))
+//FIELDS(Tab, id, kg, date);
+#define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
+#define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
+#define FIELD(...) public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 #endif
