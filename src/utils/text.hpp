@@ -78,7 +78,7 @@ std::string operator+(std::string& t, const text<I>& $) {
 }
 template<unsigned short I>
 text<I> operator+(const char* c, text<I>& t) {
-  text<I> f(t); unsigned short r = strlen(c), l = t.length(), i = 0; while (l < I) { t[r++] = f[i]; ++i; ++l; }
+  text<I> f(t); unsigned short r = strlen(c), l = t.length(), i = 0; while (r < I) { t[r++] = f[i]; ++i; ++l; }
   char* s = (char*)t.c_str(); i = 0; while (*c) { s[i] = *c++; ++i; } s[l] = 0; return t;
 }
 template<class T>
