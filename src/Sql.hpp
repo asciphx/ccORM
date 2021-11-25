@@ -66,8 +66,8 @@ namespace orm {
   template<typename T> Sql<T>* Sql<T>::where(const  std::string& str) { sql_ += " WHERE " + str; return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T>inline std::vector<T> Sql<T>::GetArr()noexcept(false) {
-	std::string sql(sql_); sql += " LIMIT " + to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
-	if (offset_ > 0) { sql += " OFFSET " + to_string(offset_); } this->clear();// cout << sql << '\n';
+	std::string sql(sql_); sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
+	if (offset_ > 0) { sql += " OFFSET " + std::to_string(offset_); } this->clear();// cout << sql << '\n';
 	return D.conn()(sql).template findArray<T>();
   }
   template<typename T>inline T Sql<T>::GetOne()noexcept(false) {

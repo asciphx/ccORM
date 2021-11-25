@@ -262,7 +262,7 @@ namespace orm {
 		s += "\":" + std::to_string(t);
 	  } else if constexpr (std::is_same<long, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":" + std::to_string(t);
-	  } else if constexpr (std::is_same<string, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":\"" + t + "\"";
 	  } else {
 		s += "\":"; s << t;
