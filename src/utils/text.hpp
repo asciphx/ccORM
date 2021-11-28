@@ -2,12 +2,15 @@
 template<unsigned short I = 255>//Max 65535, Min 1
 struct text {
   ~text() { delete[]_; _ = nullptr; };
-  text(const char* c_str = 0) {
-	static_assert(I != 0);
-	size_t i = strlen(c_str); if (i < I)l = i; strncpy(_, c_str, I); _[l] = 0;
+  text(const char* c = 0) {
+	static_assert(I != 0); size_t i = strlen(c); if (i < I)l = i; strncpy(_, c, I); _[l] = 0;
   };
   text(const text& str) {
 	strcpy(_, str._); l = str.l;
+  }
+  template<unsigned short L>
+  text(const text<L>& str) {
+	static_assert(I >= L); strcpy(_, str.c_str()); l = str.length();
   }
   text(const std::string& str) {
 	size_t i = str.length(); strncpy(_, str.c_str(), I); if (i < I)l = i; _[l] = 0;
@@ -26,61 +29,68 @@ struct text {
 	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); l = str.length(); _[l] = 0; return *this;
   }
   const char* c_str() const { return _; }
-  const short length() const { return l; }
+  const unsigned short length() const { return l; }
   char& operator[](unsigned short i) { return _[i]; }
-  text& operator += (const char* c) {
-	while (*c && l < I) { _[l++] = *c++; } _[I] = 0; return *this;
+  void operator += (const char* c) {
+	while (*c && l < I) { _[l++] = *c++; } _[I] = 0;
   }
-  text& operator += (const text& t) {
+  void operator +=(const char c) {
+	_[l++] = c;//unsafe, but fastest
+  }
+  void operator += (const text& t) {
 	const char* s = t.c_str();
 	if (&t == this) {
 	  short i = 2 * l, k = -1; if (i > I)i = I; while (l < i) { _[l++] = s[++k]; } _[i] = 0;
 	} else {
 	  unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0;
 	}
-	return *this;
   }
   template<unsigned short L>
-  text& operator += (const text<L>& t) {
-	const char* s = t.c_str(); unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0; return *this;
+  void operator += (const text<L>& t) {
+	const char* s = t.c_str(); unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0;
   }
-  text& operator += (const std::string& t) {
-	unsigned short i = 0xffff; while (t[++i] && l < I) { _[l++] = t[i]; } _[I] = 0; return *this;
+  void operator += (const std::string& t) {
+	unsigned short i = 0xffff; while (t[++i] && l < I) { _[l++] = t[i]; } _[I] = 0;
   }
-  text& push_back(const char c) {
-	if (l < I) _[l++] = c; return *this;
-  }
-  text& pop_back() {
-	_[--l] = 0; return *this;
-  }
+  inline void push_back(const char c) { if (l < I) _[l++] = c; }
+  inline void pop_back() { _[--l] = 0; }
+  inline void push_begin(const char c) { unsigned short i = l; while (i) { _[i] = _[i - 1]; --i; } _[++l] = 0; _[0] = c; }
+  inline void end() { _[l] = 0; }
   friend std::string& operator<<(std::string& s, text<I>& c) {
 	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
   };
   friend std::ostream& operator<<(std::ostream& s, text<I>& c) {
 	return s << c.c_str();
   };
-private: char* _ = new char[I + 1]; unsigned short l = I;
+private: unsigned short l = I; char* _ = new char[I + 1];
 };
 template<unsigned short I>
 text<I> operator+(const text<I>& t, const char* c) {
-  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(); while (*c && ++l < I) { s[l] = *c++; } s[++l] = 0; return t;
+  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(); while (*c && ++l < I) { s[l] = *c++; } s[++l] = 0;
+  (*((unsigned short*)(&t))) = l; return t;
 }
 template<unsigned short I>
 text<I> operator+(const text<I>& t, const std::string& $) {
-  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(), * c = (char*)$.c_str(); while (*c && ++l < I) { s[l] = *c++; } s[++l] = 0; return t;
+  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(), * c = (char*)$.c_str();
+  while (*c && ++l < I) { s[l] = *c++; } s[l] = 0; (*((unsigned short*)(&t))) = l; return t;
 }
 template<unsigned short I, unsigned short K>
 text<I> operator+(const text<I>& t, const text<K>& $) {
-  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(), * c = (char*)$.c_str(); while (*c && ++l < I) { s[l] = *c++; } s[++l] = 0; return t;
+  unsigned short l = t.length() - 1; char* s = (char*)t.c_str(), * c = (char*)$.c_str();
+  while (*c && ++l < I) { s[l] = *c++; } s[l] = 0; (*((unsigned short*)(&t))) = l; return t;
+}
+template<unsigned short I>
+text<I> operator+(const char* c, text<I>& t) {
+  text<I> f(t); unsigned short r = strlen(c) - 1, l = t.length(), i = 0; while (f[i] && r < I) { t[++r] = f[i]; ++i; ++l; }
+  i = 0; while (*c) { t[i] = *c++; ++i; } t[++l] = 0; (*((unsigned short*)(&t))) = l; return t;
+}
+template<unsigned short I>
+text<I> operator+(const char c, text<I>& t) {
+  unsigned short l = t.length(), i = l; while (i) { t[i] = t[i - 1]; --i; } t[++l] = 0; t[0] = c; (*((unsigned short*)(&t))) = l; return t;
 }
 template<unsigned short I>
 std::string operator+(std::string& t, const text<I>& $) {
   char* c = (char*)$.c_str(); while (*c) { t.push_back(*c); *++c; } t.push_back(0); return t;
-}
-template<unsigned short I>
-text<I> operator+(const char* c, text<I>& t) {
-  text<I> f(t); unsigned short r = strlen(c), l = t.length(), i = 0; while (r < I) { t[r++] = f[i]; ++i; ++l; }
-  char* s = (char*)t.c_str(); i = 0; while (*c) { s[i] = *c++; ++i; } s[l] = 0; return t;
 }
 template<class T>
 struct is_text : std::false_type {};
@@ -88,3 +98,77 @@ template<class T>
 struct is_text<T[]> : std::false_type {};
 template<unsigned short N>
 struct is_text<text<N>> : std::true_type {};
+inline const char* textify(const char* t) { return t; }
+inline const char* textify(const std::string& t) { return t.c_str(); }
+template<typename T>
+inline typename std::enable_if<std::is_same<T, tm>::value, const char*>::type textify(const T& _v) {
+  std::ostringstream os; os << 20 << (_v.tm_year - 100) << '-' << std::setfill('0') << std::setw(2)
+	<< (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2) << _v.tm_hour << ':'
+	<< std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str().c_str();
+}
+template<unsigned short I>
+inline const char* textify(const text<I>& t) { return t; }
+template<typename T>
+inline typename std::enable_if<std::is_fundamental<T>::value, const std::string>::type textify(const T& t) { return std::to_string(t); }
+template<typename T>
+text<0x3f> operator!=(const text<31>& o, const T& v) {
+  text<0x3f> x(o); x += '<'; x += '>';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<typename T>
+text<0x3f> operator==(const text<31>& o, const T& v) {
+  text<0x3f> x(o); x += '=';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<typename T>
+text<0x3f> operator<(const text<31>& o, const T& v) {
+  text<0x3f> x(o); x += '<';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<typename T>
+text<0x3f> operator<=(const text<31>& o, const T& v) {
+  text<0x3f> x(o); x += '<'; x += '=';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<typename T>
+text<0x3f> operator>=(const text<31>& o, const T& v) {
+  text<0x3f> x(o); x += '>'; x += '=';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<typename T>
+text<0x3f> operator>(const text<31>& o, const T& v) {
+  text<0x3f> x(o); x += '>';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<unsigned short I, unsigned short L>
+text<I + L + 7> operator&& (text<I>& o, const text<L>& c) {
+  text<I + L + 7> x("("); x += o; x += " AND "; x += c; x += ')'; x.end(); return x;
+};
+template<unsigned short I, unsigned short L>
+text<I + L + 6> operator|| (text<I>& o, const text<L>& c) {
+  text<I + L + 6> x("("); x += o; x += " OR "; x += c; x += ')'; x.end(); return x;
+};

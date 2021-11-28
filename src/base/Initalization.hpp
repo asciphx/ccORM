@@ -14,10 +14,6 @@ namespace orm {
 	return RES_NOW;
   }
   template<typename T>
-  inline typename std::enable_if<std::is_fundamental<T>::value, std::string>::type stringify(const T& t) { return std::to_string(t); }
-  template<typename T>
-  inline typename std::enable_if<std::is_same<T, std::string>::value, std::string>::type stringify(const T& t) { return t; }
-  template<typename T>
   void regist() {
 	unsigned int i = HARDWARE_ASYNCHRONOUS; while (i--) { orm::Table<T>::__[i] = new Sql<T>(); }
 	try {

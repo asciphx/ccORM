@@ -17,17 +17,14 @@ namespace orm {
 	inline Sql<T>* orderBy(const std::string& col, const Sort& ord = Sort::ASC);
 	inline Sql<T>* select() { sql_ += "* FROM "; sql_ += T::_name; return this; };
 	template <typename... K>
-	inline Sql<T>* select(K T::*&&...sc);
-	template <typename... K>
 	inline Sql<T>* select(K&&...k);
 
 	inline Sql<T>* alias(const char* alias);
-	inline Sql<T>* where(const std::string& str);
+	template<unsigned short I>
+	inline Sql<T>* where(const text<I>& str);
 	inline std::vector<T> GetArr();
 	inline T GetOne();
-	template<typename K>
-	static void setFields(std::string& os, K T::** val);
-	static void setFields(std::string& os, const char* val);
+	static inline void setFields(std::string& os, const text<31>& val);
 	inline decltype(D)::connection_type Query();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
@@ -42,28 +39,15 @@ namespace orm {
 	//sql_.push_back(','); sql_ += col; if (ord == Sort::DESC)sql_ += " DESC";
   }
   template<typename T>
-  template<typename K>
-  void Sql<T>::setFields(std::string& ios, K T::** $$$) {
-	constexpr auto schema = Schema<T>(); char i = -1;
-	ForEachTuple(schema, [&i, &ios, $$$](auto ___) {
-	  ++i; if (typeid($$$) == typeid(&___)) {
-		ios += T::$[i]; ios += ',';
-	  }}, std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
-  }
-  template<typename T>
-  void Sql<T>::setFields(std::string& os, const char* val) { os += val; os += ','; };
-  template<typename T>
-  template<typename... K> Sql<T>* Sql<T>::select(K T::*&&... __) {
-	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K T::**>(&__)), 0)...};
-	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
-  }
+  void Sql<T>::setFields(std::string& os, const text<31>& val) { os += val.c_str(); os.push_back(','); };
   template<typename T>
   template <typename... K> Sql<T>* Sql<T>::select(K&&...k) {
 	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
 	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
   };
   template<typename T> Sql<T>* Sql<T>::alias(const char* alias) { sql_.push_back(' '); sql_ += alias; return this; }
-  template<typename T> Sql<T>* Sql<T>::where(const  std::string& str) { sql_ += " WHERE " + str; return this; }
+  template<typename T>
+  template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& str) { sql_ += " WHERE "; sql_ += str.c_str(); return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> std::vector<T> Sql<T>::GetArr()noexcept(false) {
 	std::string sql(sql_); sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);

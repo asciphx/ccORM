@@ -2,15 +2,15 @@
 #include "./base/Initalization.hpp"
 #include "./base/s2o.hpp"
 #include "./base/so2s.hpp"
-struct enable_virtual : std::enable_shared_from_this<enable_virtual> { virtual ~enable_virtual() {} };
-template<typename T> struct virtual_shared : virtual enable_virtual {
-  std::shared_ptr<T> shared_from_this() {
-	return std::dynamic_pointer_cast<T>(std::enable_shared_from_this<enable_virtual>::shared_from_this());
-  }
-};/** multiple inheritance from std::enable_shared_from_this<T> => needed for
-struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B { };
-int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
+/*multiple inheritance from std::enable_shared_from_this<T> => needed for
+struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B { };*/
 namespace orm {
+  struct enable_virtual : std::enable_shared_from_this<enable_virtual> { virtual ~enable_virtual() {} };
+  template<typename T> struct virtual_shared : virtual enable_virtual {
+	std::shared_ptr<T> shared_from_this() {
+	  return std::dynamic_pointer_cast<T>(std::enable_shared_from_this<enable_virtual>::shared_from_this());
+	}
+  };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
   template<typename T> class Table : public virtual_shared<T> {
 	static const std::string _name, _drop_; static const unsigned char _size_; const static char* $[];/*Store key name*/
 	static bool _create_need; static unsigned char _idex; static std::string _create_; static const size_t _o$[];/*Store offset*/
@@ -45,7 +45,6 @@ namespace orm {
 	Table(); ~Table() {} Table(const Table&) = default;
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
-	  static_assert(_size_ >= sizeof...(U));
 	  char idex = -1; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
 	  return; /*This code will never arrive*/ *this = T(t...);//detect types
 	}

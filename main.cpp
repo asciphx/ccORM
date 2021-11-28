@@ -21,12 +21,12 @@ int main() {
   Timer t; bool run = true;//标记第二个线程的运行状态
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	  Tab::Q()->select()->where("id = 2")->GetOne();
+	  Tab::Q()->select()->where(Tab::$id == 2)->GetOne();
 	} printf("<%d>", i);
 	run = false;//代表副线程结束
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->select(Tab::$id, Tab::$name, Tab::$date, Tab::$ok)->where("id = 1")->GetOne();
+	Tab::Q()->select(Tab::$id, Tab::$name, Tab::$date, Tab::$ok)->where(Tab::$id == 1)->GetOne();
   }//多线程测试，这里是第一个线程也就是主线程
   printf("<%d>", i);
   while (run) { this_thread::yield(); }//run为true则阻止程序提前结束
