@@ -1,4 +1,8 @@
 ﻿#pragma once
+#include <iomanip>
+#include <string.h>
+#include <assert.h>
+#include <iostream>
 template<unsigned short I = 255>//Max 65535, Min 1
 struct text {
   ~text() { delete[]_; _ = nullptr; };
