@@ -12,7 +12,7 @@
 - [x] intelligent automatic table creation and deep binding between model classes and database is a function similar to decorator realized by macro
 - [x] the function of automatically Ping the database at an interval, so that the database does not sleep and is always in the state of wake-up and recovery
 - [x] add, delete, modify and query based on OOP. The insertion function also returns the new ID
-- [x] surpassing RTTI and protobuf, it is the fastest, fastest and most violent idea similar to "dynamic type C + +"
+- [x] surpassing RTTI and protobuf, it is the fastest and most violent idea similar to "dynamic type C++"
 - [x] you can nest structs with structs, so as to realize one-to-one or one to many, or self nesting, etc
 - [x] Provide DataMapper and ActiveRecord for curd
 - [x] with compile time type detection
@@ -29,6 +29,7 @@ struct Type : Table<Type> {
 	id(a), language(b) {}
   FIELD(Type, id, language)
 }; CONSTRUCT(Type, id, language)
+PROTO(Type, id, language)
 REGIST_PROTO(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "c/c++");
@@ -40,8 +41,9 @@ struct Tab : Table<Tab> {
   vector<Type> lang;
   Tab(int a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}) :
 	id(a), ok(b), name(c), date(d), lang(e) {}
-  FIELD(Tab, id, ok, name, date, lang)
+  FIELD(Tab, id, ok, name, date)
 }; CONSTRUCT(Tab, id, ok, name, date, lang)
+PROTO(Tab, id, ok, name, date)
 REGIST_PROTO(Tab,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "false",

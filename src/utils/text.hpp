@@ -3,6 +3,7 @@ template<unsigned short I = 255>//Max 65535, Min 1
 struct text {
   ~text() { delete[]_; _ = nullptr; };
   text(const char* c_str = 0) {
+	static_assert(I != 0);
 	size_t i = strlen(c_str); if (i < I)l = i; strncpy(_, c_str, I); _[l] = 0;
   };
   text(const text& str) {
