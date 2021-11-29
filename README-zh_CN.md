@@ -1,4 +1,4 @@
-﻿# ccORM[版本 0.9]
+﻿# ccORM[版本 1.0]
 > ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
 > 🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是编译期的静态反射。
 
@@ -67,20 +67,20 @@ void test() {
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   t->Insert();//插入,返回值是long long类型
-  cout << Tab::Q()->select()->GetArr();
+  cout << Tab::Q()->$()->GetArr();
   t->Delete();//删除
-  *t = Tab::Q()->select(Tab::$id, Tab::$name)->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q()->$(Tab::$id, Tab::$name)->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
 }
 int main() {
   InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->select()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q()->$()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->select(Tab::$id, Tab::$name, Tab::$date, Tab::$ok)->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->$(Tab::$id, Tab::$name, Tab::$date, Tab::$ok)->where(Tab::$id == 1)->GetOne();
   }//多线程测试
   printf("<%d>", i);
   while (run) { this_thread::yield(); }

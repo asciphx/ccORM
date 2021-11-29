@@ -1,4 +1,4 @@
-﻿# ccORM[version 0.9]
+﻿# ccORM[version 1.0]
 > ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
 > 🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is compile time static reflection. As the name suggests, it is already an optimized machine code.
 
@@ -66,20 +66,20 @@ void test() {
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   t->Insert();//insert, the return value is long long type
-  cout << Tab::Q()->select()->GetArr();
+  cout << Tab::Q()->$()->GetArr();
   t->Delete();//delete
-  *t = Tab::Q()->select(Tab::$id, Tab::$name)->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q()->$(Tab::$id, Tab::$name)->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
 }
 int main() {
   InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->select()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q()->$()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->select(Tab::$id, Tab::$name, Tab::$date, Tab::$ok)->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->$(Tab::$id, Tab::$name, Tab::$date, Tab::$ok)->where(Tab::$id == 1)->GetOne();
   }//Multithreading test
   printf("<%d>", i);
   while (run) { this_thread::yield(); }

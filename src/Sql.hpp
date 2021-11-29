@@ -15,10 +15,10 @@ namespace orm {
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
 	inline Sql<T>* orderBy(const std::string& col, const Sort& ord = Sort::ASC);
-	inline Sql<T>* select() { sql_ += "* FROM "; sql_ += T::_name; return this; };
+	//select
+	inline Sql<T>* $() { sql_ += "* FROM "; sql_ += T::_name; return this; };
 	template <typename... K>
-	inline Sql<T>* select(K&&...k);
-
+	inline Sql<T>* $(K&&...k);
 	inline Sql<T>* alias(const char* alias);
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
@@ -41,7 +41,7 @@ namespace orm {
   template<typename T>
   void Sql<T>::setFields(std::string& os, const text<31>& val) { os += val.c_str(); os.push_back(','); };
   template<typename T>
-  template <typename... K> Sql<T>* Sql<T>::select(K&&...k) {
+  template <typename... K> Sql<T>* Sql<T>::$(K&&...k) {
 	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
 	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
   };
