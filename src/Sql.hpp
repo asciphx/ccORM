@@ -15,8 +15,8 @@ namespace orm {
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
 	inline Sql<T>* orderBy(const std::string& col, const Sort& ord = Sort::ASC);
-	//select
-	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; sql_ += T::_alias_; return this; };
+	//select, 约定第一张表，首表的alias总是_
+	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; sql_.push_back(' '); sql_.push_back('_'); return this; };
 	template <typename... K>
 	inline Sql<T>* $(K&&...k);
 	inline Sql<T>* alias(const char* alias);
@@ -39,11 +39,11 @@ namespace orm {
 	//sql_.push_back(','); sql_ += col; if (ord == Sort::DESC)sql_ += " DESC";
   }
   template<typename T>
-  void Sql<T>::setFields(std::string& os, const text<31>& val) { os += val.c_str(); os.push_back(','); };
+  void Sql<T>::setFields(std::string& os, const text<31>& val) { os.push_back('_'); os.push_back('.'); os += val.c_str(); os.push_back(','); };
   template<typename T>
   template <typename... K> Sql<T>* Sql<T>::$(K&&...k) {
 	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
-	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
+	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; sql_.push_back(' '); sql_.push_back('_'); return this;
   };
   template<typename T> Sql<T>* Sql<T>::alias(const char* alias) { sql_.push_back(' '); sql_ += alias; return this; }
   template<typename T>

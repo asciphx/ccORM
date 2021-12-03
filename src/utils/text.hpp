@@ -34,9 +34,9 @@ struct text {
   text& operator = (const text<L>& str) {
 	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); l = str.length(); _[l] = 0; return *this;
   }
-  const char* c_str() const { return _; }
-  const unsigned short length() const { return l; }
-  char& operator[](unsigned short i) { return _[i]; }
+  inline const char* c_str() const { return _; }
+  inline const unsigned short length() const { return l; }
+  inline char& operator[](unsigned short i) { return _[i]; }
   void operator += (const char* c) {
 	while (*c && l < I) { _[l++] = *c++; } _[I] = 0;
   }

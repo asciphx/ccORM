@@ -306,7 +306,6 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> std::string orm::Table<o>::_create_ = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
 	template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
 	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
-	template<> const char* orm::Table<o>::_alias_ = " "#o;\
 	template<> bool orm::Table<o>::_create_need = true;
 
 #define CONSTRUCT(o,...)\
@@ -474,8 +473,8 @@ public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 #define PRO_32(t,k,...) const text<31> t::$##k = #k; EXP(PRO_31(t,__VA_ARGS__))
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
-//在外部为静态属性添加上名称
+//在外部为静态属性添加上名称,约定第一张表的alias总是_
 #define PROTO(o,...)\
         PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
-template<> const char* orm::Table<o>::_ios_=IOS_N(#o".",NUM_ARGS(__VA_ARGS__),__VA_ARGS__);
+template<> const char* orm::Table<o>::_ios_=IOS_N("_.",NUM_ARGS(__VA_ARGS__),__VA_ARGS__);
 #endif
