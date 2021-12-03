@@ -36,8 +36,8 @@ namespace orm {
 	(void)std::initializer_list<int>{(regist<Args>(), 0)...};
   }
   static std::string Time2Str(const time_t* t) {
-	tm* _v; _v = std::localtime(t); std::ostringstream os;
-	os << 20 << (_v->tm_year - 100) << '-' << std::setfill('0') << std::setw(2)
+	tm* _v; _v = std::localtime(t); int y = _v->tm_year / 100; std::ostringstream os;
+	os << 19 + y << std::setfill('0') << std::setw(2) << _v->tm_year - y * 100
 	  << (_v->tm_mon + 1) << '-' << std::setw(2) << _v->tm_mday << ' ' << std::setw(2)
 	  << _v->tm_hour << ':' << std::setw(2) << _v->tm_min << ':' << std::setw(2)
 	  << _v->tm_sec; return os.str();

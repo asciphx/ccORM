@@ -20,9 +20,9 @@ namespace orm {
   static const unsigned int HARDWARE_ASYNCHRONOUS = 0x6;//It is best to set the maximum number of threads
   template <class T>
   inline typename std::enable_if<std::is_same<T, tm>::value, std::string>::type DuckTyping(const T& _v) {
-	std::ostringstream os; os << 20 << (_v.tm_year - 100) << '-' << std::setfill('0') << std::setw(2)
-	  << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2) << _v.tm_hour << ':'
-	  << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
+	std::ostringstream os; int y = _v.tm_year / 100; os << std::setfill('0') << std::setw(2) << 19 + y << std::setw(2)
+	  << _v.tm_year - y * 100 << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
+	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
   }
   template <class T>
   static inline typename std::enable_if<is_text<T>::value, const char*>::type DuckTyping(const T& _v) { return _v.c_str(); }

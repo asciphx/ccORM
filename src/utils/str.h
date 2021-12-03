@@ -63,12 +63,12 @@ extern "C" {
 	  } free(chr);
 	} return t;
   }
-  constexpr unsigned long long hack8Str(const char* s) {
+  static inline constexpr unsigned long long hack8Str(const char* s) {
 	unsigned long long r = 0; for (int i = 0; i < 8 && s[i]; r *= 0x100, r += s[i++]); return r;
   }//If only the first four digits need to be matched and there is no conflict, it is recommended to use hack4Str to improve efficiency
-  constexpr int hack4Str(const char* s) { int r = 0; for (int i = 0; i < 4 && s[i]; r *= 0x100, r += s[i++]); return r; }
+  static inline constexpr int hack4Str(const char* s) { int r = 0; for (int i = 0; i < 4 && s[i]; r *= 0x100, r += s[i++]); return r; }
   //Hack8str is downward compatible with hack4str, however, it is not compatible with the hackallstr method
-  constexpr unsigned long long hackAllStr(const char* s) {
+  static inline constexpr unsigned long long hackAllStr(const char* s) {
 	unsigned long long r = 0; for (int i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
   }
 #ifdef __cplusplus
@@ -118,9 +118,8 @@ static std::string toQuotes(const char* s) {
   } return e;
 }
 std::ostream& operator<<(std::ostream& os, const tm& time) {
-  os << 20 << (time.tm_year - 100) << '-' << std::setfill('0')
-	<< std::setw(2) << (time.tm_mon + 1) << '-' << std::setw(2) << time.tm_mday
-	<< ' ' << std::setw(2) << time.tm_hour << ':' << std::setw(2) << time.tm_min
-	<< ':' << std::setw(2) << time.tm_sec; return os;
+  int y = time.tm_year / 100; os << std::setfill('0') << std::setw(2) << 19 + y << std::setw(2)
+	<< time.tm_year - y * 100 << '-' << std::setw(2) << (time.tm_mon + 1) << '-' << std::setw(2) << time.tm_mday << ' '
+	<< std::setw(2) << time.tm_hour << ':' << std::setw(2) << time.tm_min << ':' << std::setw(2) << time.tm_sec; return os;
 }
 #endif

@@ -1,5 +1,4 @@
 #pragma once
-#define SYS_IS_UTF8 1           //------ use GBK or UTF8 ------
 #define MaxSyncConnections 32   //---- MaxSync Connections ----
 #define MaxProtoNum 32          //------- Max Proto Num -------
 #define MaxProtoLength 32       //-- Max ProtoName Length +1 --
@@ -531,31 +530,26 @@ namespace crow {
 	  char* val = PQgetvalue(current_result_, row_i_, i);
 	  if (strcmp(proto_name_[i], T::$[z]) != 0) { continue; }
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200;
-		t = *std::localtime(&v); t.tm_year += 30; break;
+		if (val == nullptr) {
+		  t.tm_year = -1900; t.tm_mon = -1; t.tm_mday = 0; t.tm_hour = 0; t.tm_min = 0; t.tm_sec = 0;
+		} else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; } break;
 	  } else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<signed char>(val); break;
+		t = val == nullptr ? (signed char)0 : boost::lexical_cast<short>(val); break;
 	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<double>(val); break;
+		t = val == nullptr ? 0.0 : boost::lexical_cast<double>(val); break;
 	  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<float>(val); break;
+		t = val == nullptr ? 0.0F : boost::lexical_cast<float>(val); break;
 	  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 		t = val[0] == 1 ? true : false; break;
 	  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		t = ntohs(*((uint16_t*)val)); break;
+		t = val == nullptr ? 0 : ntohs(*((uint16_t*)val)); break;
 	  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		t = ntohl(*((uint32_t*)val)); break;
+		t = val == nullptr ? 0 : ntohl(*((uint32_t*)val)); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		t = be64toh(*((uint64_t*)val));  break;
+		t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));  break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
-#if SYS_IS_UTF8
-		t = val; break;
-#else
-		char* c = UnicodeToUtf8(val);
-		t = c;
-		free(c); c = nullptr; break;
-#endif 
+		t = val == nullptr ? "" : val; break;
 	  }
 	}
 	  });
@@ -585,31 +579,26 @@ namespace crow {
 		if (strcmp(proto_name_[i], T::$[z]) != 0) { continue; }
 		char* val = PQgetvalue(current_result_, row_i_, i);
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200;
-		  t = *std::localtime(&v); t.tm_year += 30; break;
+		  if (val == nullptr) {
+			t.tm_year = -1900; t.tm_mon = -1; t.tm_mday = 0; t.tm_hour = 0; t.tm_min = 0; t.tm_sec = 0;
+		  } else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; } break;
 		} else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<signed char>(val); break;
+		  t = val == nullptr ? (signed char)0 : boost::lexical_cast<short>(val); break;
 		} else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<double>(val); break;
+		  t = val == nullptr ? 0.0 : boost::lexical_cast<double>(val); break;
 		} else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<float>(val); break;
+		  t = val == nullptr ? 0.0F : boost::lexical_cast<float>(val); break;
 		} else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 		  t = val[0] == 1 ? true : false; break;
 		} else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		  t = ntohs(*((uint16_t*)val)); break;
+		  t = val == nullptr ? 0 : ntohs(*((uint16_t*)val)); break;
 		} else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		  t = ntohl(*((uint32_t*)val)); break;
+		  t = val == nullptr ? 0 : ntohl(*((uint32_t*)val)); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		  t = be64toh(*((uint64_t*)val));  break;
+		  t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));  break;
 		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
-#if SYS_IS_UTF8
-		  t = val; break;
-#else
-		  char* c = UnicodeToUtf8(val);
-		  t = c;
-		  free(c); c = nullptr; break;
-#endif 
+		  t = val == nullptr ? "" : val; break;
 		}
 	  }
 		}); output->push_back(j);
@@ -645,13 +634,7 @@ namespace crow {
 		case INT4OID:j[proto_name_[i]] = ntohl(*((uint32_t*)val)); break;
 		case INT2OID:j[proto_name_[i]] = ntohs(*((uint16_t*)val)); break;
 		case 25: {
-#if SYS_IS_UTF8
 		  j[proto_name_[i]] = std::move(std::string(val, PQgetlength(current_result_, row_i_, i)));
-#else
-		  char* c = UnicodeToUtf8(val);
-		  j[proto_name_[i]] = std::move(std::string(c, PQgetlength(current_result_, row_i_, i)));
-		  free(c); c = nullptr;
-#endif 
 		} break;
 		default:j[proto_name_[i]] = nullptr;
 		}
@@ -910,18 +893,17 @@ namespace crow {
 	  for (char i = 0; i < ncols; ++i) {
 		if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
-		  if (sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
-			t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
-		  } break;
+		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, i) != 0) {
+			sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
+		  } t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec; break;
 		} else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<signed char>((const char*)sqlite3_column_text(stmt_, i)); break;
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (signed char)0; break;
 		} else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_double(stmt_, i); break;
 		} else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, i)); break;
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, i)) : 0.0F; break;
 		} else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, i)); break;
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, i)) : false; break;
 		} else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
@@ -930,34 +912,30 @@ namespace crow {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
-#if SYS_IS_UTF8
-		  t = (const char*)sqlite3_column_text(stmt_, i); break;
-#else
-		  char* c = UnicodeToUtf8((const char*)sqlite3_column_text(stmt_, i));
-		  t = c; free(c); c = nullptr; break;
-#endif 
+		  //t = std::move(std::string((const char*)sqlite3_column_text(stmt_, i), sqlite3_column_bytes(stmt_, i))); break;
+		  t = sqlite3_column_bytes(stmt_, i) ? (const char*)sqlite3_column_text(stmt_, i) : ""; break;
 		}
 	  }
 		});
 	}
 	template <typename T> void readArr(std::vector<T>* output) {
+	  if (last_step_ret_ != SQLITE_ROW) return;
 	  T j; char ncols = sqlite3_column_count(stmt_), z; _: z = -1;
 	  ForEachField(&j, [&ncols, &z, this](auto& t) { ++z;
 	  for (char i = 0; i < ncols; ++i) {
 		if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
-		  if (sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
-			t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
-		  } break;
+		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, i) != 0) {
+			sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
+		  } t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec; break;
 		} else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<signed char>((const char*)sqlite3_column_text(stmt_, i)); break;
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (signed char)0; break;
 		} else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_double(stmt_, i); break;
 		} else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, i)); break;
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, i)) : 0.0F; break;
 		} else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		  t = boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, i)); break;
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, i)) : false; break;
 		} else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
@@ -966,12 +944,8 @@ namespace crow {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
-#if SYS_IS_UTF8
-		  t = (const char*)sqlite3_column_text(stmt_, i); break;
-#else
-		  char* c = UnicodeToUtf8((const char*)sqlite3_column_text(stmt_, i));
-		  t = boost::lexical_cast<std::string>(c); free(c); c = nullptr; break;
-#endif 
+		  //t = boost::lexical_cast<std::string>(std::string_view((const char*)sqlite3_column_text(stmt_, i), sqlite3_column_bytes(stmt_, i))); break;
+		  t = sqlite3_column_bytes(stmt_, i) ? (const char*)sqlite3_column_text(stmt_, i) : ""; break;
 		}
 	  }
 		});
@@ -1082,28 +1056,13 @@ namespace crow {
 	}
 	inline void bind(sqlite3_stmt* stmt, int pos, sql_null_t) { sqlite3_bind_null(stmt, pos); }
 	inline int bind(sqlite3_stmt* stmt, int pos, const char* s) const {
-#if SYS_IS_UTF8
 	  return sqlite3_bind_text(stmt, pos, s, strlen(s), nullptr);
-#else
-	  char* c = UnicodeToUtf8(s); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
-	  free(c); c = nullptr; return ret;
-#endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const std::string& s) const {
-#if SYS_IS_UTF8
 	  return sqlite3_bind_text(stmt, pos, s.c_str(), s.length(), nullptr);
-#else
-	  char* c = UnicodeToUtf8(s.c_str()); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
-	  free(c); c = nullptr; return ret;
-#endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const std::string_view& s) const {
-#if SYS_IS_UTF8
 	  return sqlite3_bind_text(stmt, pos, s.data(), s.length(), nullptr);
-#else
-	  char* c = UnicodeToUtf8(s.data()); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
-	  free(c); c = nullptr; return ret;
-#endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const sql_blob& b) const {
 	  return sqlite3_bind_blob(stmt, pos, b.data(), b.size(), nullptr);
@@ -1804,33 +1763,28 @@ namespace crow {
 	}
 	ForEachField(j, [&z, this](auto& t) { ++z;
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
-	  if (strcmp(proto_name_[i], T::$[z]) != 0 || current_row_[i] == 0) { continue; }
+	  if (strcmp(proto_name_[i], T::$[z]) != 0) { continue; }
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
-		if (sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
-		  t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
-		} break;
+		int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (current_row_lengths_[i] != 0) {
+		  sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
+		} t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec; break;
 	  } else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<signed char>(current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? (signed char)0 : boost::lexical_cast<short>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<double>(current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0.0 : boost::lexical_cast<double>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<float>(current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0.0F : boost::lexical_cast<float>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<bool>(current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? false : boost::lexical_cast<bool>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<short>(current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<short>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<int>(current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<int>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<long long>(current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0LL : boost::lexical_cast<long long>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
-#if SYS_IS_UTF8
-		t = current_row_[i]; break;
-#else
-		char* c = UnicodeToUtf8(current_row_[i]); t = c; free(c); c = nullptr; break;
-#endif 
+		t = current_row_lengths_[i] == 0 ? "" : current_row_[i]; break;
 	  }
 	}
 	  });
@@ -1845,42 +1799,28 @@ namespace crow {
   _: z = -1;
 	ForEachField(&j, [&z, this](auto& t) { ++z;
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
-	  if (strcmp(proto_name_[i], T::$[z]) != 0 || current_row_[i] == 0) { continue; }
+	  if (strcmp(proto_name_[i], T::$[z]) != 0) { continue; }
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
-		if (sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
-		  t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
-		} break;
+		int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (current_row_lengths_[i] != 0) {
+		  sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
+		} t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec; break;
 	  } else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<signed char>(
-		  current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? (signed char)0 : boost::lexical_cast<short>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<double>(
-		  current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0.0 : boost::lexical_cast<double>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<float>(
-		  current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0.0F : boost::lexical_cast<float>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<bool>(
-		  current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? false : boost::lexical_cast<bool>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<short>(
-		  current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<short>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<int>(
-		  current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<int>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		t = boost::lexical_cast<long long>(
-		  current_row_[i]); break;
+		t = current_row_lengths_[i] == 0 ? 0LL : boost::lexical_cast<long long>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
-#if SYS_IS_UTF8
-		t = current_row_[i]; break;
-#else
-		char* c = UnicodeToUtf8(current_row_[i]);
-		t = c;
-		free(c); c = nullptr; break;
-#endif 
+		t = current_row_lengths_[i] == 0 ? "" : current_row_[i]; break;
 	  }
 	}
 	  });
@@ -1903,11 +1843,9 @@ namespace crow {
 	  if (current_row_[i] == 0) { j[proto_name_[i]] = nullptr; continue; }
 	  switch (proto_type[i]) {
 	  case enum_field_types::MYSQL_TYPE_DOUBLE:
-		j[proto_name_[i]] = boost::lexical_cast<double>(
-		  current_row_[i]); break;
+		j[proto_name_[i]] = boost::lexical_cast<double>(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_FLOAT:
-		j[proto_name_[i]] = boost::lexical_cast<float>(
-		  current_row_[i]); break;
+		j[proto_name_[i]] = boost::lexical_cast<float>(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_TINY:
 		if (current_row_lengths_[i] == 1) {
 		  j[proto_name_[i]] = boost::lexical_cast<bool>(current_row_[i]);
@@ -1915,30 +1853,20 @@ namespace crow {
 		  j[proto_name_[i]] = boost::lexical_cast<short>(current_row_[i]);
 		} break;
 	  case enum_field_types::MYSQL_TYPE_INT24:
-		j[proto_name_[i]] = boost::lexical_cast<int>(
-		  current_row_[i]); break;
+		j[proto_name_[i]] = boost::lexical_cast<int>(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_SHORT:
-		j[proto_name_[i]] = boost::lexical_cast<short>(
-		  current_row_[i]); break;
+		j[proto_name_[i]] = boost::lexical_cast<short>(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_LONGLONG:
-		j[proto_name_[i]] = boost::lexical_cast<long long>(
-		  current_row_[i]); break;
+		j[proto_name_[i]] = boost::lexical_cast<long long>(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_STRING:
 	  case enum_field_types::MYSQL_TYPE_VAR_STRING:
 	  case enum_field_types::MYSQL_TYPE_LONG_BLOB:
 	  case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
 	  case enum_field_types::MYSQL_TYPE_TINY_BLOB:
 	  case enum_field_types::MYSQL_TYPE_BLOB: {
-#if SYS_IS_UTF8
 		j[proto_name_[i]] = boost::lexical_cast<std::string>(current_row_[i]); break;
-#else
-		char* c = UnicodeToUtf8(current_row_[i]);
-		j[proto_name_[i]] = boost::lexical_cast<std::string>(c);
-		free(c); c = nullptr; break;
-#endif 
 	  } break;
-	  default: j[proto_name_[i]] = boost::lexical_cast<std::string>(
-		current_row_[i]); break;
+	  default: j[proto_name_[i]] = boost::lexical_cast<std::string>(current_row_[i]); break;
 	  }
 	}
 	if (!(current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
@@ -1956,8 +1884,7 @@ namespace crow {
 		") does not match the size of the tuple (" +
 		boost::lexical_cast<std::string>(std::tuple_size_v<std::decay_t<T>>) + ")");
 	crow::tuple_map(std::forward<T>(output), [&](auto& v) {
-	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(
-		current_row_[i]);
+	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(std::string_view(current_row_[i], current_row_lengths_[i]));
 	  ++i;
 	  });
 	return true;
@@ -2149,9 +2076,8 @@ namespace crow {
 
   typedef sql_database<mysql, 99> Mysql;
   typedef sql_database<pgsql, 99> Pgsql;
-  //SYS_IS_UTF8 default 1 best compatibility
-#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
-#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,SYS_IS_UTF8?"utf8":"GBK")
+#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"utf8")
+#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
   //SQLite is not suitable for multi-threaded environments
 #define D_sqlite(path) crow::Sqlite(path)
   auto COMPILE_USE = D_mysql();//Note that this line is for compilation.

@@ -106,9 +106,9 @@ struct is_text<text<N>> : std::true_type {};
 inline const std::string textify(const char* t) { return toQuotes(t); }
 inline const std::string textify(const std::string& t) { return toQuotes(t.c_str()); }
 inline const std::string textify(const tm& _v) {
-  std::ostringstream os; os << 20 << (_v.tm_year - 100) << '-' << std::setfill('0') << std::setw(2)
-	<< (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2) << _v.tm_hour << ':'
-	<< std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
+  int y = _v.tm_year / 100; std::ostringstream os; os << 19 + y << std::setfill('0') << std::setw(2) << _v.tm_year - y * 100
+	<< '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2) << _v.tm_hour
+	<< ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
 }
 template<unsigned short I>
 inline const char* textify(const text<I>& t) { return t; }
