@@ -36,10 +36,13 @@ namespace orm {
 	(void)std::initializer_list<int>{(regist<Args>(), 0)...};
   }
   static std::string Time2Str(const time_t* t) {
-	tm* _v; _v = std::localtime(t); int y = _v->tm_year / 100; std::ostringstream os;
-	os << 19 + y << std::setfill('0') << std::setw(2) << _v->tm_year - y * 100
-	  << (_v->tm_mon + 1) << '-' << std::setw(2) << _v->tm_mday << ' ' << std::setw(2)
-	  << _v->tm_hour << ':' << std::setw(2) << _v->tm_min << ':' << std::setw(2)
-	  << _v->tm_sec; return os.str();
+	tm* _v; _v = std::localtime(t); std::ostringstream os; os << std::setfill('0');
+#ifdef _WIN32
+	os << std::setw(4) << _v->tm_year + 1900;
+#else
+	int y = _v->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v->tm_year - y * 100;
+#endif
+	os << '-' << std::setw(2) << (_v->tm_mon + 1) << '-' << std::setw(2) << _v->tm_mday << ' ' << std::setw(2)
+	  << _v->tm_hour << ':' << std::setw(2) << _v->tm_min << ':' << std::setw(2) << _v->tm_sec << '"'; return os.str();
   }
 }

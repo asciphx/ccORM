@@ -11,13 +11,13 @@ namespace orm {
 	  return std::dynamic_pointer_cast<T>(std::enable_shared_from_this<enable_virtual>::shared_from_this());
 	}
   };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
-  template<typename T> class Table : public virtual_shared<T> {
-	static const std::string _name, _drop_; static const unsigned char _size_; const static char* $[];/*Store key name*/
-	static bool _create_need; static unsigned char _idex; static std::string _create_; static const size_t _o$[];/*Store offset*/
+  template<typename T> class Table : public virtual_shared<T> {/*Store (T.key,)... name*/ /*Store alias*/ /*Store key name[]*/
+	static const std::string _name, _drop_; static const unsigned char _size_; const static char* _ios_, * _alias_, * $[];//¡ü
+	static bool _create_need; static unsigned char _idex; static std::string _create_; static const size_t _o$[];/*Store offset[]*/
 #ifdef _WIN32
-	friend typename T; const static char* _def_[];/*Store default values*/ static unsigned char _tc_[];/*Store key type*/
+	friend typename T; const static char* _def_[];/*Store default values[]*/ static unsigned char _tc_[];/*Store key type[]*/
 #endif
-	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character*/
+	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character[]*/
 	template <typename N> inline constexpr N& getIdex(size_t i) {
 	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_o$[i]);
 	}
@@ -240,10 +240,14 @@ namespace orm {
 	ForEachField(dynamic_cast<T*>(c), [&i, c, &s](auto& t) {
 	  s.push_back('"'); s += c->$[++i];
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		s += "\":\""; std::ostringstream os; const tm* time = &t; int y=time->tm_year/100;
-		os << std::setfill('0') << std::setw(2) << 19 + y  << std::setw(2) << time->tm_year - y*100 << '-' << std::setw(2)
-		  << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2) << time->tm_hour
-		  << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
+		s += "\":\""; std::ostringstream os; const tm* time = &t; os << std::setfill('0');
+#ifdef _WIN32
+		os << std::setw(4) << time->tm_year + 1900;
+#else
+		int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
+#endif
+		os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
+		  << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
 	  } else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":" + std::to_string(t);
 	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {

@@ -12,7 +12,7 @@ void test() {
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "go programing"; cout << t << '\n';
   cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
-  cout << Tab::Q()->$(t->$id, t->$name, t->$date, t->$ok)->GetArr();
+  cout << Tab::Q()->$()->GetArr();
   t->Delete();//删除
 }
 int main() {

@@ -18,20 +18,23 @@
 #include "json.hpp"
 namespace orm {
   static const unsigned int HARDWARE_ASYNCHRONOUS = 0x6;//It is best to set the maximum number of threads
-  template <class T>
-  inline typename std::enable_if<std::is_same<T, tm>::value, std::string>::type DuckTyping(const T& _v) {
-	std::ostringstream os; int y = _v.tm_year / 100; os << std::setfill('0') << std::setw(2) << 19 + y << std::setw(2)
-	  << _v.tm_year - y * 100 << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
-	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
+  inline std::string DuckTyping(const tm& _v) {
+	std::ostringstream os; os << std::setfill('0');
+#ifdef _WIN32
+	os << std::setw(4) << _v.tm_year + 1900;
+#else
+	int y = _v.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
+#endif
+	os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
+	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec << '"'; return os.str();
   }
   template <class T>
   static inline typename std::enable_if<is_text<T>::value, const char*>::type DuckTyping(const T& _v) { return _v.c_str(); }
   template <class T>
-  static inline typename std::enable_if<!std::is_same<T, tm>::value && !is_text<T>::value, T>::type DuckTyping(const T& _v) { return _v; }
+  static inline typename std::enable_if<!is_text<T>::value, T>::type DuckTyping(const T& _v) { return _v; }
 
-  template <typename T>
-  inline typename std::enable_if<std::is_same<T, tm>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
-	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+  inline void OriginalType(tm& _v, const char* s, const json& j) {
+	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} int year = -1900, month = -1, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
 	}
@@ -41,7 +44,7 @@ namespace orm {
 	try { _v = j.at(s); } catch (const std::exception&) {}
   }
   template <typename T>
-  static inline typename std::enable_if<!std::is_same<T, tm>::value && !is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+  static inline typename std::enable_if<!is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
 	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
   }
   template <typename T, typename Fn, std::size_t... I>
@@ -303,6 +306,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> std::string orm::Table<o>::_create_ = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
 	template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
 	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
+	template<> const char* orm::Table<o>::_alias_ = " "#o;\
 	template<> bool orm::Table<o>::_create_need = true;
 
 #define CONSTRUCT(o,...)\
@@ -401,7 +405,41 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 //在结构体内部注册静态类型属性
 #define FIELD(o,...)\
 public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
-
+//select * FROM => select (表.字段,)... FROM
+#define IOS_1(o,k)      o#k" FROM "
+#define IOS_2(o,k,...)  o#k"," EXP(IOS_1(o,__VA_ARGS__))
+#define IOS_3(o,k,...)  o#k"," EXP(IOS_2(o,__VA_ARGS__))
+#define IOS_4(o,k,...)  o#k"," EXP(IOS_3(o,__VA_ARGS__))
+#define IOS_5(o,k,...)  o#k"," EXP(IOS_4(o,__VA_ARGS__))
+#define IOS_6(o,k,...)  o#k"," EXP(IOS_5(o,__VA_ARGS__))
+#define IOS_7(o,k,...)  o#k"," EXP(IOS_6(o,__VA_ARGS__))
+#define IOS_8(o,k,...)  o#k"," EXP(IOS_7(o,__VA_ARGS__))
+#define IOS_9(o,k,...)  o#k"," EXP(IOS_8(o,__VA_ARGS__))
+#define IOS_10(o,k,...) o#k"," EXP(IOS_9(o,__VA_ARGS__))
+#define IOS_11(o,k,...) o#k"," EXP(IOS_10(o,__VA_ARGS__))
+#define IOS_12(o,k,...) o#k"," EXP(IOS_11(o,__VA_ARGS__))
+#define IOS_13(o,k,...) o#k"," EXP(IOS_12(o,__VA_ARGS__))
+#define IOS_14(o,k,...) o#k"," EXP(IOS_13(o,__VA_ARGS__))
+#define IOS_15(o,k,...) o#k"," EXP(IOS_14(o,__VA_ARGS__))
+#define IOS_16(o,k,...) o#k"," EXP(IOS_15(o,__VA_ARGS__))
+#define IOS_17(o,k,...) o#k"," EXP(IOS_16(o,__VA_ARGS__))
+#define IOS_18(o,k,...) o#k"," EXP(IOS_17(o,__VA_ARGS__))
+#define IOS_19(o,k,...) o#k"," EXP(IOS_18(o,__VA_ARGS__))
+#define IOS_20(o,k,...) o#k"," EXP(IOS_19(o,__VA_ARGS__))
+#define IOS_21(o,k,...) o#k"," EXP(IOS_20(o,__VA_ARGS__))
+#define IOS_22(o,k,...) o#k"," EXP(IOS_21(o,__VA_ARGS__))
+#define IOS_23(o,k,...) o#k"," EXP(IOS_22(o,__VA_ARGS__))
+#define IOS_24(o,k,...) o#k"," EXP(IOS_23(o,__VA_ARGS__))
+#define IOS_25(o,k,...) o#k"," EXP(IOS_24(o,__VA_ARGS__))
+#define IOS_26(o,k,...) o#k"," EXP(IOS_25(o,__VA_ARGS__))
+#define IOS_27(o,k,...) o#k"," EXP(IOS_26(o,__VA_ARGS__))
+#define IOS_28(o,k,...) o#k"," EXP(IOS_27(o,__VA_ARGS__))
+#define IOS_29(o,k,...) o#k"," EXP(IOS_28(o,__VA_ARGS__))
+#define IOS_30(o,k,...) o#k"," EXP(IOS_29(o,__VA_ARGS__))
+#define IOS_31(o,k,...) o#k"," EXP(IOS_30(o,__VA_ARGS__))
+#define IOS_32(o,k,...) o#k"," EXP(IOS_31(o,__VA_ARGS__))
+#define IOS_N1(o,N,...) EXP(IOS_##N(o,__VA_ARGS__))
+#define IOS_N(o,N,...) IOS_N1(o,N,__VA_ARGS__)
 #define PRO_1(t,k)      const text<31> t::$##k = #k;
 #define PRO_2(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_1(t,__VA_ARGS__))
 #define PRO_3(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_2(t,__VA_ARGS__))
@@ -438,5 +476,6 @@ public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
 //在外部为静态属性添加上名称
 #define PROTO(o,...)\
-        PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
+        PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
+template<> const char* orm::Table<o>::_ios_=IOS_N(#o".",NUM_ARGS(__VA_ARGS__),__VA_ARGS__);
 #endif

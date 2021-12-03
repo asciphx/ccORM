@@ -16,7 +16,7 @@ namespace orm {
 	inline Sql<T>* offset(size_t offset);
 	inline Sql<T>* orderBy(const std::string& col, const Sort& ord = Sort::ASC);
 	//select
-	inline Sql<T>* $() { sql_ += "* FROM "; sql_ += T::_name; return this; };
+	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; sql_ += T::_alias_; return this; };
 	template <typename... K>
 	inline Sql<T>* $(K&&...k);
 	inline Sql<T>* alias(const char* alias);
@@ -51,11 +51,11 @@ namespace orm {
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> std::vector<T> Sql<T>::GetArr()noexcept(false) {
 	std::string sql(sql_); sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
-	if (offset_ > 0) { sql += " OFFSET " + std::to_string(offset_); } this->clear();// cout << sql << '\n';
+	if (offset_ > 0) { sql += " OFFSET " + std::to_string(offset_); } this->clear();// std::cout << sql << '\n';
 	return D.conn()(sql).template findArray<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept(false) {
-	std::string sql(sql_); this->clear();// cout << sql << '\n';
+	std::string sql(sql_); this->clear();// std::cout << sql << '\n';
 	return D.conn()(sql).template findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::Query() { prepare_ = true; return D.conn(); }
@@ -116,6 +116,9 @@ namespace orm {
 "SELECT u.id, u.account, u.name,u.photo, Role.id AS Role_id, Role.name AS Role_name FROM user u\
  LEFT JOIN user_role u_Role ON u_Role.user_id=u.id LEFT JOIN role Role\
  ON Role.id=u_Role.role_id  ORDER BY u.id"
+"SELECT USER.id, USER.account, USER.name,USER.photo, Role.id AS Role_id, Role.name AS Role_name FROM user USER\
+ LEFT JOIN user_role u_Role ON u_Role.user_id=user.id LEFT JOIN role Role\
+ ON Role.id=u_Role.role_id  ORDER BY user.id"
 "SELECT `u`.`id` AS `u_id`, `u`.`account` AS `u_account`, `u`.`name` AS `u_name`,\
  `u`.`photo` AS `u_photo`, `Role`.`id` AS `Role_id`, `Role`.`name` AS `Role_name` FROM `user` `u`\
  LEFT JOIN `user_role` `u_Role` ON `u_Role`.`user_id`=`u`.`id` LEFT JOIN `role` `Role`\
