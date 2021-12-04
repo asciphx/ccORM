@@ -7,7 +7,7 @@
 #define MAX_LIMIT 100
 namespace orm {
   enum class Sort { ASC, DESC };
-  template<typename T> class Table;
+  template<typename T> class Table;//eg: Tab::Q()->$(Tab::$id, Tab::$name, Tab::$date)->where(Tab::$id == 1)->GetOne();
   template<typename T> struct Sql {
 	friend class Table<T>;
 	Sql<T>() : sql_("SELECT ") {}
@@ -24,7 +24,7 @@ namespace orm {
 	inline Sql<T>* where(const text<I>& str);
 	inline std::vector<T> GetArr();
 	inline T GetOne();
-	static inline void setFields(std::string& os, const text<31>& val);
+	static void setFields(std::string& os, const text<31>& val);
 	inline decltype(D)::connection_type Query();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);

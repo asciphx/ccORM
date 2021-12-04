@@ -2014,8 +2014,8 @@ namespace crow {
 	return mysql_connection<mysql_functions_blocking>(mysql_functions_blocking{}, data);
   }
 
-  template <typename I, int Time = 28800> struct sql_database {
-	I impl; Timer timer;
+  template <typename I, unsigned int Time = 28800> struct sql_database {
+	I impl; Timer timer; static_assert(Time > 1);
 	typedef typename I::connection_data_type connection_data_type;
 	typedef typename I::db_tag db_tag;
 	typedef typename I::db_rs db_rs;
@@ -2034,9 +2034,9 @@ namespace crow {
 	  if constexpr (std::is_same_v<db_tag, mysql_tag>) {
 		connection_data_type* data = impl.new_connection();
 		assert(data); sync_connections_.push_back(data);
-		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time);
+		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time - 1);
 	  } else if constexpr (std::is_same_v<db_tag, pgsql_tag>) {
-		timer.setIntervalSec([this]() { impl.ping(); }, Time);
+		timer.setIntervalSec([this]() { impl.ping(); }, Time - 1);
 	  }
 	}
 	void flush() {
@@ -2074,8 +2074,8 @@ namespace crow {
 	}
   };
 
-  typedef sql_database<mysql, 99> Mysql;
-  typedef sql_database<pgsql, 99> Pgsql;
+  typedef sql_database<mysql, 100> Mysql;
+  typedef sql_database<pgsql, 100> Pgsql;
 #define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"utf8")
 #define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
   //SQLite is not suitable for multi-threaded environments

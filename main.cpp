@@ -26,7 +26,7 @@ int main() {
 	run = false;//代表副线程结束
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->$(Tab::$id, Tab::$name, Tab::$date, Tab::$ok)->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->$()->where(Tab::$id == 1)->GetOne();
   }//多线程测试，这里是第一个线程也就是主线程
   printf("<%d>", i);
   while (run) { this_thread::yield(); }//run为true则阻止程序提前结束

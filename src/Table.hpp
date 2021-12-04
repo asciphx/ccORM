@@ -15,21 +15,18 @@ namespace orm {
 	static const std::string _name, _drop_; static const unsigned char _size_; const static char* _ios_, * $[];//^
 	static bool _create_need; static unsigned char _idex; static std::string _create_; static const size_t _o$[];/*Store offset[]*/
 #ifdef _WIN32
-	friend typename T; const static char* _def_[];/*Store default values[]*/ static unsigned char _tc_[];/*Store key type[]*/
+	friend typename T; const static char* _def_[];/*Store default values[]*/static unsigned char _tc_[];/*Store key type[]*/
 #endif
 	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character[]*/
-	template <typename N> inline constexpr N& getIdex(size_t i) {
-	  return *reinterpret_cast<N*>(reinterpret_cast<char*>(this) + this->_o$[i]);
-	}
 	template <typename U> void $et(char i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
 		switch (hack4Str(_[i])) {
 		case 880043384://'4tex'
-		case 1952807028:getIdex<text<>>(i) = *v; break;//'text'
+		case 1952807028:*reinterpret_cast<text<>*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v; break;//'text'
 		case 1314092087://'NSt7'
-		case "class s"_i:getIdex<std::string>(i) = *v;
+		case "class s"_i:*reinterpret_cast<std::string*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
 		}
-	  } else getIdex<U>(i) = *v;
+	  } else *reinterpret_cast<U*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
 	}
 	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//Object serialized as string
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<Object> serialized as string
