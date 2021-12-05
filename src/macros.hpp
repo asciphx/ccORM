@@ -34,7 +34,9 @@ namespace orm {
   static inline typename std::enable_if<!is_text<T>::value, T>::type DuckTyping(const T& _v) { return _v; }
 
   inline void OriginalType(tm& _v, const char* s, const json& j) {
-	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {} int year = -1900, month = -1, day = 0, hour = 0, min = 0, sec = 0;
+	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {
+	  _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0;
+	} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
 	}

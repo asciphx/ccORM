@@ -138,8 +138,8 @@ namespace orm {
 		  }
 		  switch (hack4Str(_[i])) {
 		  case 'd':
-		  case 'f':
 		  case "double"_i:
+		  case 'f':
 		  case "float"_i: _create_ += " REAL"; goto $;
 		  case 'x':
 		  case "__int64"_i: _create_ += " BIGINT"; break;//BigInt
