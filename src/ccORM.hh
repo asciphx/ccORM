@@ -2014,7 +2014,7 @@ namespace crow {
 	return mysql_connection<mysql_functions_blocking>(mysql_functions_blocking{}, data);
   }
 
-  template <typename I, unsigned int Time = 28800> struct sql_database {
+  template <typename I, unsigned short Time = 28800> struct sql_database {
 	I impl; Timer timer; static_assert(Time > 1);
 	typedef typename I::connection_data_type connection_data_type;
 	typedef typename I::db_tag db_tag;

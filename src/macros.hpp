@@ -475,7 +475,7 @@ public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 #define PRO_32(t,k,...) const text<31> t::$##k = #k; EXP(PRO_31(t,__VA_ARGS__))
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
-//在外部为静态属性添加上名称,约定第一张表的alias总是_
+//在外部为静态属性添加上名称
 #define PROTO(o,...)\
         PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
 template<> const char* orm::Table<o>::_ios_=IOS_N("_.",NUM_ARGS(__VA_ARGS__),__VA_ARGS__);

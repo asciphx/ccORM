@@ -7,7 +7,7 @@
 #define MAX_LIMIT 100
 namespace orm {
   enum class Sort { ASC, DESC };
-  template<typename T> class Table;//eg: Tab::Q()->$(Tab::$id, Tab::$name, Tab::$date)->where(Tab::$id == 1)->GetOne();
+  template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
   template<typename T> struct Sql {
 	friend class Table<T>;
 	Sql<T>() : sql_("SELECT ") {}
@@ -15,7 +15,7 @@ namespace orm {
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
 	inline Sql<T>* orderBy(const std::string& col, const Sort& ord = Sort::ASC);
-	//select, 约定第一张表，首表的alias总是_
+	//select <_.?,>... from <T> _;
 	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; sql_.push_back(' '); sql_.push_back('_'); return this; };
 	template <typename... K>
 	inline Sql<T>* $(K&&...k);
@@ -45,7 +45,9 @@ namespace orm {
 	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
 	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; sql_.push_back(' '); sql_.push_back('_'); return this;
   };
-  template<typename T> Sql<T>* Sql<T>::alias(const char* alias) { sql_.push_back(' '); sql_ += alias; return this; }
+  template<typename T> Sql<T>* Sql<T>::alias(const char* alias) { 
+	static_assert(alias[0]!='_'); sql_.push_back(' '); sql_ += alias; return this;
+  }
   template<typename T>
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& str) { sql_ += " WHERE "; sql_ += str.c_str(); return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"

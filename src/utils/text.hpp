@@ -174,10 +174,10 @@ text<I * 2> operator>(const text<I>& o, const T& v) {
   } x += (char)0; return x;
 }
 template<unsigned short I, unsigned short L>
-text<I + L + 7> operator&& (text<I> o, const text<L>& c) {
+text<I + L + 7> operator&&(text<I> o, const text<L>& c) {
   text<I + L + 7> x("("); x += o; x += " AND "; x += c; x += ')'; x.end(); return x;
 };
 template<unsigned short I, unsigned short L>
-text<I + L + 6> operator|| (text<I> o, const text<L>& c) {
+text<I + L + 6> operator||(text<I> o, const text<L>& c) {
   text<I + L + 6> x("("); x += o; x += " OR "; x += c; x += ')'; x.end(); return x;
 };
