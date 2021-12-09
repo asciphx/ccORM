@@ -138,7 +138,7 @@ namespace orm {
 		  }
 		  switch (hack4Str(_[i])) {
 		  case 'd':
-		  case "double"_i:
+		  case "double"_i: _create_ += " DECIMAL(12,3)"; goto $;
 		  case 'f':
 		  case "float"_i: _create_ += " REAL"; goto $;
 		  case 'x':

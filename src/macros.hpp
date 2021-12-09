@@ -188,9 +188,7 @@ inline const char* GetRealType(const char* s, const char* c) {
 #endif
 #define REGIST(o,...)\
  template<> const uint8_t orm::Table<o>::_size_ = NUM_ARGS(__VA_ARGS__);\
- template<> uint8_t orm::Table<o>::_tc_[NUM_ARGS(__VA_ARGS__)]={};\
  template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)]={ OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
- template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={};\
  template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
 //REGIST(Tab, id, ok, name, date);
@@ -363,9 +361,11 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define RGB_NULL 	 "\033[0m"
 //regist PROPERTY,主键规定只能在第一个位置，同时于此也允许没有主键（不然不好处理）
 #define REGIST_PROTO(o,...)\
-  template<> void orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
-    bool b=true;if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
-       if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
+template<> uint8_t orm::Table<o>::_tc_[NUM_ARGS(__VA_ARGS__)]={};\
+template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={};\
+template<> void orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
+  bool b=true;if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
+     if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
 else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}
 
@@ -404,7 +404,7 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
 //在结构体内部注册静态类型属性
-#define FIELD(o,...)\
+#define FIELD(...)\
 public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 //select * FROM => select (表.字段,)... FROM
 #define IOS_1(o,k)      o#k" FROM "
