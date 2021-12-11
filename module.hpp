@@ -1,8 +1,7 @@
 #include "src/Sql.hpp"
 #include "src/Table.hpp"
 using namespace std; using namespace orm;
-#define Struct($) struct $ : orm::Table<$>
-struct Type : Table<Type> {
+Struct(Type) {
   int id;
   text<10> language;
   Type(int a = 0, const char* b = "") :

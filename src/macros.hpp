@@ -405,7 +405,7 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
 //在结构体内部注册静态类型属性
 #define FIELD(...)\
-public: FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
+        FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 //select * FROM => select (表.字段,)... FROM
 #define IOS_1(o,k)      o#k" FROM "
 #define IOS_2(o,k,...)  o#k"," EXP(IOS_1(o,__VA_ARGS__))

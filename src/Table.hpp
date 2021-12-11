@@ -2,7 +2,7 @@
 #include "./base/Initalization.hpp"
 #include "./base/s2o.hpp"
 #include "./base/so2s.hpp"
-/*multiple inheritance from std::enable_shared_from_this<T> => needed for
+#define Struct(T) struct T : orm::Table<T> /*multiple inheritance from std::enable_shared_from_this<T> => needed for
 struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B { };*/
 namespace orm {
   struct enable_virtual : std::enable_shared_from_this<enable_virtual> { virtual ~enable_virtual() {} };
@@ -82,6 +82,8 @@ namespace orm {
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
 	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 		condition += std::to_string(t);
+	  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+		condition.push_back('\''); condition << t; condition.push_back('\'');
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
 	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
@@ -109,6 +111,8 @@ namespace orm {
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
 	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 		os << t;
+	  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+		os << '\'' << t << '\'';
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 		os << '\'' << toQuotes(t.c_str()) << '\'';
 	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
