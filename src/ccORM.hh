@@ -137,7 +137,7 @@ namespace crow {
   inline char* UnicodeToUtf8(const char* str) {
 	LPCSTR pszSrc = str;
 	int nLen = MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, NULL, 0);
-	if (nLen == 0) return "";
+	if (nLen == 0) return nullptr;
 	wchar_t* pwszDst = new wchar_t[nLen];
 	MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
 	std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = nullptr;
@@ -150,7 +150,7 @@ namespace crow {
   }
 #else
   inline char* UnicodeToUtf8(const char* str) {
-	if (NULL == str) return NULL;
+	if (NULL == str) return nullptr;
 	size_t destlen = mbstowcs(0, str, 0);
 	size_t size = destlen + 1;
 	wchar_t* pw = new wchar_t[size];
@@ -856,7 +856,7 @@ namespace crow {
 	template<typename>
 	constexpr bool is_valid(...) { return false; }
   }
-  class sqlite_statement_result;
+  struct sqlite_statement_result;
 #define IS_VALID(T, EXPR) internal::is_valid<T>( [](auto&& obj)->decltype(obj.EXPR){} )
   template <typename B> template <typename F> void sql_result<B>::map(F map_function) {
 	if constexpr (std::is_same_v<B, sqlite_statement_result>) {

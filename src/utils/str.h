@@ -84,12 +84,38 @@ constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
   unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
 }
 
+static std::string& toUpperCase(std::string& s) {
+  char* c = (char*)s.c_str();
+  if (*c > 0x60 && *c < 0x7b) { *c &= ~0x20; }
+  while (*++c) {
+	if (*c > 0x60 && *c < 0x7b) *c &= ~0x20;
+  }
+  return s;
+}
+static std::string toUpperCase(const char* s) {
+  std::string e;
+  if (*s > 0x60 && *s < 0x7b) { e += *s - 0x20; }
+  while (*++s) {
+	if (*s > 0x60 && *s < 0x7b) {
+	  e += *s - 0x20;
+	} else { e += *s; }
+  } return e;
+}
+static std::string& toLowerCase(std::string& s) {
+  char* c = (char*)s.c_str();
+  if (*c > 0x40 && *c < 0x5b) { *c |= 0x20; }
+  while (*++c) {
+	if (*c > 0x40 && *c < 0x5b) *c |= 0x20;
+  }
+  return s;
+}
 static std::string toLowerCase(const char* s) {
-  std::string e; while (*s) {
+  std::string e;
+  if (*s > 0x40 && *s < 0x5b) { e += *s + 0x20; }
+  while (*++s) {
 	if (*s > 0x40 && *s < 0x5b) {
 	  e += *s + 0x20;
 	} else { e += *s; }
-	*++s;
   } return e;
 }
 static std::string toSqlLowerCase(const char* s) {
