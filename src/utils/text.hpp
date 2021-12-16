@@ -117,7 +117,7 @@ inline const std::string textify(const tm& _v) {
 	<< _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec << '"'; return os.str();
 }
 template<unsigned short I>
-inline const char* textify(const text<I>& t) { return t; }
+inline const std::string textify(const text<I>& t) { return toQuotes(t.c_str()); }
 template<typename T>
 inline typename std::enable_if<std::is_fundamental<T>::value, const std::string>::type textify(const T& t) { return std::to_string(t); }
 template<unsigned short I, typename T>
