@@ -15,7 +15,7 @@ namespace std {
 	}
 	return static_cast<short>(_Ans);
   }
-  inline signed char stot(const string& _Str) {
+  inline int8_t stot(const string& _Str) {
 	// convert string to tiny int
 	const char* _Ptr = _Str.c_str();
 	char* _Eptr;
@@ -26,6 +26,6 @@ namespace std {
 	if (_Ans < -128 || 127 < _Ans) {
 	  throw std::runtime_error("stot argument out of range");
 	}
-	return static_cast<signed char>(_Ans);
+	return static_cast<int8_t>(_Ans);
   }
 }

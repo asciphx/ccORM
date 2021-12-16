@@ -14,7 +14,7 @@ namespace orm {
   template <>
   bool so2s<bool>(const char* str);
   template <>
-  bool so2s<signed char>(const char* str);
+  bool so2s<int8_t>(const char* str);
   template <>
   bool so2s<short>(const char* str);
   template <>
@@ -49,7 +49,7 @@ namespace orm {
 	return true;
   }
   template <>
-  bool so2s<signed char>(const char* str) {
+  bool so2s<int8_t>(const char* str) {
 	try {
 	  std::stot(str);
 	} catch (...) {

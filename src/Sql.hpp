@@ -45,8 +45,8 @@ namespace orm {
 	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
 	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; sql_.push_back(' '); sql_.push_back('_'); return this;
   };
-  template<typename T> Sql<T>* Sql<T>::alias(const char* alias) { 
-	static_assert(alias[0]!='_'); sql_.push_back(' '); sql_ += alias; return this;
+  template<typename T> Sql<T>* Sql<T>::alias(const char* alias) {
+	assert(alias[0] != '_'); sql_.push_back(' '); sql_ += alias; return this;
   }
   template<typename T>
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& str) { sql_ += " WHERE "; sql_ += str.c_str(); return this; }

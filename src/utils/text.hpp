@@ -6,7 +6,15 @@
 #include <iosfwd>
 #include "./str.h"
 template<unsigned short I = 255>//Max 65535, Min 1
-struct text {
+class text {
+  unsigned short l = I; char* _ = new char[I + 1];
+  friend std::string& operator<<(std::string& s, text<I>& c) {
+	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
+  };
+  friend std::ostream& operator<<(std::ostream& s, text<I>& c) {
+	return s << c.c_str();
+  };
+public:
   ~text() { delete[]_; _ = nullptr; };
   text(const char* c = 0) {
 	static_assert(I != 0); size_t i = strlen(c); if (i < I)l = i; strncpy(_, c, I); _[l] = 0;
@@ -60,13 +68,6 @@ struct text {
   inline void pop_back() { _[--l] = 0; }
   inline void push_begin(const char c) { unsigned short i = l; while (i) { _[i] = _[i - 1]; --i; } _[++l] = 0; _[0] = c; }
   inline void end() { _[l] = 0; }
-  friend std::string& operator<<(std::string& s, text<I>& c) {
-	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
-  };
-  friend std::ostream& operator<<(std::ostream& s, text<I>& c) {
-	return s << c.c_str();
-  };
-private: unsigned short l = I; char* _ = new char[I + 1];
 };
 template<unsigned short I>
 std::ostream& operator<<(std::ostream& s, text<I> c) {

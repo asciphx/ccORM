@@ -19,7 +19,7 @@ namespace orm {
   template <>
   bool s2o<bool>(const std::string& str, bool& value);
   template <>
-  bool s2o<signed char>(const std::string& str, signed char& value);
+  bool s2o<int8_t>(const std::string& str, int8_t& value);
   template <>
   bool s2o<short>(const std::string& str, short& value);
   template <>
@@ -55,7 +55,7 @@ namespace orm {
 	return true;
   }
   template <>
-  bool s2o<signed char>(const std::string& str, signed char& value) {
+  bool s2o<int8_t>(const std::string& str, int8_t& value) {
 	try {
 	  value = std::stot(str);
 	} catch (...) {

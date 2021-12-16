@@ -20,11 +20,11 @@ namespace orm {
 	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character[]*/
 	template <typename U> void $et(char i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
-		switch (hack4Str(_[i])) {
-		case 880043384://'4tex'
-		case 1952807028:*reinterpret_cast<text<>*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v; break;//'text'
-		case 1314092087://'NSt7'
-		case "class s"_i:*reinterpret_cast<std::string*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
+		switch (hack8Str(_[i])) {
+		case "class text"_l:
+		case "4textILt"_l:*reinterpret_cast<text<>*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v; break;
+		case "class std::basic_string"_l:
+		case "NSt7__cx"_l:*reinterpret_cast<std::string*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
 		}
 	  } else *reinterpret_cast<U*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
 	}
@@ -129,42 +129,42 @@ namespace orm {
 		  if (i)_create_ += ",\n"; _create_ += $[i];
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
 			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {
-			  switch (hack4Str(_[i])) {
-			  case 'x':
-			  case "__int64"_i: _create_ += " BIGSERIAL PRIMARY KEY"; break;
-			  case 's':
-			  case "short"_i: _create_ += " SMALLSERIAL PRIMARY KEY"; break;
-			  case 'i':
-			  case 'int': _create_ += " SERIAL PRIMARY KEY"; break;
+			  switch (hack8Str(_[i])) {
+			  case "__int64"_l:
+			  case 'x': _create_ += " BIGSERIAL PRIMARY KEY"; break;
+			  case "short"_l:
+			  case 's': _create_ += " SMALLSERIAL PRIMARY KEY"; break;
+			  case 'int':
+			  case 'i': _create_ += " SERIAL PRIMARY KEY"; break;
 			  default:;
 			  } continue;
 			}
 		  }
-		  switch (hack4Str(_[i])) {
-		  case 'd':
-		  case "double"_i: _create_ += " DECIMAL(12,3)"; goto $;
-		  case 'f':
-		  case "float"_i: _create_ += " REAL"; goto $;
-		  case 'x':
-		  case "__int64"_i: _create_ += " BIGINT"; break;//BigInt
-		  case 'a':
-		  case "signed char"_i: if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
-			_create_ += " SMALLINT";
-		  } else { _create_ += " TINYINT"; } goto $;
-		  case 'b':
-		  case 'bool': _create_ += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
-					 if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) { goto $; }
-					 if (tc & TC::DEFAULT && so2s<bool>(def)) {
-					   _create_ += " DEFAULT "; _create_.push_back('\''); if (def[0] == 't') {
-						 _create_.push_back('1');
-					   } else { _create_.push_back('0'); } _create_.push_back('\'');
-					 } continue;
-		  case 's':
-		  case "short"_i: _create_ += " SMALLINT"; break;//SmallInt
-		  case 'i':
-		  case 'int': _create_ += " INTEGER"; break;
-		  case '2tm':
-		  case "struct tm"_i:  if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+		  switch (hack8Str(_[i])) {
+		  case 'bool':
+		  case 'b': _create_ += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
+				  if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) { goto $; }
+				  if (tc & TC::DEFAULT && so2s<bool>(def)) {
+					_create_ += " DEFAULT "; _create_.push_back('\''); if (def[0] == 't') {
+					  _create_.push_back('1');
+					} else { _create_.push_back('0'); } _create_.push_back('\'');
+				  } continue;
+		  case "double"_l:
+		  case 'd': _create_ += " DECIMAL(12,3)"; goto $;
+		  case "float"_l:
+		  case 'f': _create_ += " REAL"; goto $;
+		  case "signed char"_l:
+		  case 'a': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+			_create_ += " SMALLINT"; goto $;
+		  } else { _create_ += " TINYINT"; } break;
+		  case "short"_l:
+		  case 's': _create_ += " SMALLINT"; break;
+		  case 'int':
+		  case 'i': _create_ += " INTEGER"; break;
+		  case "__int64"_l:
+		  case 'x': _create_ += " BIGINT"; break;
+		  case "struct tm"_l:
+		  case '2tm': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
 			_create_ += " timestamp without time zone";
 		  } else { _create_ += " DATETIME"; }
 		  if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
@@ -176,10 +176,26 @@ namespace orm {
 			  _create_ += " DEFAULT now()";
 			} else { _create_ += " DEFAULT CURRENT_TIMESTAMP"; }
 		  } continue;
-		  case '4tex': {_create_ += " VARCHAR("; int c = 8; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
-		  case 'text': {_create_ += " VARCHAR("; int c = 5; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
-		  case 'NSt7':
-		  case "class s"_i: _create_ += " TEXT"; goto $;
+		  case "class text"_l: {_create_ += " VARCHAR("; int c = 11; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
+		  case "4textILt"_l: {_create_ += " VARCHAR("; int c = 8; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
+		  case "class std::basic_string"_l:
+		  case "NSt7__cx"_l: _create_ += " TEXT"; goto $;
+		  case "d char"_l://uint8_t,pgsql not support UNSIGNED
+		  case 'h': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+			_create_ += " SMALLINT"; goto $;
+		  } else { _create_ += " UNSIGNED TINYINT"; } break;
+		  case "d short"_l:
+		  case 't': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+			_create_ += " INTEGER"; goto $;
+		  } else { _create_ += " UNSIGNED SMALLINT"; } break;
+		  case "d int"_l:
+		  case 'j': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+			_create_ += " BIGINT"; goto $;
+		  } else { _create_ += " UNSIGNED INTEGER"; } break;
+		  case "d __int64"_l://PgSQL may be difficult to handle
+		  case 'y': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+			_create_ += " BIGINT"; goto $;
+		  } else { _create_ += " UNSIGNED BIGINT"; } break;
 		  }
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value) {
 			if (tc & TC::PRIMARY_KEY || (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT)) { _create_ += " PRIMARY KEY"; }
@@ -187,48 +203,55 @@ namespace orm {
 		  if constexpr (std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value) {
 			if (tc & TC::PRIMARY_KEY) _create_ += " PRIMARY KEY"; if (tc & TC::AUTO_INCREMENT) _create_ += " AUTO_INCREMENT";
 		  }
-		$://String type detection system
+		$://String type detection system => unsigned -> d
 		  if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
 		  if (tc & TC::DEFAULT) {
-			switch (hack4Str(_[i])) {
-			case 'd':
-			case "double"_i: if (!so2s<double>(def)) { break; } goto _;
-			case 'f':
-			case "float"_i: if (!so2s<float>(def)) { break; } goto _;
-			case 'x':
-			case "__int64"_i: if (!so2s<long long>(def)) { break; } goto _;
-			case 'a':
-			case "signed char"_i: if (!so2s<signed char>(def)) { break; } goto _;
-			case 'b':
-			case 'bool': if (!so2s<bool>(def)) { break; } goto _;
-			case 's':
-			case "short"_i: if (!so2s<short>(def)) { break; } goto _;
-			case 'i':
-			case 'int': if (!so2s<int>(def)) { break; } _: _create_ += " DEFAULT ";
+			switch (hack8Str(_[i])) {
+			case "double"_l:
+			case 'd': if (!so2s<double>(def)) { break; } goto _;
+			case "float"_l:
+			case 'f': if (!so2s<float>(def)) { break; } goto _;
+			case "__int64"_l:
+			case 'x': if (!so2s<long long>(def)) { break; } goto _;
+			case "signed char"_l:
+			case 'a': if (!so2s<int8_t>(def)) { break; } goto _;
+			case 'bool':
+			case 'b': if (!so2s<bool>(def)) { break; } goto _;
+			case "short"_l:
+			case 's': if (!so2s<short>(def)) { break; } goto _;
+			case 'int':
+			case 'i': if (!so2s<int>(def)) { break; } _: _create_ += " DEFAULT ";
 			  _create_.push_back('\''); _create_ += def; _create_.push_back('\''); break;
-			case '4tex':
-			case 'text':
-			case 'NSt7':
-			case "class s"_i:
-			default: _create_ += " DEFAULT "; _create_.push_back('\''); _create_ += toQuotes(def); _create_.push_back('\'');
+			case "class text"_l:
+			case "4textILt"_l://maybe check length
+			case "class std::basic_string"_l:
+			case "NSt7__cx"_l: _create_ += " DEFAULT "; _create_.push_back('\''); _create_ += toQuotes(def); _create_.push_back('\''); break;
+			case "d char"_l://not check UNSIGNED, may need to be improved
+			case 'h':
+			case "d short"_l:
+			case 't':
+			case "d int"_l:
+			case 'j':
+			case "d __int64"_l:
+			case 'y': goto _;
 			}
 		  }
 		} _create_ += "\n);";
 	  }
-	  auto&& DbQuery = static_cast<Sql<T>*>(__[0])->Query();
-	  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
-		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
-		if (DbQuery(str_).template r__<int>() == 0) {
-		  DbQuery(_create_).flush_results();
-		}
-	  } else {
-		try {
-		  DbQuery(_create_).flush_results();
-		} catch (std::runtime_error e) {
-		  std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << _name
-			<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n";
-		}
-	  }
+	   auto&& DbQuery = static_cast<Sql<T>*>(__[0])->Query();
+	   if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
+		 std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
+		 if (DbQuery(str_).template r__<int>() == 0) {
+		   DbQuery(_create_).flush_results();
+		 }
+	   } else {
+		 try {
+		   DbQuery(_create_).flush_results();
+		 } catch (std::runtime_error e) {
+		   std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << _name
+		 	<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n";
+		 }
+	   }
 	  std::cout << _create_;
 	}
 	static void _dropTable() { static_cast<Sql<T>*>(__[0])->Query()(_drop_).flush_results(); }
@@ -249,21 +272,9 @@ namespace orm {
 #endif
 		os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
 		  << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
-	  } else if constexpr (std::is_same<signed char, std::remove_reference_t<decltype(t)>>::value) {
-		s += "\":" + std::to_string(t);
-	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		s += "\":" + std::to_string(t);
-	  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		s += "\":" + std::to_string(t);
 	  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":", s += t == true ? "true" : "false";
-	  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		s += "\":" + std::to_string(t);
-	  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		s += "\":" + std::to_string(t);
-	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		s += "\":" + std::to_string(t);
-	  } else if constexpr (std::is_same<long, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":" + std::to_string(t);
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":\"" + t + "\"";

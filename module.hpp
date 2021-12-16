@@ -2,9 +2,9 @@
 #include "src/Table.hpp"
 using namespace std; using namespace orm;
 Struct(Type) {
-  int id;
+  uint32_t id;
   text<10> language;
-  Type(int a = 0, const char* b = "") :
+  Type(uint32_t a = 0, const char* b = "") :
 	id(a), language(b) {}
   FIELD(id, language)
 };
@@ -14,12 +14,12 @@ REGIST_PROTO(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "c/c++");
 Struct(Tab) {
-  int id;
+  uint32_t id;
   bool ok;
   text<15> name;
   tm date;
   vector<Type> lang;
-  Tab(int a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}) :
+  Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}) :
 	id(a), ok(b), name(c), date(d), lang(e) {}
   FIELD(id, ok, name, date)
 };

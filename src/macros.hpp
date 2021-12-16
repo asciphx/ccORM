@@ -70,7 +70,7 @@ namespace orm {
 #define EXP(O) O
 #ifdef _MSC_VER
 inline const char* GetRealType(const char* s) {
-  if (s[11] == 118) { return "S"; } if (s[11] == 60) { return s + 7; } return s;
+  if (s[11] == 118) { return "S"; } if (s[0] == 117) { return s + 7; } return s;
 }
 #define InjectTS(U, T) GetRealType(typeid(U::T).name())
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N

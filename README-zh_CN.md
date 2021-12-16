@@ -17,6 +17,7 @@
 - [x] 提供DataMapper，ActiveRecord两种方式进行curd
 - [x] 具备编译期类型检测
 - [x] VARCHAR数据类型采用text<>
+- [x] 原生类型，支持无符号类型[例如:uint8_t,uint16_t,uint32_t,uint64_t]
 
 ## 即将推出
 一对多查询，多对多查询，索引列建立，以及缓存查询
@@ -24,9 +25,9 @@
 ## 模型层
 ```c++
 Struct(Type) {
-  int id;
+  uint32_t id;
   text<10> language;
-  Type(int a = 0, const char* b = "") :
+  Type(uint32_t a = 0, const char* b = "") :
 	id(a), language(b) {}
   FIELD(id, language)
 };
@@ -36,12 +37,12 @@ REGIST_PROTO(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "c/c++");
 Struct(Tab) {
-  int id;
+  uint32_t id;
   bool ok;
   text<15> name;
   tm date;
   vector<Type> lang;
-  Tab(int a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}) :
+  Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}) :
 	id(a), ok(b), name(c), date(d), lang(e) {}
   FIELD(id, ok, name, date)
 };
