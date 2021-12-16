@@ -547,6 +547,14 @@ namespace crow {
 		t = val == nullptr ? 0 : ntohl(*((uint32_t*)val)); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));  break;
+	  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = val == nullptr ? (uint8_t)0 : boost::lexical_cast<short>(val); break;
+	  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = val == nullptr ? 0 : boost::lexical_cast<uint16_t>(val); break;
+	  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = val == nullptr ? 0 : boost::lexical_cast<uint32_t>(val); break;
+	  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = val == nullptr ? 0 : boost::lexical_cast<uint64_t>(val); break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 		t = val == nullptr ? "" : val; break;
@@ -596,6 +604,14 @@ namespace crow {
 		  t = val == nullptr ? 0 : ntohl(*((uint32_t*)val)); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		  t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));  break;
+		} else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = val == nullptr ? (uint8_t)0 : boost::lexical_cast<short>(val); break;
+		} else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = val == nullptr ? 0 : boost::lexical_cast<uint16_t>(val); break;
+		} else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = val == nullptr ? 0 : boost::lexical_cast<uint32_t>(val); break;
+		} else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = val == nullptr ? 0 : boost::lexical_cast<uint64_t>(val); break;
 		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
 		  t = val == nullptr ? "" : val; break;
@@ -896,7 +912,7 @@ namespace crow {
 		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, i) != 0) {
 			sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
 		  } t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec; break;
-		} else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
+		} else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0; break;
 		} else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_double(stmt_, i); break;
@@ -910,6 +926,14 @@ namespace crow {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_int64(stmt_, i); break;
+		} else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0; break;
+		} else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = sqlite3_column_int64(stmt_, i); break;
+		} else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = sqlite3_column_int64(stmt_, i); break;
+		} else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<uint64_t>((const char*)sqlite3_column_text(stmt_, i)) : 0; break;
 		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
 		  //t = std::move(std::string((const char*)sqlite3_column_text(stmt_, i), sqlite3_column_bytes(stmt_, i))); break;
@@ -942,6 +966,14 @@ namespace crow {
 		  t = sqlite3_column_int64(stmt_, i); break;
 		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		  t = sqlite3_column_int64(stmt_, i); break;
+		} else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0; break;
+		} else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = sqlite3_column_int64(stmt_, i); break;
+		} else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = sqlite3_column_int64(stmt_, i); break;
+		} else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
+		  t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<uint64_t>((const char*)sqlite3_column_text(stmt_, i)) : 0; break;
 		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
 		  //t = boost::lexical_cast<std::string>(std::string_view((const char*)sqlite3_column_text(stmt_, i), sqlite3_column_bytes(stmt_, i))); break;
@@ -1782,6 +1814,14 @@ namespace crow {
 		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<int>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		t = current_row_lengths_[i] == 0 ? 0LL : boost::lexical_cast<long long>(current_row_[i]); break;
+	  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = current_row_lengths_[i] == 0 ? (uint8_t)0 : boost::lexical_cast<short>(current_row_[i]); break;
+	  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint16_t>(current_row_[i]); break;
+	  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint32_t>(current_row_[i]); break;
+	  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint64_t>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 		t = current_row_lengths_[i] == 0 ? "" : current_row_[i]; break;
@@ -1818,6 +1858,14 @@ namespace crow {
 		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<int>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
 		t = current_row_lengths_[i] == 0 ? 0LL : boost::lexical_cast<long long>(current_row_[i]); break;
+	  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = current_row_lengths_[i] == 0 ? (uint8_t)0 : boost::lexical_cast<short>(current_row_[i]); break;
+	  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint16_t>(current_row_[i]); break;
+	  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint32_t>(current_row_[i]); break;
+	  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
+		t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint64_t>(current_row_[i]); break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 		t = current_row_lengths_[i] == 0 ? "" : current_row_[i]; break;
