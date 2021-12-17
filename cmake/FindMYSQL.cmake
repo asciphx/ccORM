@@ -68,7 +68,7 @@ if( WIN32 )
 	  
 else()
 
-set( MYSQL_ROOT_DIR /home/asciphx/vcpkg/packages/libmariadb_x64-linux)
+set( MYSQL_ROOT_DIR ${VCPKG_ROOT}/packages/libmariadb_x64-linux)
 find_library( MYSQLCLIENT_LIBRARY
 	NAMES "mariadbclient" "mysqlclient"
 	PATHS ${MYSQL_ROOT_DIR}/lib )

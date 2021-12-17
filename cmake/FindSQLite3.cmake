@@ -1,9 +1,9 @@
 find_library(SQLite3_LIBRARY NO_DEFAULT_PATH
   NAMES sqlite3
-  PATHS ${HT_DEPENDENCY_LIB_DIR} /lib /home/asciphx/vcpkg/packages/sqlite3_x64-linux/lib /usr/lib /usr/local/lib
+  PATHS ${HT_DEPENDENCY_LIB_DIR} /lib ${VCPKG_ROOT}/sqlite3_x64-linux/lib /usr/lib /usr/local/lib
 )
 if (SQLite3_LIBRARY)
-  set( SQLite3_INCLUDE_DIR /home/asciphx/vcpkg/packages/sqlite3_x64-linux/include)
+  set( SQLite3_INCLUDE_DIR ${VCPKG_ROOT}/sqlite3_x64-linux/include)
   set(SQLite3_FOUND TRUE)
 endif ()
 

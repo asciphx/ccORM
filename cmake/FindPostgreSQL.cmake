@@ -1,9 +1,9 @@
 if( WIN32 )
-SET(Pg_DIR "D:/C++/vcpkg/packages/libpq_x86-windows")
+SET(Pg_DIR "${VCPKG_ROOT}/libpq_x86-windows")
 SET(PostgreSQL_LIBRARIES "${Pg_DIR}/lib/libpq.lib")
 SET(PostgreSQL_INCLUDE_DIR "${Pg_DIR}/include")
 else()#linux or mac
-set( PostgreSQL_ROOT_DIR /home/asciphx/vcpkg/packages/libpq_x64-linux)
+set( PostgreSQL_ROOT_DIR ${VCPKG_ROOT}/libpq_x64-linux)
 find_library(PostgreSQL_LIBRARY NO_DEFAULT_PATH
   NAMES "pq"
   PATHS ${HT_DEPENDENCY_LIB_DIR} /lib ${PostgreSQL_ROOT_DIR}/lib /usr/lib /usr/local/lib
