@@ -99,9 +99,14 @@ int main() {
 - High performance
 
 ## Premise
-Cmake requirements: [it is best to install MySQL with vcpkg]
-find_ package(MYSQL REQUIRED)
-...and then add it where you need to connect to the library
+Cmake requirements: [it is best to install package with vcpkg]
+```shell
+mkdir build
+cd build
+cmake ..
+cmake --build .
+```
+...or then add it where you need to connect to the library
 target_link_libraries(main ${MYSQL_LIBRARY})
 perhaps
 This is just an example. Note: please modify the `build_linux.sh` file .Through `sh ./build_linux.sh` compilation

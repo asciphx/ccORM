@@ -100,13 +100,14 @@ int main() {
  - 高性能
 
 ## 前提
-cmake需求：[最好使用vcpkg安装mysql]
-find_package(MYSQL REQUIRED)
-...然后在需要连接库的位置加入
-target_link_libraries(main ${MYSQL_LIBRARY})
-
-或者
-下面的方式，这只是示例，注意：请自行修改`build_linux.sh`文件.通过`sh ./build_linux.sh`编译
+cmake需求：[最好使用vcpkg安装依赖包]
+```shell
+mkdir build
+cd build
+cmake ..
+cmake --build .
+```
+或者下面的方式，这只是示例，注意：请自行修改`build_linux.sh`文件.通过`sh ./build_linux.sh`编译
 ```
 g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
 -pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 

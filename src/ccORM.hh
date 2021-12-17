@@ -546,7 +546,7 @@ namespace crow {
 	  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
 		t = val == nullptr ? 0 : ntohl(*((uint32_t*)val)); break;
 	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));  break;
+		t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val)); break;
 	  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
 		t = val == nullptr ? (uint8_t)0 : boost::lexical_cast<short>(val); break;
 	  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
@@ -1326,7 +1326,7 @@ namespace crow {
 	  if (it != stm_cache_.end()) {
 		return pgsql_statement{ data_, *it->second };
 	  }
-	  std::string stmt_name = boost::lexical_cast<std::string>(stm_cache_.size());
+	  std::string stmt_name = std::to_string(stm_cache_.size());
 	  if (!PQsendPrepare(connection_, stmt_name.c_str(), rq.c_str(), 0, nullptr)) {
 		throw std::runtime_error(std::string("PQsendPrepare error") + PQerrorMessage(connection_));
 	  }
@@ -1345,7 +1345,7 @@ namespace crow {
 	  if (it != stm_cache_.end()) {
 		return pgsql_statement{ data_, *it->second };
 	  }
-	  std::string stmt_name = boost::lexical_cast<std::string>(stm_cache_.size());
+	  std::string stmt_name = std::to_string(stm_cache_.size());
 	  if (!PQsendPrepare(connection_, stmt_name.c_str(), rq_.c_str(), 0, nullptr)) {
 		throw std::runtime_error(std::string("PQsendPrepare error") + PQerrorMessage(connection_));
 	  }
@@ -1359,7 +1359,7 @@ namespace crow {
 	  if (it != stm_cache_.end()) {
 		return pgsql_statement{ data_, *it->second };
 	  }
-	  std::string stmt_name = boost::lexical_cast<std::string>(stm_cache_.size());
+	  std::string stmt_name = std::to_string(stm_cache_.size());
 	  if (!PQsendPrepare(connection_, stmt_name.c_str(), rq, 0, nullptr)) {
 		throw std::runtime_error(std::string("PQsendPrepare error") + PQerrorMessage(connection_));
 	  }
@@ -1912,9 +1912,9 @@ namespace crow {
 	  case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
 	  case enum_field_types::MYSQL_TYPE_TINY_BLOB:
 	  case enum_field_types::MYSQL_TYPE_BLOB: {
-		j[proto_name_[i]] = boost::lexical_cast<std::string>(current_row_[i]); break;
+		j[proto_name_[i]] = current_row_[i]; break;
 	  } break;
-	  default: j[proto_name_[i]] = boost::lexical_cast<std::string>(current_row_[i]); break;
+	  default: j[proto_name_[i]] = current_row_[i]; break;
 	  }
 	}
 	if (!(current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
@@ -1928,9 +1928,9 @@ namespace crow {
 	unsigned int i = 0;
 	if (std::tuple_size_v<std::decay_t<T>> != current_row_num_fields_)
 	  throw std::runtime_error(std::string("The request number of field (") +
-		boost::lexical_cast<std::string>(current_row_num_fields_) +
+		std::to_string(current_row_num_fields_) +
 		") does not match the size of the tuple (" +
-		boost::lexical_cast<std::string>(std::tuple_size_v<std::decay_t<T>>) + ")");
+		std::to_string(std::tuple_size_v<std::decay_t<T>>) + ")");
 	crow::tuple_map(std::forward<T>(output), [&](auto& v) {
 	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(std::string_view(current_row_[i], current_row_lengths_[i]));
 	  ++i;
