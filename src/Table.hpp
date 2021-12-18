@@ -58,10 +58,10 @@ namespace orm {
 	  char i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
 		if (!(_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
-		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			  ov << t << ','; os << T::$[i] << ',';
-			} else { if (*((char*)&t)) { ov << t << ','; os << T::$[i] << ','; } }
+		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+			ov << t << ','; os << T::$[i] << ',';
+		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+			if (*((char*)&t)) { ov << t << ','; os << T::$[i] << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 			if (*((char*)&t)) { ov << '\'' << t << "',"; os << T::$[i] << ','; }
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {

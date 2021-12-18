@@ -71,10 +71,10 @@ namespace orm {
 	  ForEachField(dynamic_cast<T*>(&o), [&i, &os, &ov](auto& t) {
 		if (!(T::_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  const char* def = T::_def_[i];
-		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			  ov << t << ',';
-			} else { if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; } }
+		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+			ov << t << ',';
+		  } if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+			if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) ov << '\'' << def << "',"; else ov << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
@@ -97,10 +97,10 @@ namespace orm {
 	  ForEachField(dynamic_cast<T*>(&o), [&i, &os, &ov](auto& t) {
 		if (!(T::_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  const char* def = T::_def_[i];
-		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			  ov << t << ',';
-			} else { if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; } }
+		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+			ov << t << ',';
+		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+			if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) ov << '\'' << def << "',"; else ov << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
