@@ -48,7 +48,7 @@ public:
   void operator += (const char* c) {
 	while (*c && l < I) { _[l++] = *c++; } _[I] = 0;
   }
-  inline void operator +=(const char c) { _[l++] = c; }
+  inline void operator +=(char c) { _[l++] = c; }
   void operator += (const text& t) {
 	const char* s = t.c_str();
 	if (&t == this) {
@@ -114,7 +114,7 @@ inline const std::string textify(const tm& _v) {
   int y = _v.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
 #endif
   os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
-	<< _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec << '"'; return os.str();
+	<< _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
 }
 template<unsigned short I>
 inline const std::string textify(const text<I>& t) { return toQuotes(t.c_str()); }

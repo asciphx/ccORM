@@ -20,12 +20,12 @@ int main() {
   clock_t start = clock(); test();
   Timer t; bool run = true;//标记第二个线程的运行状态
   t.setTimeout([&run] {
-	int i = 0; for (; i < 99999; ++i) {
+	int i = 0; for (; i < 9999; ++i) {
 	  Tab::Q()->$()->where(Tab::$id == 2)->GetOne();
 	} printf("<%d>", i);
 	run = false;//代表副线程结束
 	}, 6);
-  int i = 0; for (; i < 98888; ++i) {
+  int i = 0; for (; i < 9998; ++i) {
 	Tab::Q()->$()->where(Tab::$id == 1)->GetOne();
   }//多线程测试，这里是第一个线程也就是主线程
   printf("<%d>", i);

@@ -17,8 +17,8 @@ namespace orm {
 #ifdef _WIN32
 	friend typename T; const static char* _def_[];/*Store default values[]*/static unsigned char _tc_[];/*Store key type[]*/
 #endif
-	friend typename decltype(D)::db_rs; friend class Sql<T>; static const char* _[];/*Store type character[]*/
-	template <typename U> void $et(char i, const U* v) {
+	friend typename decltype(D)::db_rs; friend struct Sql<T>; static const char* _[];/*Store type character[]*/
+	template <typename U> void $et(int8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
 		switch (hack8Str(_[i])) {
 		case "class text"_l:
@@ -42,7 +42,7 @@ namespace orm {
 	Table(); ~Table() {} Table(const Table&) = default;
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
-	  char idex = -1; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
+	  int8_t idex = -1; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
 	  return; /*This code will never arrive*/ *this = T(t...);//detect types
 	}
 	//Query builder
@@ -54,12 +54,13 @@ namespace orm {
 	json get() { return json(*dynamic_cast<T*>(this)); };
 	//-------------------------------------ActiveRecord-------------------------------------
 	//Insert the object (Returns the inserted ID)
-	long long Insert() {
-	  char i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
+	auto Insert() {
+	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
 		if (!(_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			ov << t << ','; os << T::$[i] << ',';
+			if constexpr (ce_is_pgsql) { ov << (t ? "true" : "false") << ','; }
+			else { ov << t << ','; } os << T::$[i] << ',';
 		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			if (*((char*)&t)) { ov << t << ','; os << T::$[i] << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -71,13 +72,15 @@ namespace orm {
 		  }
 		}
 		});
-	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str() << ";";
+	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str();
+	  if constexpr (ce_is_pgsql) { os << " RETURNING " << T::$[0] << ";"; } else { os << ";"; }
 	  crow::sql_result<decltype(D)::db_rs>&& rs = Q()->Query()(os.str());
-	  if (T::_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); } else { return 0LL; }
+	  if (T::_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); }
+	  else if constexpr (ce_is_mysql) { return 0ULL; } else { return 0LL; }
 	}
 	//Update the object (The default condition is the value of the frist key)
 	void Update() {
-	  char i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
+	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
 	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
 	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
@@ -91,7 +94,10 @@ namespace orm {
 	  }
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition](auto& t) {
 		if (++i && !(T::_tc_[i] & TC::AUTO_INCREMENT)) {
-		  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+			if constexpr (ce_is_pgsql) { os << T::$[i] << '=' << (t ? "true" : "false") << ',';
+			} else { os << T::$[i] << '=' << t << ','; }
+		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			os << T::$[i] << '=' << t << ',';
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 			os << T::$[i] << '=' << '\'' << t << "',";
@@ -109,7 +115,9 @@ namespace orm {
 	void Delete() {
 	  std::ostringstream os; os << "DELETE FROM " << _name << " WHERE " << $[0] << '=';
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
-	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+	  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+		if constexpr (ce_is_pgsql) { os << (t ? "true" : "false"); } else { os << t; }
+	  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 		os << t;
 	  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		os << '\'' << t << '\'';
@@ -123,11 +131,11 @@ namespace orm {
 	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
 	  if (_create_need) {
 		_create_need = false;
-		for (unsigned char i = 0; i < _size_; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
+		for (uint8_t i = 0; i < _size_; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
 		  if (_[i][0] == 'S') { continue; }
 		  TC tc = (TC)_tc_[i]; const char* def = _def_[i];
 		  if (i)_create_ += ",\n"; _create_ += $[i];
-		  if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
+		  if constexpr (ce_is_pgsql) {
 			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {
 			  switch (hack8Str(_[i])) {
 			  case "__int64"_l:
@@ -143,7 +151,7 @@ namespace orm {
 		  switch (hack8Str(_[i])) {
 		  case 'bool':
 		  case 'b': _create_ += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
-				  if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) { goto $; }
+				  if constexpr (ce_is_pgsql) { goto $; }
 				  if (tc & TC::DEFAULT && so2s<bool>(def)) {
 					_create_ += " DEFAULT "; _create_.push_back('\''); if (def[0] == 't') {
 					  _create_.push_back('1');
@@ -154,7 +162,7 @@ namespace orm {
 		  case "float"_l:
 		  case 'f': _create_ += " REAL"; goto $;
 		  case "signed char"_l:
-		  case 'a': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+		  case 'a': if constexpr (ce_is_pgsql) {
 			_create_ += " SMALLINT"; goto $;
 		  } else { _create_ += " TINYINT"; } break;
 		  case "short"_l:
@@ -164,15 +172,15 @@ namespace orm {
 		  case "__int64"_l:
 		  case 'x': _create_ += " BIGINT"; break;
 		  case "struct tm"_l:
-		  case '2tm': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+		  case '2tm': if constexpr (ce_is_pgsql) {
 			_create_ += " timestamp without time zone";
 		  } else { _create_ += " DATETIME"; }
 		  if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
 		  if (tc & TC::DEFAULT) {
 			if (so2s<tm>(def)) { _create_ += " DEFAULT '"; _create_ += def; _create_.push_back('\''); continue; }
-			if constexpr (std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value) {
+			if constexpr (ce_is_sqlite) {
 			  _create_ += " DEFAULT (datetime('now','localtime'))";
-			} else if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
+			} else if constexpr (ce_is_pgsql) {
 			  _create_ += " DEFAULT now()";
 			} else { _create_ += " DEFAULT CURRENT_TIMESTAMP"; }
 		  } continue;
@@ -181,26 +189,26 @@ namespace orm {
 		  case "class std::basic_string"_l:
 		  case "NSt7__cx"_l: _create_ += " TEXT"; goto $;
 		  case "d char"_l://uint8_t,pgsql not support UNSIGNED
-		  case 'h': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
-			_create_ += " SMALLINT"; goto $;
+		  case 'h': if constexpr (ce_is_pgsql) {
+			_create_ += " BOOLEAN";
 		  } else { _create_ += " UNSIGNED TINYINT"; } break;
 		  case "d short"_l:
-		  case 't': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
-			_create_ += " INTEGER"; goto $;
+		  case 't': if constexpr (ce_is_pgsql) {
+			_create_ += " SMALLINT"; goto $;
 		  } else { _create_ += " UNSIGNED SMALLINT"; } break;
 		  case "d int"_l:
-		  case 'j': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
-			_create_ += " BIGINT"; goto $;
+		  case 'j': if constexpr (ce_is_pgsql) {
+			_create_ += " INTEGER"; goto $;
 		  } else { _create_ += " UNSIGNED INTEGER"; } break;
 		  case "d __int64"_l://PgSQL may be difficult to handle
-		  case 'y': if constexpr (std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>) {
+		  case 'y': if constexpr (ce_is_pgsql) {
 			_create_ += " BIGINT"; goto $;
 		  } else { _create_ += " UNSIGNED BIGINT"; } break;
 		  }
-		  if constexpr (std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value) {
+		  if constexpr (ce_is_sqlite) {
 			if (tc & TC::PRIMARY_KEY || (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT)) { _create_ += " PRIMARY KEY"; }
 		  }
-		  if constexpr (std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value) {
+		  if constexpr (ce_is_mysql) {
 			if (tc & TC::PRIMARY_KEY) _create_ += " PRIMARY KEY"; if (tc & TC::AUTO_INCREMENT) _create_ += " AUTO_INCREMENT";
 		  }
 		$://String type detection system => unsigned -> d
@@ -238,21 +246,21 @@ namespace orm {
 		  }
 		} _create_ += "\n);";
 	  }
-	   auto&& DbQuery = static_cast<Sql<T>*>(__[0])->Query();
-	   if constexpr (std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value) {
-		 std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
-		 if (DbQuery(str_).template r__<int>() == 0) {
-		   DbQuery(_create_).flush_results();
-		 }
-	   } else {
-		 try {
-		   DbQuery(_create_).flush_results();
-		 } catch (std::runtime_error e) {
-		   std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << _name
-		 	<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n";
-		 }
-	   }
+	  auto&& DbQuery = static_cast<Sql<T>*>(__[0])->Query();
 	  std::cout << _create_;
+	  if constexpr (ce_is_pgsql) {
+		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
+		if (DbQuery(str_).template r__<int>() == 0) {
+		  DbQuery(_create_).flush_results();
+		}
+	  } else {
+		try {
+		  DbQuery(_create_).flush_results();
+		} catch (std::runtime_error e) {
+		  std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << _name
+			<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n";
+		}
+	  }
 	}
 	static void _dropTable() { static_cast<Sql<T>*>(__[0])->Query()(_drop_).flush_results(); }
   };
@@ -260,7 +268,7 @@ namespace orm {
   template<typename T> template<typename ... Args>
   typename Table<T>::ptr Table<T>::create(Args&& ... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
-	s.push_back('{'); char i = -1;
+	s.push_back('{'); int8_t i = -1;
 	ForEachField(dynamic_cast<T*>(c), [&i, c, &s](auto& t) {
 	  s.push_back('"'); s += c->$[++i];
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -297,3 +305,29 @@ namespace orm {
 	o << ']'; return o;
   }
 }
+/* @pgsql
+CREATE TABLE IF NOT EXISTS Type (
+id INTEGER PRIMARY KEY DEFAULT nextval('Type_id_seq'::regclass),
+language VARCHAR(255) DEFAULT 'c/c++'
+);
+CREATE SEQUENCE Type_id_seq
+As INTEGER
+START WITH 1
+INCREMENT BY 1
+NO MINVALUE
+NO MAXVALUE
+CACHE 1;
+CREATE TABLE IF NOT EXISTS Tab (
+id INTEGER PRIMARY KEY DEFAULT nextval('Tab_id_seq'::regclass),
+ok BOOLEAN NOT NULL DEFAULT true,
+name VARCHAR(30) DEFAULT 'nickname',
+date timestamp without time zone NOT NULL DEFAULT now()
+);
+CREATE SEQUENCE Tab_id_seq
+As INTEGER
+START WITH 1
+INCREMENT BY 1
+NO MINVALUE
+NO MAXVALUE
+CACHE 1;
+*/

@@ -39,6 +39,7 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #include <assert.h>
 #ifdef _WIN32
 #include <winsock2.h>
+#define _CRT_SECURE_NO_WARNINGS
 #else
 #include <arpa/inet.h>
 #endif
@@ -92,6 +93,35 @@ template<typename F> void Timer::setIntervalSec(F func, uint32_t seconds) {
 	}); t.detach();
 }
 void Timer::stop() { alive = false; }
+#ifdef _WIN32
+#include <WinNls.h>
+static char* UnicodeToUtf8(const char* str) {
+  LPCSTR pszSrc = str;
+  int nLen = MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, NULL, 0);
+  if (nLen == 0) return nullptr;
+  wchar_t* pwszDst = new wchar_t[nLen];
+  MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
+  std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = nullptr;
+  const wchar_t* unicode = wstr.c_str();
+  nLen = WideCharToMultiByte(CP_UTF8, 0, unicode, -1, NULL, 0, NULL, NULL);
+  char* szUtf8 = (char*)malloc(nLen + 1);
+  memset(szUtf8, 0, nLen + 1);
+  WideCharToMultiByte(CP_UTF8, 0, unicode, -1, szUtf8, nLen, NULL, NULL);
+  return szUtf8;
+}
+#else
+static char* UnicodeToUtf8(const char* str) {
+  if (NULL == str) return nullptr;
+  size_t destlen = mbstowcs(0, str, 0);
+  size_t size = destlen + 1;
+  wchar_t* pw = new wchar_t[size];
+  mbstowcs(pw, str, size);
+  size = wcslen(pw) * sizeof(wchar_t);
+  char* pc = (char*)malloc(size + 1); memset(pc, 0, size + 1);
+  destlen = wcstombs(pc, pw, size + 1);
+  pc[size] = 0; delete[] pw; pw = nullptr; return pc;
+}
+#endif
 namespace crow {
   template <typename T> struct is_tuple_after_decay : std::false_type {};
   template <typename... T> struct is_tuple_after_decay<std::tuple<T...>> : std::true_type {};
@@ -132,35 +162,6 @@ namespace crow {
   std::mutex type_hashmap<V>::mutex_;
   template <typename V>
   int type_hashmap<V>::counter_ = 0;
-#ifdef _WIN32
-#include <WinNls.h>
-  inline char* UnicodeToUtf8(const char* str) {
-	LPCSTR pszSrc = str;
-	int nLen = MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, NULL, 0);
-	if (nLen == 0) return nullptr;
-	wchar_t* pwszDst = new wchar_t[nLen];
-	MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
-	std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = nullptr;
-	const wchar_t* unicode = wstr.c_str();
-	nLen = WideCharToMultiByte(CP_UTF8, 0, unicode, -1, NULL, 0, NULL, NULL);
-	char* szUtf8 = (char*)malloc(nLen + 1);
-	memset(szUtf8, 0, nLen + 1);
-	WideCharToMultiByte(CP_UTF8, 0, unicode, -1, szUtf8, nLen, NULL, NULL);
-	return szUtf8;
-  }
-#else
-  inline char* UnicodeToUtf8(const char* str) {
-	if (NULL == str) return nullptr;
-	size_t destlen = mbstowcs(0, str, 0);
-	size_t size = destlen + 1;
-	wchar_t* pw = new wchar_t[size];
-	mbstowcs(pw, str, size);
-	size = wcslen(pw) * sizeof(wchar_t);
-	char* pc = (char*)malloc(size + 1); memset(pc, 0, size + 1);
-	destlen = wcstombs(pc, pw, size + 1);
-	pc[size] = 0; delete[] pw; pw = nullptr; return pc;
-  }
-#endif
   constexpr int count_first_falses() { return 0; }
   template <typename... B> constexpr int count_first_falses(bool b1, B... b) {
 	if (b1)
@@ -403,7 +404,6 @@ namespace crow {
 	long long int last_insert_id();
 	void flush_results();
 	std::shared_ptr<pgsql_connection_data> connection_;
-	int last_insert_id_ = -1;
 	int row_i_ = 0;
 	int current_result_nrows_ = 0;
 	PGresult* current_result_ = nullptr;
@@ -803,7 +803,7 @@ namespace crow {
 	inline ~sql_result() { this->flush_results(); }
 	inline void flush_results() { impl_.flush_results(); }
 
-	long long int last_insert_id() { return impl_.last_insert_id(); }
+	auto last_insert_id() { return impl_.last_insert_id(); }
 
 	template <typename T1, typename... T> auto r__();
 
@@ -1600,7 +1600,7 @@ namespace crow {
 
 	long long int affected_rows();
 
-	long long int last_insert_id();
+	unsigned long long last_insert_id();
 	void next_row();
 	template <typename... A>
 	void finalize_fetch(MYSQL_BIND* bind, unsigned long* real_lengths, std::tuple<A...>& o);
@@ -1712,7 +1712,7 @@ namespace crow {
 	  throw e;
 	}
   }
-  template <typename B> long long int mysql_statement_result<B>::last_insert_id() {
+  template <typename B> unsigned long long mysql_statement_result<B>::last_insert_id() {
 	return mysql_stmt_insert_id(data_.stmt_);
   }
 
@@ -1773,7 +1773,7 @@ namespace crow {
 
 	long long int affected_rows();
 
-	long long int last_insert_id();
+	unsigned long long last_insert_id();
   };
   template <typename B> inline void mysql_result<B>::next_row() {
 	if (!result_)
@@ -1940,7 +1940,7 @@ namespace crow {
   template <typename B> long long int mysql_result<B>::affected_rows() {
 	return mysql_affected_rows(connection_->connection_);
   }
-  template <typename B> long long int mysql_result<B>::last_insert_id() {
+  template <typename B> unsigned long long mysql_result<B>::last_insert_id() {
 	return mysql_insert_id(connection_->connection_);
   }
   struct mysql_connection_data; struct mysql_tag {};

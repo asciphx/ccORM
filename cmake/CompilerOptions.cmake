@@ -2,7 +2,7 @@
 
 if(MSVC)
   list(APPEND compiler_options 
-    $<$<CONFIG:RELEASE>:/O2 /Ob2>
+    $<$<CONFIG:RELEASE>:/Ox /Ob2>
     $<$<CONFIG:DEBUG>:/Zi /Ob0 /Od /RTC1>)
 
 else(MSVC)

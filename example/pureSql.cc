@@ -1,9 +1,8 @@
-﻿#include "../src/ccORM.hh"
+#include "../src/ccORM.hh"
 #include "generic_sql_tests.hh"
 auto d = D_mysql(); auto d1 = D_sqlite("test.db"); auto d2 = D_pgsql();
 using namespace crow; using namespace std;
 int main(int argc, char* argv[]) {
-  std::locale::global(std::locale("en_US.UTF8"));//设置系统为utf8编码
   json js = json::parse("{ \"state\": true, \"pi\": 3.1415926, \"name\": \"中文测试\" }");
   std::cout<<js<<std::endl;
   Timer t; int i = 0; t.setInterval([&i]() { cout << "After " << ++i << "s\n"; }, 1000);

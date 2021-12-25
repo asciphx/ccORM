@@ -7,6 +7,9 @@
 #define MAX_LIMIT 100
 namespace orm {
   enum class Sort { ASC, DESC };
+  constexpr bool ce_is_pgsql = std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>;
+  constexpr bool ce_is_mysql = std::is_same_v<decltype(D)::db_tag, crow::mysql_tag>;
+  constexpr bool ce_is_sqlite = std::is_same_v<decltype(D)::db_tag, crow::sqlite_tag>;
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
   template<typename T> struct Sql {
 	friend class Table<T>;
@@ -72,7 +75,7 @@ namespace orm {
 		if (!(T::_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  const char* def = T::_def_[i];
 		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			ov << t << ',';
+			if constexpr (ce_is_pgsql) { ov << (t ? "true" : "false") << ','; } else { ov << t << ','; }
 		  } if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -98,7 +101,7 @@ namespace orm {
 		if (!(T::_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  const char* def = T::_def_[i];
 		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			ov << t << ',';
+			if constexpr (ce_is_pgsql) { ov << (t ? "true" : "false") << ','; } else { ov << t << ','; }
 		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -115,14 +118,12 @@ namespace orm {
   }
 }//chrono::milliseconds(100)microseconds
 /*
-"SELECT u.id, u.account, u.name,u.photo, Role.id AS Role_id, Role.name AS Role_name FROM user u\
- LEFT JOIN user_role u_Role ON u_Role.user_id=u.id LEFT JOIN role Role\
- ON Role.id=u_Role.role_id  ORDER BY u.id"
-"SELECT USER.id, USER.account, USER.name,USER.photo, Role.id AS Role_id, Role.name AS Role_name FROM user USER\
- LEFT JOIN user_role u_Role ON u_Role.user_id=user.id LEFT JOIN role Role\
- ON Role.id=u_Role.role_id  ORDER BY user.id"
+"SELECT _.id, _.account, _.name,_.photo, Role.id AS Role_id, Role.name AS Role_name FROM USER _\
+ LEFT JOIN user_role u_Role ON u_Role.user_id=_.id LEFT JOIN role Role\
+ ON Role.id=u_Role.role_id  ORDER BY _.id"
+
 "SELECT `u`.`id` AS `u_id`, `u`.`account` AS `u_account`, `u`.`name` AS `u_name`,\
- `u`.`photo` AS `u_photo`, `Role`.`id` AS `Role_id`, `Role`.`name` AS `Role_name` FROM `user` `u`\
+ `u`.`photo` AS `u_photo`, `Role`.`id` AS `Role_id`, `Role`.`name` AS `Role_name` FROM `_` `u`\
  LEFT JOIN `user_role` `u_Role` ON `u_Role`.`user_id`=`u`.`id` LEFT JOIN `role` `Role`\
  ON `Role`.`id`=`u_Role`.`role_id`  ORDER BY `u`.`id`"
 */
