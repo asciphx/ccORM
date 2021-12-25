@@ -11,9 +11,9 @@ namespace orm {
 	  return std::dynamic_pointer_cast<T>(std::enable_shared_from_this<enable_virtual>::shared_from_this());
 	}
   };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
-  template<typename T> class Table : public virtual_shared<T> {/*Store (T.key,)... name*/ /*Store key name[]*/
+  template<typename T> class Table : public virtual_shared<T> { /*Store (T.key,)... name*/ /*Store key name[]*/
 	static const std::string _name, _drop_; static const unsigned char _size_; const static char* _ios_, * $[];//^
-	static bool _create_need; static unsigned char _idex; static std::string _create_; static const size_t _o$[];/*Store offset[]*/
+	static bool _created; static unsigned char _idex; static std::string _create_; static const size_t _o$[];/*Store offset[]*/
 #ifdef _WIN32
 	friend typename T; const static char* _def_[];/*Store default values[]*/static unsigned char _tc_[];/*Store key type[]*/
 #endif
@@ -59,8 +59,7 @@ namespace orm {
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
 		if (!(_tc_[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			if constexpr (ce_is_pgsql) { ov << (t ? "true" : "false") << ','; }
-			else { ov << t << ','; } os << T::$[i] << ',';
+			if constexpr (ce_is_pgsql) { ov << (t ? "true" : "false") << ','; } else { ov << t << ','; } os << T::$[i] << ',';
 		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			if (*((char*)&t)) { ov << t << ','; os << T::$[i] << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -75,8 +74,7 @@ namespace orm {
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str();
 	  if constexpr (ce_is_pgsql) { os << " RETURNING " << T::$[0] << ";"; } else { os << ";"; }
 	  crow::sql_result<decltype(D)::db_rs>&& rs = Q()->Query()(os.str());
-	  if (T::_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); }
-	  else if constexpr (ce_is_mysql) { return 0ULL; } else { return 0LL; }
+	  if (T::_tc_[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); } else if constexpr (ce_is_mysql) { return 0ULL; } else { return 0LL; }
 	}
 	//Update the object (The default condition is the value of the frist key)
 	void Update() {
@@ -95,7 +93,8 @@ namespace orm {
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition](auto& t) {
 		if (++i && !(T::_tc_[i] & TC::AUTO_INCREMENT)) {
 		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			if constexpr (ce_is_pgsql) { os << T::$[i] << '=' << (t ? "true" : "false") << ',';
+			if constexpr (ce_is_pgsql) {
+			  os << T::$[i] << '=' << (t ? "true" : "false") << ',';
 			} else { os << T::$[i] << '=' << t << ','; }
 		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 			os << T::$[i] << '=' << t << ',';
@@ -129,23 +128,47 @@ namespace orm {
 	  Q()->Query()(os.str());
 	}
 	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
-	  if (_create_need) {
-		_create_need = false;
+	  std::string _seq, _alt;//SEQUENCE and ALTER for pgsql(temporary design)
+	  if (_created) {
+		_created = false;
+		if (_tc_[0] & TC::PRIMARY_KEY || _tc_[0] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
+		  switch (hack8Str(_[0])) {
+		  case "signed char"_l: case 'a': case "short"_l: case 's': case 'int': case 'i': case "__int64"_l: case 'x':
+		  case "d char"_l: case 'h': case "d short"_l: case 't': case "d int"_l: case 'j': case "d __int64"_l: case 'y':
+		  break; default:throw std::runtime_error("\033[1;34m[sequence]\033[31;4m type must be number!\n\033[0m");
+		  }
+		}
 		for (uint8_t i = 0; i < _size_; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
 		  if (_[i][0] == 'S') { continue; }
 		  TC tc = (TC)_tc_[i]; const char* def = _def_[i];
 		  if (i)_create_ += ",\n"; _create_ += $[i];
 		  if constexpr (ce_is_pgsql) {
 			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {
+			  _alt = "ALTER SEQUENCE "; _alt += _name; _alt += "_"; _alt += $[i]; _alt += "_seq";
+			  _alt += " OWNED BY "; _alt += _name; _alt += "."; _alt += $[i]; _alt += ";";
+			  _seq = "CREATE SEQUENCE "; _seq += _name; _seq += "_"; _seq += $[i]; _seq += "_seq";
+			  _seq += "\nAs ";//Compatible layer, unsigned field may be only half the size(pg not support)
 			  switch (hack8Str(_[i])) {
-			  case "__int64"_l:
-			  case 'x': _create_ += " BIGSERIAL PRIMARY KEY"; break;
+			  case "signed char"_l:
+			  case 'a':
 			  case "short"_l:
-			  case 's': _create_ += " SMALLSERIAL PRIMARY KEY"; break;
+			  case 's': _seq += "SMALLINT"; _create_ += " SMALLINT"; break;
 			  case 'int':
-			  case 'i': _create_ += " SERIAL PRIMARY KEY"; break;
-			  default:;
-			  } continue;
+			  case 'i': _seq += "INTEGER"; _create_ += " INTEGER"; break;
+			  case "__int64"_l:
+			  case 'x': _seq += "BIGINT"; _create_ += " BIGINT"; break;
+			  case "d char"_l:
+			  case 'h':
+			  case "d short"_l:
+			  case 't': _seq += "SMALLINT"; _create_ += " SMALLINT"; break;
+			  case "d int"_l:
+			  case 'j': _seq += "INTEGER"; _create_ += " INTEGER"; break;
+			  case "d __int64"_l:
+			  case 'y': _seq += "BIGINT"; _create_ += " BIGINT"; break;
+			  }
+			  _create_ += " PRIMARY KEY DEFAULT nextval('"; _create_ += _name; _create_.push_back('_');
+			  _create_ += $[i]; _create_ += "_seq'::regclass)";
+			  _seq += "\nSTART WITH 1\nINCREMENT BY 1\nNO MINVALUE\nNO MAXVALUE\nCACHE 1;"; continue;
 			}
 		  }
 		  switch (hack8Str(_[i])) {
@@ -162,9 +185,7 @@ namespace orm {
 		  case "float"_l:
 		  case 'f': _create_ += " REAL"; goto $;
 		  case "signed char"_l:
-		  case 'a': if constexpr (ce_is_pgsql) {
-			_create_ += " SMALLINT"; goto $;
-		  } else { _create_ += " TINYINT"; } break;
+		  case 'a': _create_ += " TINYINT"; break;
 		  case "short"_l:
 		  case 's': _create_ += " SMALLINT"; break;
 		  case 'int':
@@ -190,19 +211,19 @@ namespace orm {
 		  case "NSt7__cx"_l: _create_ += " TEXT"; goto $;
 		  case "d char"_l://uint8_t,pgsql not support UNSIGNED
 		  case 'h': if constexpr (ce_is_pgsql) {
-			_create_ += " BOOLEAN";
+			_create_ += " UNSIGNED_TINYINT";
 		  } else { _create_ += " UNSIGNED TINYINT"; } break;
 		  case "d short"_l:
 		  case 't': if constexpr (ce_is_pgsql) {
-			_create_ += " SMALLINT"; goto $;
+			_create_ += " UNSIGNED_SMALLINT"; goto $;
 		  } else { _create_ += " UNSIGNED SMALLINT"; } break;
 		  case "d int"_l:
 		  case 'j': if constexpr (ce_is_pgsql) {
-			_create_ += " INTEGER"; goto $;
+			_create_ += " UNSIGNED_INTEGER"; goto $;
 		  } else { _create_ += " UNSIGNED INTEGER"; } break;
 		  case "d __int64"_l://PgSQL may be difficult to handle
 		  case 'y': if constexpr (ce_is_pgsql) {
-			_create_ += " BIGINT"; goto $;
+			_create_ += " UNSIGNED_BIGINT"; goto $;
 		  } else { _create_ += " UNSIGNED BIGINT"; } break;
 		  }
 		  if constexpr (ce_is_sqlite) {
@@ -249,9 +270,10 @@ namespace orm {
 	  auto&& DbQuery = static_cast<Sql<T>*>(__[0])->Query();
 	  std::cout << _create_;
 	  if constexpr (ce_is_pgsql) {
+		std::cout << _alt << '\n';
 		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
 		if (DbQuery(str_).template r__<int>() == 0) {
-		  DbQuery(_create_).flush_results();
+		  DbQuery(_seq); DbQuery(_create_); DbQuery(_alt).flush_results();
 		}
 	  } else {
 		try {
@@ -305,29 +327,3 @@ namespace orm {
 	o << ']'; return o;
   }
 }
-/* @pgsql
-CREATE TABLE IF NOT EXISTS Type (
-id INTEGER PRIMARY KEY DEFAULT nextval('Type_id_seq'::regclass),
-language VARCHAR(255) DEFAULT 'c/c++'
-);
-CREATE SEQUENCE Type_id_seq
-As INTEGER
-START WITH 1
-INCREMENT BY 1
-NO MINVALUE
-NO MAXVALUE
-CACHE 1;
-CREATE TABLE IF NOT EXISTS Tab (
-id INTEGER PRIMARY KEY DEFAULT nextval('Tab_id_seq'::regclass),
-ok BOOLEAN NOT NULL DEFAULT true,
-name VARCHAR(30) DEFAULT 'nickname',
-date timestamp without time zone NOT NULL DEFAULT now()
-);
-CREATE SEQUENCE Tab_id_seq
-As INTEGER
-START WITH 1
-INCREMENT BY 1
-NO MINVALUE
-NO MAXVALUE
-CACHE 1;
-*/

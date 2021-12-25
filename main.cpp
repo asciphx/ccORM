@@ -11,9 +11,10 @@ void test() {
   *t = json::parse(R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "go programing"; cout << t << '\n';
-  cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
+  //cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
   cout << Tab::Q()->$()->GetArr();
-  t->Delete();//删除
+  //t->Delete();//删除
+  //Type ty{1, "sdgsad"}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
 }
 int main() {
   InitializationOrm<Type, Tab>();//初始化建表语句和创建索引

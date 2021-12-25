@@ -13,11 +13,11 @@ namespace orm {
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
   template<typename T> struct Sql {
 	friend class Table<T>;
-	Sql<T>() : sql_("SELECT ") {}
+	Sql<T>() : sql_("SELECT "), ob_(" ORDER BY _.") { ob_ += T::$[0]; }
 	~Sql<T>() {}
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
-	inline Sql<T>* orderBy(const std::string& col, const Sort& ord = Sort::ASC);
+	inline Sql<T>* orderBy(const text<31>& col, const Sort& ord = Sort::ASC);
 	//select <_.?,>... from <T> _;
 	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; sql_.push_back(' '); sql_.push_back('_'); return this; };
 	template <typename... K>
@@ -32,14 +32,14 @@ namespace orm {
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
-  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_; bool prepare_{ true };
-		 inline void clear() { sql_ = "SELECT "; limit_ = 10; offset_ = 0; prepare_ = true; }
+  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true }, has_ob_{ false };
+		 inline void clear() { sql_ = "SELECT "; ob_ = " ORDER BY _."; ob_ += T::$[0]; limit_ = 10; offset_ = 0; prepare_ = true; has_ob_ = false; }
   };
   template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
-  template<typename T> Sql<T>* Sql<T>::orderBy(const std::string& col, const Sort& ord) {
-	sql_ += " ORDER BY " + col; if (ord == Sort::DESC)sql_ += " DESC"; return this;
-	//sql_.push_back(','); sql_ += col; if (ord == Sort::DESC)sql_ += " DESC";
+  template<typename T> Sql<T>* Sql<T>::orderBy(const text<31>& col, const Sort& ord) {
+	assert(strcmp(col.c_str(), T::$[0])!=0); ob_.push_back(','); ob_.push_back('_'); ob_.push_back('.'); ob_ += col.c_str();
+	if (ord == Sort::DESC)ob_ += " DESC"; has_ob_ = true; return this;
   }
   template<typename T>
   void Sql<T>::setFields(std::string& os, const text<31>& val) { os.push_back('_'); os.push_back('.'); os += val.c_str(); os.push_back(','); };
@@ -55,7 +55,7 @@ namespace orm {
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& str) { sql_ += " WHERE "; sql_ += str.c_str(); return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> std::vector<T> Sql<T>::GetArr()noexcept(false) {
-	std::string sql(sql_); sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
+	std::string sql(sql_); sql += ob_; sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
 	if (offset_ > 0) { sql += " OFFSET " + std::to_string(offset_); } this->clear();// std::cout << sql << '\n';
 	return D.conn()(sql).template findArray<T>();
   }

@@ -2,7 +2,7 @@
 #include "src/Table.hpp"
 using namespace std; using namespace orm;
 Struct(Type) {
-  int id;
+  uint32_t id;
   text<10> language;
   Type(uint32_t a = 0, const char* b = "") :
 	id(a), language(b) {}
@@ -14,7 +14,7 @@ REGIST_PROTO(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "c/c++");
 Struct(Tab) {
-  int id;
+  uint32_t id;
   bool ok;
   text<15> name;
   tm date;

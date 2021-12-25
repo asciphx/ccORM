@@ -17,7 +17,7 @@
 #include <stdexcept>
 #include "json.hpp"
 namespace orm {
-  static const unsigned int HARDWARE_ASYNCHRONOUS = 0x6;//It is best to set the maximum number of threads
+  static const unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
   inline std::string DuckTyping(const tm& _v) {
 	std::ostringstream os; os << std::setfill('0');
 #ifdef _WIN32
@@ -306,7 +306,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> std::string orm::Table<o>::_create_ = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
 	template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
 	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
-	template<> bool orm::Table<o>::_create_need = true;
+	template<> bool orm::Table<o>::_created = true;
 
 #define CONSTRUCT(o,...)\
         ATTRS(o,__VA_ARGS__)\

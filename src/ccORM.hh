@@ -550,11 +550,11 @@ namespace crow {
 	  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
 		t = val == nullptr ? (uint8_t)0 : boost::lexical_cast<short>(val); break;
 	  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0 : boost::lexical_cast<uint16_t>(val); break;
+		t = val == nullptr ? 0 : ntohs(*((uint16_t*)val)); break;
 	  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0 : boost::lexical_cast<uint32_t>(val); break;
+		t = val == nullptr ? 0 : ntohl(*((uint32_t*)val)); break;
 	  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0 : boost::lexical_cast<uint64_t>(val); break;
+		t = val == nullptr ? 0ULL : be64toh(*((uint64_t*)val)); break;
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
 		t = val == nullptr ? "" : val; break;
@@ -607,11 +607,11 @@ namespace crow {
 		} else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
 		  t = val == nullptr ? (uint8_t)0 : boost::lexical_cast<short>(val); break;
 		} else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0 : boost::lexical_cast<uint16_t>(val); break;
+		  t = val == nullptr ? 0 : ntohs(*((uint16_t*)val)); break;
 		} else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0 : boost::lexical_cast<uint32_t>(val); break;
+		  t = val == nullptr ? 0 : ntohl(*((uint32_t*)val)); break;
 		} else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0 : boost::lexical_cast<uint64_t>(val); break;
+		  t = val == nullptr ? 0ULL : be64toh(*((uint64_t*)val)); break;
 		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
 		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
 		  t = val == nullptr ? "" : val; break;
