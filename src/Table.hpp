@@ -209,22 +209,22 @@ namespace orm {
 		  case "4textILt"_l: {_create_ += " VARCHAR("; int c = 8; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
 		  case "class std::basic_string"_l:
 		  case "NSt7__cx"_l: _create_ += " TEXT"; goto $;
-		  case "d char"_l://uint8_t,pgsql not support UNSIGNED
-		  case 'h': if constexpr (ce_is_pgsql) {
-			_create_ += " UNSIGNED_TINYINT";
-		  } else { _create_ += " UNSIGNED TINYINT"; } break;
+		  case "d char"_l://uint8_t,sqlite not support UNSIGNED, PgSQL can use CREATE DOMAIN
+		  case 'h': if constexpr (ce_is_pgsql) { _create_ += " UNSIGNED_TINYINT";
+		  } else if constexpr (ce_is_mysql) { _create_ += " TINYINT UNSIGNED"; }
+		  else { _create_ += " TINYINT"; } break;
 		  case "d short"_l:
-		  case 't': if constexpr (ce_is_pgsql) {
-			_create_ += " UNSIGNED_SMALLINT"; goto $;
-		  } else { _create_ += " UNSIGNED SMALLINT"; } break;
+		  case 't': if constexpr (ce_is_pgsql) { _create_ += " UNSIGNED_SMALLINT";
+		  } else if constexpr (ce_is_mysql) { _create_ += " SMALLINT UNSIGNED"; }
+		  else { _create_ += " SMALLINT"; } break;
 		  case "d int"_l:
-		  case 'j': if constexpr (ce_is_pgsql) {
-			_create_ += " UNSIGNED_INTEGER"; goto $;
-		  } else { _create_ += " UNSIGNED INTEGER"; } break;
-		  case "d __int64"_l://PgSQL may be difficult to handle
-		  case 'y': if constexpr (ce_is_pgsql) {
-			_create_ += " UNSIGNED_BIGINT"; goto $;
-		  } else { _create_ += " UNSIGNED BIGINT"; } break;
+		  case 'j': if constexpr (ce_is_pgsql) { _create_ += " UNSIGNED_INTEGER";
+		  } else if constexpr (ce_is_mysql) { _create_ += " INTEGER UNSIGNED"; }
+		  else { _create_ += " INTEGER"; } break;
+		  case "d __int64"_l://PgSQL,sqlite may be difficult to handle
+		  case 'y': if constexpr (ce_is_pgsql) { _create_ += " UNSIGNED_BIGINT";
+		  } else if constexpr (ce_is_mysql) { _create_ += " BIGINT UNSIGNED"; }
+		  else { _create_ += " BIGINT"; } break;
 		  }
 		  if constexpr (ce_is_sqlite) {
 			if (tc & TC::PRIMARY_KEY || (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT)) { _create_ += " PRIMARY KEY"; }

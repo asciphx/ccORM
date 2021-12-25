@@ -32,14 +32,14 @@ namespace orm {
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
-  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true }, has_ob_{ false };
-		 inline void clear() { sql_ = "SELECT "; ob_ = " ORDER BY _."; ob_ += T::$[0]; limit_ = 10; offset_ = 0; prepare_ = true; has_ob_ = false; }
+  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true };
+		 inline void clear() { sql_ = "SELECT "; ob_ = " ORDER BY _."; ob_ += T::$[0]; limit_ = 10; offset_ = 0; prepare_ = true; }
   };
   template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
   template<typename T> Sql<T>* Sql<T>::orderBy(const text<31>& col, const Sort& ord) {
 	assert(strcmp(col.c_str(), T::$[0])!=0); ob_.push_back(','); ob_.push_back('_'); ob_.push_back('.'); ob_ += col.c_str();
-	if (ord == Sort::DESC)ob_ += " DESC"; has_ob_ = true; return this;
+	if (ord == Sort::DESC)ob_ += " DESC"; return this;
   }
   template<typename T>
   void Sql<T>::setFields(std::string& os, const text<31>& val) { os.push_back('_'); os.push_back('.'); os += val.c_str(); os.push_back(','); };
