@@ -12,9 +12,10 @@ void test() {
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "go programing"; cout << t << '\n';
   //cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
-  cout << Tab::Q()->$()->GetArr();
+  //cout << Tab::Q()->$()->GetArr();
   //t->Delete();//删除
-  //Type ty{1, "sdgsad"}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
+  //Type ty{1, "sdgsad", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
+  cout << Type::Q()->$()->where(Type::$id > 0)->GetArr();
 }
 int main() {
   InitializationOrm<Type, Tab>();//初始化建表语句和创建索引

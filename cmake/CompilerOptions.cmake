@@ -2,7 +2,7 @@
 
 if(MSVC)
   list(APPEND compiler_options 
-    $<$<CONFIG:RELEASE>:/Ox /Ob2>
+    $<$<CONFIG:RELEASE>:/O3 /Ob2>
     $<$<CONFIG:DEBUG>:/Zi /Ob0 /Od /RTC1>)
 
 else(MSVC)
@@ -13,6 +13,6 @@ else(MSVC)
     -pg
     -fexec-charset=utf-8
     -finput-charset=utf-8
-    $<$<CONFIG:RELEASE>:-O2>
+    $<$<CONFIG:RELEASE>:-O3>
     $<$<CONFIG:DEBUG>:-p>)
 endif()

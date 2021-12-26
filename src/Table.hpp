@@ -141,12 +141,13 @@ namespace orm {
 		for (uint8_t i = 0; i < _size_; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
 		  if (_[i][0] == 'S') { continue; }
 		  TC tc = (TC)_tc_[i]; const char* def = _def_[i];
-		  if (i)_create_ += ",\n"; _create_ += $[i];
+		  if (i)_create_ += ",\n";
 		  if constexpr (ce_is_pgsql) {
+			_create_.push_back('"'); _create_ += $[i]; _create_.push_back('"');
 			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {
-			  _alt = "ALTER SEQUENCE "; _alt += _name; _alt += "_"; _alt += $[i]; _alt += "_seq";
-			  _alt += " OWNED BY "; _alt += _name; _alt += "."; _alt += $[i]; _alt += ";";
-			  _seq = "CREATE SEQUENCE "; _seq += _name; _seq += "_"; _seq += $[i]; _seq += "_seq";
+			  _alt = "ALTER SEQUENCE "; _alt += _name; _alt.push_back('_'); _alt += $[i]; _alt += "_seq";
+			  _alt += " OWNED BY "; _alt += _name; _alt.push_back('.'); _alt += $[i]; _alt += ";";
+			  _seq = "CREATE SEQUENCE "; _seq += _name; _seq.push_back('_'); _seq += $[i]; _seq += "_seq";
 			  _seq += "\nAs ";//Compatible layer, unsigned field may be only half the size(pg not support)
 			  switch (hack8Str(_[i])) {
 			  case "signed char"_l:
@@ -170,7 +171,9 @@ namespace orm {
 			  _create_ += $[i]; _create_ += "_seq'::regclass)";
 			  _seq += "\nSTART WITH 1\nINCREMENT BY 1\nNO MINVALUE\nNO MAXVALUE\nCACHE 1;"; continue;
 			}
-		  }
+		  } else if constexpr (ce_is_sqlite) {//AUTOINCREMENT is only allowed on an INTEGER PRIMARY KEY
+			_create_ += $[i]; if (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT) { _create_ += " INTEGER PRIMARY KEY AUTOINCREMENT"; continue; }
+		  } else { _create_ += $[i]; }
 		  switch (hack8Str(_[i])) {
 		  case 'bool':
 		  case 'b': _create_ += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
@@ -180,8 +183,8 @@ namespace orm {
 					  _create_.push_back('1');
 					} else { _create_.push_back('0'); } _create_.push_back('\'');
 				  } continue;
-		  case "double"_l:
-		  case 'd': _create_ += " DECIMAL(12,3)"; goto $;
+		  case "double"_l://or DECIMAL(16,6), Because the decimal places of double are only 6 in C++
+		  case 'd': if constexpr (ce_is_pgsql) { _create_ += " DOUBLE PRECISION"; } else { _create_ += " DOUBLE"; } goto $;
 		  case "float"_l:
 		  case 'f': _create_ += " REAL"; goto $;
 		  case "signed char"_l:
@@ -227,7 +230,7 @@ namespace orm {
 		  else { _create_ += " BIGINT"; } break;
 		  }
 		  if constexpr (ce_is_sqlite) {
-			if (tc & TC::PRIMARY_KEY || (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT)) { _create_ += " PRIMARY KEY"; }
+			if (tc & TC::PRIMARY_KEY) _create_ += " PRIMARY KEY";
 		  }
 		  if constexpr (ce_is_mysql) {
 			if (tc & TC::PRIMARY_KEY) _create_ += " PRIMARY KEY"; if (tc & TC::AUTO_INCREMENT) _create_ += " AUTO_INCREMENT";

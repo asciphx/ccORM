@@ -2,17 +2,19 @@
 #include "src/Table.hpp"
 using namespace std; using namespace orm;
 Struct(Type) {
-  uint32_t id;
+  uint8_t id;
   text<10> language;
-  Type(uint32_t a = 0, const char* b = "") :
-	id(a), language(b) {}
-  FIELD(id, language)
+  double bigBlob;
+  Type(uint8_t a = 0, const char* b = "", double c = 0) :
+	id(a), language(b), bigBlob(c) {}
+  FIELD(id, language, bigBlob)
 };
-CONSTRUCT(Type, id, language)
-PROTO(Type, id, language)
+CONSTRUCT(Type, id, language, bigBlob)
+PROTO(Type, id, language, bigBlob)
 REGIST_PROTO(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
-  TC::DEFAULT, "c/c++");
+  TC::DEFAULT, "c/c++",
+  TC::EMPTY, "");
 Struct(Tab) {
   uint32_t id;
   bool ok;

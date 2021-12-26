@@ -36,11 +36,11 @@ namespace orm {
 	if (ce_is_pgsql) {
 	  auto&& DbQuery = D.conn();//auto support tinyint and unsigned fields.
 	  if (DbQuery("SELECT count(*) FROM pg_type WHERE typname = 'tinyint';").template r__<int>() == 0) {
-		DbQuery("CREATE DOMAIN TINYINT AS int2 CHECK(VALUE > -128 AND VALUE < 128);");
-		DbQuery("CREATE DOMAIN UNSIGNED_TINYINT AS int2 CHECK(VALUE >= 0 AND VALUE < 256);");
-		DbQuery("CREATE DOMAIN UNSIGNED_SMALLINT AS int4 CHECK(VALUE >= 0 AND VALUE < 65536);");
-		DbQuery("CREATE DOMAIN UNSIGNED_INTEGER AS int8 CHECK(VALUE >= 0 AND VALUE < 4294967296);");
-		DbQuery("CREATE DOMAIN UNSIGNED_BIGINT AS int8 CHECK(VALUE >= 0 AND VALUE <= 18446744073709551615);").flush_results();
+		DbQuery("CREATE DOMAIN TINYINT AS int2 CHECK(VALUE > -129 AND VALUE < 128);");
+		DbQuery("CREATE DOMAIN UNSIGNED_TINYINT AS int2 CHECK(VALUE > -1 AND VALUE < 256);");
+		DbQuery("CREATE DOMAIN UNSIGNED_SMALLINT AS int4 CHECK(VALUE > -1 AND VALUE < 65536);");
+		DbQuery("CREATE DOMAIN UNSIGNED_INTEGER AS int8 CHECK(VALUE > -1 AND VALUE < 4294967296);");
+		DbQuery("CREATE DOMAIN UNSIGNED_BIGINT AS int8 CHECK(VALUE > -1);").flush_results();// AND VALUE <= 18446744073709551615
 	  }
 	}
 	(void)std::initializer_list<int>{(regist<Args>(), 0)...};
