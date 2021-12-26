@@ -41,6 +41,12 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #include <winsock2.h>
 #define _CRT_SECURE_NO_WARNINGS
 #else
+inline float ntohf(uint32_t Value) {
+  return __builtin_bswap32(Value);
+}
+inline float ntohd(uint64_t Value) {
+  return __builtin_bswap64(Value);
+}
 #include <arpa/inet.h>
 #endif
 #if __APPLE__

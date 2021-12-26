@@ -207,7 +207,7 @@ namespace orm {
 			} else if constexpr (ce_is_pgsql) {
 			  _create_ += " DEFAULT now()";
 			} else { _create_ += " DEFAULT CURRENT_TIMESTAMP"; }
-		  } continue;//1ÖÐÎÄ=3×Ö½Ú
+		  } continue;//1ä¸­æ–‡=3å­—èŠ‚
 		  case "class text"_l: {_create_ += " VARCHAR("; short c = 0xb, d = 0; while (_[i][c] < 58) { d += 9 * d + (short)(_[i][c++] - 0x30); }
 							 if constexpr (ce_is_sqlite) { _create_ += std::to_string(d); } else { _create_ += std::to_string(d / 3 + (d % 3 ? 1 : 0)); }
 							 _create_.push_back(41); } goto $;//In PgSQL or mysql, the length of utf8 unit byte is 3 (default to UTF-8)

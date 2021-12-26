@@ -73,6 +73,9 @@ inline const char* GetRealType(const char* s) {
   if (s[11] == 118) { return "S"; } if (s[0] == 117) { return s + 7; } return s;
 }
 #define InjectTS(U, T) GetRealType(typeid(U::T).name())
+#define TO_CHAR "\""
+#define FOR_CHAR "`"
+#define IOS_(o,a,k) o##a#k##a
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
@@ -80,6 +83,9 @@ inline const char* GetRealType(const char* s, const char* c) {
   unsigned char l = strLen(s); l > 9 ? l += 3 : l += 2; return c + l;
 }
 #define InjectTS(U, T) GetRealType(#U,typeid(&U::T).name())
+#define TO_CHAR "
+#define FOR_CHAR `
+#define IOS_(o,a,k) o#a#k#a
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
 #endif
@@ -407,38 +413,38 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define FIELD(...)\
         FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 //select * FROM => select (表.字段,)... FROM
-#define IOS_1(o,a,k)      o##a#k##a" FROM "
-#define IOS_2(o,a,k,...)  o##a#k##a"," EXP(IOS_1(o,a,__VA_ARGS__))
-#define IOS_3(o,a,k,...)  o##a#k##a"," EXP(IOS_2(o,a,__VA_ARGS__))
-#define IOS_4(o,a,k,...)  o##a#k##a"," EXP(IOS_3(o,a,__VA_ARGS__))
-#define IOS_5(o,a,k,...)  o##a#k##a"," EXP(IOS_4(o,a,__VA_ARGS__))
-#define IOS_6(o,a,k,...)  o##a#k##a"," EXP(IOS_5(o,a,__VA_ARGS__))
-#define IOS_7(o,a,k,...)  o##a#k##a"," EXP(IOS_6(o,a,__VA_ARGS__))
-#define IOS_8(o,a,k,...)  o##a#k##a"," EXP(IOS_7(o,a,__VA_ARGS__))
-#define IOS_9(o,a,k,...)  o##a#k##a"," EXP(IOS_8(o,a,__VA_ARGS__))
-#define IOS_10(o,a,k,...) o##a#k##a"," EXP(IOS_9(o,a,__VA_ARGS__))
-#define IOS_11(o,a,k,...) o##a#k##a"," EXP(IOS_10(o,a,__VA_ARGS__))
-#define IOS_12(o,a,k,...) o##a#k##a"," EXP(IOS_11(o,a,__VA_ARGS__))
-#define IOS_13(o,a,k,...) o##a#k##a"," EXP(IOS_12(o,a,__VA_ARGS__))
-#define IOS_14(o,a,k,...) o##a#k##a"," EXP(IOS_13(o,a,__VA_ARGS__))
-#define IOS_15(o,a,k,...) o##a#k##a"," EXP(IOS_14(o,a,__VA_ARGS__))
-#define IOS_16(o,a,k,...) o##a#k##a"," EXP(IOS_15(o,a,__VA_ARGS__))
-#define IOS_17(o,a,k,...) o##a#k##a"," EXP(IOS_16(o,a,__VA_ARGS__))
-#define IOS_18(o,a,k,...) o##a#k##a"," EXP(IOS_17(o,a,__VA_ARGS__))
-#define IOS_19(o,a,k,...) o##a#k##a"," EXP(IOS_18(o,a,__VA_ARGS__))
-#define IOS_20(o,a,k,...) o##a#k##a"," EXP(IOS_19(o,a,__VA_ARGS__))
-#define IOS_21(o,a,k,...) o##a#k##a"," EXP(IOS_20(o,a,__VA_ARGS__))
-#define IOS_22(o,a,k,...) o##a#k##a"," EXP(IOS_21(o,a,__VA_ARGS__))
-#define IOS_23(o,a,k,...) o##a#k##a"," EXP(IOS_22(o,a,__VA_ARGS__))
-#define IOS_24(o,a,k,...) o##a#k##a"," EXP(IOS_23(o,a,__VA_ARGS__))
-#define IOS_25(o,a,k,...) o##a#k##a"," EXP(IOS_24(o,a,__VA_ARGS__))
-#define IOS_26(o,a,k,...) o##a#k##a"," EXP(IOS_25(o,a,__VA_ARGS__))
-#define IOS_27(o,a,k,...) o##a#k##a"," EXP(IOS_26(o,a,__VA_ARGS__))
-#define IOS_28(o,a,k,...) o##a#k##a"," EXP(IOS_27(o,a,__VA_ARGS__))
-#define IOS_29(o,a,k,...) o##a#k##a"," EXP(IOS_28(o,a,__VA_ARGS__))
-#define IOS_30(o,a,k,...) o##a#k##a"," EXP(IOS_29(o,a,__VA_ARGS__))
-#define IOS_31(o,a,k,...) o##a#k##a"," EXP(IOS_30(o,a,__VA_ARGS__))
-#define IOS_32(o,a,k,...) o##a#k##a"," EXP(IOS_31(o,a,__VA_ARGS__))
+#define IOS_1(o,a,k)      IOS_(o,a,k)" FROM "
+#define IOS_2(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
+#define IOS_3(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_2(o,a,__VA_ARGS__))
+#define IOS_4(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_3(o,a,__VA_ARGS__))
+#define IOS_5(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_4(o,a,__VA_ARGS__))
+#define IOS_6(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_5(o,a,__VA_ARGS__))
+#define IOS_7(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_6(o,a,__VA_ARGS__))
+#define IOS_8(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_7(o,a,__VA_ARGS__))
+#define IOS_9(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_8(o,a,__VA_ARGS__))
+#define IOS_10(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_9(o,a,__VA_ARGS__))
+#define IOS_11(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_10(o,a,__VA_ARGS__))
+#define IOS_12(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_11(o,a,__VA_ARGS__))
+#define IOS_13(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_12(o,a,__VA_ARGS__))
+#define IOS_14(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_13(o,a,__VA_ARGS__))
+#define IOS_15(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_14(o,a,__VA_ARGS__))
+#define IOS_16(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_15(o,a,__VA_ARGS__))
+#define IOS_17(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_16(o,a,__VA_ARGS__))
+#define IOS_18(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_17(o,a,__VA_ARGS__))
+#define IOS_19(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_18(o,a,__VA_ARGS__))
+#define IOS_20(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_19(o,a,__VA_ARGS__))
+#define IOS_21(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_20(o,a,__VA_ARGS__))
+#define IOS_22(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_21(o,a,__VA_ARGS__))
+#define IOS_23(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_22(o,a,__VA_ARGS__))
+#define IOS_24(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_23(o,a,__VA_ARGS__))
+#define IOS_25(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_24(o,a,__VA_ARGS__))
+#define IOS_26(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_25(o,a,__VA_ARGS__))
+#define IOS_27(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_26(o,a,__VA_ARGS__))
+#define IOS_28(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_27(o,a,__VA_ARGS__))
+#define IOS_29(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_28(o,a,__VA_ARGS__))
+#define IOS_30(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_29(o,a,__VA_ARGS__))
+#define IOS_31(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_30(o,a,__VA_ARGS__))
+#define IOS_32(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_31(o,a,__VA_ARGS__))
 #define IOS_N1(o,a,N,...) EXP(IOS_##N(o,a,__VA_ARGS__))
 #define IOS_N(o,a,N,...) IOS_N1(o,a,N,__VA_ARGS__)
 #define PRO_1(t,k)      const text<31> t::$##k = #k;
@@ -479,7 +485,7 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define PROTO(o,...)\
         PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
 static const char* o##_ios__() {\
-if constexpr (ce_is_pgsql) { return IOS_N("_.", "\"", NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
-else {return IOS_N("_.", "`", NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
+if constexpr (ce_is_pgsql) { return IOS_N("_.", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
+else {return IOS_N("_.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
 template<> const char* orm::Table<o>::_ios_=o##_ios__();
 #endif
