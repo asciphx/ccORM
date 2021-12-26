@@ -14,7 +14,7 @@ void test() {
   //cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
   //cout << Tab::Q()->$()->GetArr();
   //t->Delete();//删除
-  //Type ty{1, "sdgsad", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
+  //Type ty{1, "wwzzgg", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
   cout << Type::Q()->$()->where(Type::$id > 0)->GetArr();
 }
 int main() {

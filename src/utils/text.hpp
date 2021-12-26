@@ -4,8 +4,8 @@
 #include <assert.h>
 #include <iostream>
 #include <iosfwd>
-#include "./str.h"
-template<unsigned short I = 255>//Max [65535(char),21845(utf8)], Min 1
+#include "./str.h"//If it is utf8, please set three times the length,1中文=3字节
+template<unsigned short I = 255>//Max [65535(char),21845(utf8)], Min 1.
 class text {
   unsigned short l = I; char* _ = new char[I + 1];
   friend std::string& operator<<(std::string& s, text<I>& c) {

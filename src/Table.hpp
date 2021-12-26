@@ -207,27 +207,31 @@ namespace orm {
 			} else if constexpr (ce_is_pgsql) {
 			  _create_ += " DEFAULT now()";
 			} else { _create_ += " DEFAULT CURRENT_TIMESTAMP"; }
-		  } continue;
-		  case "class text"_l: {_create_ += " VARCHAR("; int c = 11; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
-		  case "4textILt"_l: {_create_ += " VARCHAR("; int c = 8; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
+		  } continue;//1ÖÐÎÄ=3×Ö½Ú
+		  case "class text"_l: {_create_ += " VARCHAR("; short c = 0xb, d = 0; while (_[i][c] < 58) { d += 9 * d + (short)(_[i][c++] - 0x30); }
+							 if constexpr (ce_is_sqlite) { _create_ += std::to_string(d); } else { _create_ += std::to_string(d / 3 + (d % 3 ? 1 : 0)); }
+							 _create_.push_back(41); } goto $;//In PgSQL or mysql, the length of utf8 unit byte is 3 (default to UTF-8)
+		  case "4textILt"_l: {_create_ += " VARCHAR("; short c = 8, d = 0; while (_[i][c] < 58) { d += 9 * d + (short)(_[i][c++] - 0x30); }
+						   if constexpr (ce_is_sqlite) { _create_ += std::to_string(d); } else { _create_ += std::to_string(d / 3 + (d % 3 ? 1 : 0)); }
+						   _create_.push_back(41); } goto $;//SQLite default code set always is utf8, but the minimum unit is 1
 		  case "class std::basic_string"_l:
 		  case "NSt7__cx"_l: _create_ += " TEXT"; goto $;
 		  case "d char"_l://uint8_t,sqlite not support UNSIGNED, PgSQL can use CREATE DOMAIN
-		  case 'h': if constexpr (ce_is_pgsql) { _create_ += " UNSIGNED_TINYINT";
-		  } else if constexpr (ce_is_mysql) { _create_ += " TINYINT UNSIGNED"; }
-		  else { _create_ += " TINYINT"; } break;
+		  case 'h': if constexpr (ce_is_pgsql) {
+			_create_ += " UNSIGNED_TINYINT";
+		  } else if constexpr (ce_is_mysql) { _create_ += " TINYINT UNSIGNED"; } else { _create_ += " TINYINT"; } break;
 		  case "d short"_l:
-		  case 't': if constexpr (ce_is_pgsql) { _create_ += " UNSIGNED_SMALLINT";
-		  } else if constexpr (ce_is_mysql) { _create_ += " SMALLINT UNSIGNED"; }
-		  else { _create_ += " SMALLINT"; } break;
+		  case 't': if constexpr (ce_is_pgsql) {
+			_create_ += " UNSIGNED_SMALLINT";
+		  } else if constexpr (ce_is_mysql) { _create_ += " SMALLINT UNSIGNED"; } else { _create_ += " SMALLINT"; } break;
 		  case "d int"_l:
-		  case 'j': if constexpr (ce_is_pgsql) { _create_ += " UNSIGNED_INTEGER";
-		  } else if constexpr (ce_is_mysql) { _create_ += " INTEGER UNSIGNED"; }
-		  else { _create_ += " INTEGER"; } break;
+		  case 'j': if constexpr (ce_is_pgsql) {
+			_create_ += " UNSIGNED_INTEGER";
+		  } else if constexpr (ce_is_mysql) { _create_ += " INTEGER UNSIGNED"; } else { _create_ += " INTEGER"; } break;
 		  case "d __int64"_l://PgSQL,sqlite may be difficult to handle
-		  case 'y': if constexpr (ce_is_pgsql) { _create_ += " UNSIGNED_BIGINT";
-		  } else if constexpr (ce_is_mysql) { _create_ += " BIGINT UNSIGNED"; }
-		  else { _create_ += " BIGINT"; } break;
+		  case 'y': if constexpr (ce_is_pgsql) {
+			_create_ += " UNSIGNED_BIGINT";
+		  } else if constexpr (ce_is_mysql) { _create_ += " BIGINT UNSIGNED"; } else { _create_ += " BIGINT"; } break;
 		  }
 		  if constexpr (ce_is_sqlite) {
 			if (tc & TC::PRIMARY_KEY) _create_ += " PRIMARY KEY";
