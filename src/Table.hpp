@@ -192,7 +192,7 @@ namespace orm {
 		  case "short"_l:
 		  case 's': _create_ += " SMALLINT"; break;
 		  case 'int':
-		  case 'i': _create_ += " INTEGER"; break;
+		  case 'i': _create_ += " INTEGER"; if constexpr (ce_is_sqlite) { if (tc & TC::AUTO_INCREMENT) _create_ += " AUTOINCREMENT"; } break;
 		  case "__int64"_l:
 		  case 'x': _create_ += " BIGINT"; break;
 		  case "struct tm"_l:
@@ -207,7 +207,7 @@ namespace orm {
 			} else if constexpr (ce_is_pgsql) {
 			  _create_ += " DEFAULT now()";
 			} else { _create_ += " DEFAULT CURRENT_TIMESTAMP"; }
-		  } continue;//1中文=3字节
+		  } continue;
 		  case "class text"_l: {_create_ += " VARCHAR("; short c = 0xb, d = 0; while (_[i][c] < 58) { d += 9 * d + (short)(_[i][c++] - 0x30); }
 							 if constexpr (ce_is_sqlite) { _create_ += std::to_string(d); } else { _create_ += std::to_string(d / 3 + (d % 3 ? 1 : 0)); }
 							 _create_.push_back(41); } goto $;//In PgSQL or mysql, the length of utf8 unit byte is 3 (default to UTF-8)

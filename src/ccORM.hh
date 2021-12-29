@@ -41,11 +41,25 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #include <winsock2.h>
 #define _CRT_SECURE_NO_WARNINGS
 #else
-inline float ntohf(uint32_t Value) {
-  return __builtin_bswap32(Value);
+inline float ntohf(uint32_t l) {
+  float f; const uint32_t L =
+	((l >> 24) & 0x000000FFL) |
+	((l >> 8) & 0x0000FF00L) |
+	((l << 8) & 0x00FF0000L) |
+	((l << 24) & 0xFF000000L);
+  *((uint32_t*)&f) = L; return f;
 }
-inline float ntohd(uint64_t Value) {
-  return __builtin_bswap64(Value);
+inline double ntohd(uint64_t l) {
+  double d; const uint64_t L =
+	((l >> 56) & 0x00000000000000FFLL) |
+	((l >> 40) & 0x000000000000FF00LL) |
+	((l >> 24) & 0x0000000000FF0000LL) |
+	((l >> 8) & 0x00000000FF000000LL) |
+	((l << 8) & 0x000000FF00000000LL) |
+	((l << 24) & 0x0000FF0000000000LL) |
+	((l << 40) & 0x00FF000000000000LL) |
+	((l << 56) & 0xFF00000000000000LL);
+  *((uint64_t*)&d) = L; return d;
 }
 #include <arpa/inet.h>
 #endif
