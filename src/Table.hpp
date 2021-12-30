@@ -128,7 +128,6 @@ namespace orm {
 	  Q()->Query()(os.str());
 	}
 	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
-	  std::string _seq, _alt;//SEQUENCE and ALTER for pgsql(temporary design)
 	  if (_created) {
 		_created = false;
 		if (_tc_[0] & TC::PRIMARY_KEY || _tc_[0] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
@@ -144,36 +143,22 @@ namespace orm {
 		  if (i)_create_ += ",\n";
 		  if constexpr (ce_is_pgsql) {
 			_create_.push_back('"'); _create_ += $[i]; _create_.push_back('"');
-			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {
-			  _alt = "ALTER SEQUENCE "; _alt += _name; _alt.push_back('_'); _alt += $[i]; _alt += "_seq";
-			  _alt += " OWNED BY "; _alt += _name; _alt.push_back('.'); _alt += $[i]; _alt += ";";
-			  _seq = "CREATE SEQUENCE "; _seq += _name; _seq.push_back('_'); _seq += $[i]; _seq += "_seq";
-			  _seq += "\nAs ";//Compatible layer, unsigned field may be only half the size(pg not support)
+			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) { //Compatible layer, unsigned field may be only half the size
 			  switch (hack8Str(_[i])) {
-			  case "signed char"_l:
-			  case 'a':
-			  case "short"_l:
-			  case 's': _seq += "SMALLINT"; _create_ += " SMALLINT"; break;
-			  case 'int':
-			  case 'i': _seq += "INTEGER"; _create_ += " INTEGER"; break;
-			  case "__int64"_l:
-			  case 'x': _seq += "BIGINT"; _create_ += " BIGINT"; break;
-			  case "d char"_l:
-			  case 'h':
-			  case "d short"_l:
-			  case 't': _seq += "SMALLINT"; _create_ += " SMALLINT"; break;
-			  case "d int"_l:
-			  case 'j': _seq += "INTEGER"; _create_ += " INTEGER"; break;
-			  case "d __int64"_l:
-			  case 'y': _seq += "BIGINT"; _create_ += " BIGINT"; break;
-			  }
-			  _create_ += " PRIMARY KEY DEFAULT nextval('"; _create_ += _name; _create_.push_back('_');
-			  _create_ += $[i]; _create_ += "_seq'::regclass)";
-			  _seq += "\nSTART WITH 1\nINCREMENT BY 1\nNO MINVALUE\nNO MAXVALUE\nCACHE 1;"; continue;
+			  case "signed char"_l: case 'a':
+			  case "d char"_l: case 'h':
+			  case "short"_l: case 's':
+			  case "d short"_l: case 't': _create_ += " SMALLSERIAL PRIMARY KEY"; break;
+			  case 'int': case 'i':
+			  case "d int"_l: case 'j': _create_ += " SERIAL PRIMARY KEY"; break;
+			  case "__int64"_l: case 'x':
+			  case "d __int64"_l: case 'y': _create_ += " BIGSERIAL PRIMARY KEY"; break;
+			  } continue;
 			}
 		  } else if constexpr (ce_is_sqlite) {//AUTOINCREMENT is only allowed on an INTEGER PRIMARY KEY
-			_create_ += $[i]; if (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT) { _create_ += " INTEGER PRIMARY KEY AUTOINCREMENT"; continue; }
-		  } else { _create_ += $[i]; }
+			_create_.push_back('`'); _create_ += $[i]; _create_.push_back('`');
+			if (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT) { _create_ += " INTEGER PRIMARY KEY AUTOINCREMENT"; continue; }
+		  } else { _create_.push_back('`'); _create_ += $[i]; _create_.push_back('`'); }
 		  switch (hack8Str(_[i])) {
 		  case 'bool':
 		  case 'b': _create_ += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create_ += " NOT NULL"; }
@@ -208,12 +193,8 @@ namespace orm {
 			  _create_ += " DEFAULT now()";
 			} else { _create_ += " DEFAULT CURRENT_TIMESTAMP"; }
 		  } continue;
-		  case "class text"_l: {_create_ += " VARCHAR("; short c = 0xb, d = 0; while (_[i][c] < 58) { d += 9 * d + (short)(_[i][c++] - 0x30); }
-							 if constexpr (ce_is_sqlite) { _create_ += std::to_string(d); } else { _create_ += std::to_string(d / 3 + (d % 3 ? 1 : 0)); }
-							 _create_.push_back(41); } goto $;//In PgSQL or mysql, the length of utf8 unit byte is 3 (default to UTF-8)
-		  case "4textILt"_l: {_create_ += " VARCHAR("; short c = 8, d = 0; while (_[i][c] < 58) { d += 9 * d + (short)(_[i][c++] - 0x30); }
-						   if constexpr (ce_is_sqlite) { _create_ += std::to_string(d); } else { _create_ += std::to_string(d / 3 + (d % 3 ? 1 : 0)); }
-						   _create_.push_back(41); } goto $;//SQLite default code set always is utf8, but the minimum unit is 1
+		  case "class text"_l: {_create_ += " VARCHAR("; int c = 0xb; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
+		  case "4textILt"_l: {_create_ += " VARCHAR("; int c = 8; while (_[i][c] < 58)_create_.push_back(_[i][c++]); _create_.push_back(41); } goto $;
 		  case "class std::basic_string"_l:
 		  case "NSt7__cx"_l: _create_ += " TEXT"; goto $;
 		  case "d char"_l://uint8_t,sqlite not support UNSIGNED, PgSQL can use CREATE DOMAIN
@@ -277,11 +258,10 @@ namespace orm {
 	  auto&& DbQuery = static_cast<Sql<T>*>(__[0])->Query();
 	  std::cout << _create_;
 	  if constexpr (ce_is_pgsql) {
-		std::cout << _alt << '\n';
 		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
 		if (DbQuery(str_).template r__<int>() == 0) {
-		  DbQuery(_seq); DbQuery(_create_); DbQuery(_alt).flush_results();
-		}
+		  DbQuery(_create_).flush_results();
+		}// else { DbQuery(_drop_); DbQuery(_create_).flush_results(); }
 	  } else {
 		try {
 		  DbQuery(_create_).flush_results();

@@ -42,15 +42,15 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #define _CRT_SECURE_NO_WARNINGS
 #else
 inline float ntohf(uint32_t l) {
-  float f; const uint32_t L =
+  float f; *((uint32_t*)&f) =
 	((l >> 24) & 0x000000FFL) |
 	((l >> 8) & 0x0000FF00L) |
 	((l << 8) & 0x00FF0000L) |
 	((l << 24) & 0xFF000000L);
-  *((uint32_t*)&f) = L; return f;
+  return f;
 }
 inline double ntohd(uint64_t l) {
-  double d; const uint64_t L =
+  double d; *((uint64_t*)&d) =
 	((l >> 56) & 0x00000000000000FFLL) |
 	((l >> 40) & 0x000000000000FF00LL) |
 	((l >> 24) & 0x0000000000FF0000LL) |
@@ -59,7 +59,7 @@ inline double ntohd(uint64_t l) {
 	((l << 24) & 0x0000FF0000000000LL) |
 	((l << 40) & 0x00FF000000000000LL) |
 	((l << 56) & 0xFF00000000000000LL);
-  *((uint64_t*)&d) = L; return d;
+  return d;
 }
 #include <arpa/inet.h>
 #endif

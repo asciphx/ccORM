@@ -84,6 +84,7 @@ inline const char* GetRealType(const char* s, const char* c) {
 }
 #define InjectTS(U, T) GetRealType(#U,typeid(&U::T).name())
 #define TO_CHAR "
+/*\" for web markdown, ~!@#$%^&*///"
 #define FOR_CHAR `
 #define IOS_(o,a,k) o#a#k#a
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
@@ -412,7 +413,7 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 //在结构体内部注册静态类型属性
 #define FIELD(...)\
         FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
-//select * FROM => select (表.字段,)... FROM
+//select * FROM <T> => select (T.`$`,)... FROM
 #define IOS_1(o,a,k)      IOS_(o,a,k)" FROM "
 #define IOS_2(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
 #define IOS_3(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_2(o,a,__VA_ARGS__))
@@ -484,7 +485,7 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 //在外部为静态属性添加上名称
 #define PROTO(o,...)\
         PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
-static const char* o##_ios__() {\
+constexpr static const char* o##_ios__() {\
 if constexpr (ce_is_pgsql) { return IOS_N("_.", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
 else {return IOS_N("_.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
 template<> const char* orm::Table<o>::_ios_=o##_ios__();
