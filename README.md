@@ -87,7 +87,6 @@ int main() {
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
   printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC);
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));//wait for something
   return 0;
 }
 ```

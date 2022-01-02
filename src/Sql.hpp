@@ -13,43 +13,46 @@ namespace orm {
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
   template<typename T> struct Sql {
 	friend class Table<T>;
-	Sql<T>() : sql_("SELECT "), ob_(" ORDER BY _.") { ob_ += T::$[0]; }
+	Sql<T>() : sql_("SELECT "), ob_(" ORDER BY ") { ob_ += T::_alias; ob_.push_back('.'); ob_ += T::$[0]; }
 	~Sql<T>() {}
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
-	inline Sql<T>* orderBy(const text<31>& col, const Sort& ord = Sort::ASC);
+	inline Sql<T>* orderBy(const text<63>& col, const Sort& ord = Sort::ASC);
 	//select <_.?,>... from <T> _ ORDER BY _.$1 LIMIT 10;
-	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; sql_.push_back(' '); sql_.push_back('_'); return this; };
+	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; return this; };
 	template <typename... K>
 	inline Sql<T>* $(K&&...k);
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
 	inline std::vector<T> GetArr();
 	inline T GetOne();
-	static void setFields(std::string& os, const text<31>& v_);
+	static void setFields(std::string& os, const text<63>& v_);
 	inline decltype(D)::connection_type Query();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
   private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true };
-		 inline void clear() { sql_ = "SELECT "; ob_ = " ORDER BY _."; ob_ += T::$[0]; limit_ = 10; offset_ = 0; prepare_ = true; }
+		 inline void clear() {
+		   sql_ = "SELECT "; ob_ = " ORDER BY "; ob_ += T::_alias; ob_.push_back('.');
+		   ob_ += T::$[0]; limit_ = 10; offset_ = 0; prepare_ = true;
+		 }
   };
   template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
-  template<typename T> Sql<T>* Sql<T>::orderBy(const text<31>& col, const Sort& ord) {
-	assert(strcmp(col.c_str(), T::$[0])!=0); ob_.push_back(','); ob_.push_back('_'); ob_.push_back('.'); ob_ += col.c_str();
+  template<typename T> Sql<T>* Sql<T>::orderBy(const text<63>& col, const Sort& ord) {
+	assert(strcmp(col.c_str(), T::$[0])!=0); ob_.push_back(','); ob_ += col.c_str();
 	if (ord == Sort::DESC)ob_ += " DESC"; return this;
   }
   template<typename T>
-  void Sql<T>::setFields(std::string& os, const text<31>& v_) {
-	os.push_back('_'); os.push_back('.'); if constexpr (ce_is_pgsql) {
+  void Sql<T>::setFields(std::string& os, const text<63>& v_) {
+	if constexpr (ce_is_pgsql) {
 	  os.push_back('"'); os += v_.c_str(); os.push_back('"');
 	} else { os.push_back('`'); os += v_.c_str(); os.push_back('`'); } os.push_back(',');
   };
   template<typename T>
   template <typename... K> Sql<T>* Sql<T>::$(K&&...k) {
 	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
-	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; sql_.push_back(' '); sql_.push_back('_'); return this;
+	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
   };
   template<typename T>
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { sql_ += " WHERE "; sql_ += v_.c_str(); return this; }
@@ -118,12 +121,7 @@ namespace orm {
   }
 }//chrono::milliseconds(100)microseconds
 /*
-"SELECT _.id, _.account, _.name,_.photo, Role.id AS Role_id, Role.name AS Role_name FROM USER _\
- LEFT JOIN user_role u_Role ON u_Role.user_id=_.id LEFT JOIN role Role\
- ON Role.id=u_Role.role_id  ORDER BY _.id"
-
-"SELECT `u`.`id` AS `u_id`, `u`.`account` AS `u_account`, `u`.`name` AS `u_name`,\
- `u`.`photo` AS `u_photo`, `Role`.`id` AS `Role_id`, `Role`.`name` AS `Role_name` FROM `_` `u`\
- LEFT JOIN `user_role` `u_Role` ON `u_Role`.`user_id`=`u`.`id` LEFT JOIN `role` `Role`\
- ON `Role`.`id`=`u_Role`.`role_id`  ORDER BY `u`.`id`"
+SELECT user.id, user.account, user.name, user.photo, role.id AS Role_id, role.name AS Role_name FROM user
+LEFT JOIN user_role ON user_role.user_id = user.id LEFT JOIN role
+ON role.id = user_role.role_id  ORDER BY user.id
 */

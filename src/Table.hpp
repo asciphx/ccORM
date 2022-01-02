@@ -11,8 +11,8 @@ namespace orm {
 	  return std::dynamic_pointer_cast<T>(std::enable_shared_from_this<enable_virtual>::shared_from_this());
 	}
   };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
-  template<typename T> class Table : public virtual_shared<T> { /*Store (T.key,)... name*/ /*Store key name[]*/
-	static const std::string _name, _drop_; static const unsigned char _size_; const static char* _ios_, * $[];//^
+  template<typename T> class Table : public virtual_shared<T> { /*Store (T.key,)... name*/ /*Store key name[]*/ /*Store _alias*/
+	static const std::string _name, _drop_; static const uint8_t _size_; const static char* _ios_, * $[], * _alias;//^
 	static bool _created; static unsigned char _idex; static std::string _create_; static const size_t _o$[];/*Store offset[]*/
 #ifdef _WIN32
 	friend typename T; const static char* _def_[];/*Store default values[]*/static unsigned char _tc_[];/*Store key type[]*/

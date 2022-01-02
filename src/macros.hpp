@@ -313,6 +313,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> std::string orm::Table<o>::_create_ = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
 	template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
 	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
+	template<> const char* orm::Table<o>::_alias = #o;\
 	template<> bool orm::Table<o>::_created = true;
 
 #define CONSTRUCT(o,...)\
@@ -371,43 +372,44 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 template<> uint8_t orm::Table<o>::_tc_[NUM_ARGS(__VA_ARGS__)]={};\
 template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={};\
 template<> void orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
+if(strLen(#o)>31){throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m The length of the name cannot exceed 31!\n\033[0m"));}\
   bool b=true;if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
      if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
 else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}
 
-#define FIELD_1(k)      static const text<31> $##k;
-#define FIELD_2(k,...)  static const text<31> $##k; EXP(FIELD_1(__VA_ARGS__))
-#define FIELD_3(k,...)  static const text<31> $##k; EXP(FIELD_2(__VA_ARGS__))
-#define FIELD_4(k,...)  static const text<31> $##k; EXP(FIELD_3(__VA_ARGS__))
-#define FIELD_5(k,...)  static const text<31> $##k; EXP(FIELD_4(__VA_ARGS__))
-#define FIELD_6(k,...)  static const text<31> $##k; EXP(FIELD_5(__VA_ARGS__))
-#define FIELD_7(k,...)  static const text<31> $##k; EXP(FIELD_6(__VA_ARGS__))
-#define FIELD_8(k,...)  static const text<31> $##k; EXP(FIELD_7(__VA_ARGS__))
-#define FIELD_9(k,...)  static const text<31> $##k; EXP(FIELD_8(__VA_ARGS__))
-#define FIELD_10(k,...) static const text<31> $##k; EXP(FIELD_9(__VA_ARGS__))
-#define FIELD_11(k,...) static const text<31> $##k; EXP(FIELD_10(__VA_ARGS__))
-#define FIELD_12(k,...) static const text<31> $##k; EXP(FIELD_11(__VA_ARGS__))
-#define FIELD_13(k,...) static const text<31> $##k; EXP(FIELD_12(__VA_ARGS__))
-#define FIELD_14(k,...) static const text<31> $##k; EXP(FIELD_13(__VA_ARGS__))
-#define FIELD_15(k,...) static const text<31> $##k; EXP(FIELD_14(__VA_ARGS__))
-#define FIELD_16(k,...) static const text<31> $##k; EXP(FIELD_15(__VA_ARGS__))
-#define FIELD_17(k,...) static const text<31> $##k; EXP(FIELD_16(__VA_ARGS__))
-#define FIELD_18(k,...) static const text<31> $##k; EXP(FIELD_17(__VA_ARGS__))
-#define FIELD_19(k,...) static const text<31> $##k; EXP(FIELD_18(__VA_ARGS__))
-#define FIELD_20(k,...) static const text<31> $##k; EXP(FIELD_19(__VA_ARGS__))
-#define FIELD_21(k,...) static const text<31> $##k; EXP(FIELD_20(__VA_ARGS__))
-#define FIELD_22(k,...) static const text<31> $##k; EXP(FIELD_21(__VA_ARGS__))
-#define FIELD_23(k,...) static const text<31> $##k; EXP(FIELD_22(__VA_ARGS__))
-#define FIELD_24(k,...) static const text<31> $##k; EXP(FIELD_23(__VA_ARGS__))
-#define FIELD_25(k,...) static const text<31> $##k; EXP(FIELD_24(__VA_ARGS__))
-#define FIELD_26(k,...) static const text<31> $##k; EXP(FIELD_25(__VA_ARGS__))
-#define FIELD_27(k,...) static const text<31> $##k; EXP(FIELD_26(__VA_ARGS__))
-#define FIELD_28(k,...) static const text<31> $##k; EXP(FIELD_27(__VA_ARGS__))
-#define FIELD_29(k,...) static const text<31> $##k; EXP(FIELD_28(__VA_ARGS__))
-#define FIELD_30(k,...) static const text<31> $##k; EXP(FIELD_29(__VA_ARGS__))
-#define FIELD_31(k,...) static const text<31> $##k; EXP(FIELD_30(__VA_ARGS__))
-#define FIELD_32(k,...) static const text<31> $##k; EXP(FIELD_31(__VA_ARGS__))
+#define FIELD_1(k)      static const text<63> $##k;
+#define FIELD_2(k,...)  static const text<63> $##k; EXP(FIELD_1(__VA_ARGS__))
+#define FIELD_3(k,...)  static const text<63> $##k; EXP(FIELD_2(__VA_ARGS__))
+#define FIELD_4(k,...)  static const text<63> $##k; EXP(FIELD_3(__VA_ARGS__))
+#define FIELD_5(k,...)  static const text<63> $##k; EXP(FIELD_4(__VA_ARGS__))
+#define FIELD_6(k,...)  static const text<63> $##k; EXP(FIELD_5(__VA_ARGS__))
+#define FIELD_7(k,...)  static const text<63> $##k; EXP(FIELD_6(__VA_ARGS__))
+#define FIELD_8(k,...)  static const text<63> $##k; EXP(FIELD_7(__VA_ARGS__))
+#define FIELD_9(k,...)  static const text<63> $##k; EXP(FIELD_8(__VA_ARGS__))
+#define FIELD_10(k,...) static const text<63> $##k; EXP(FIELD_9(__VA_ARGS__))
+#define FIELD_11(k,...) static const text<63> $##k; EXP(FIELD_10(__VA_ARGS__))
+#define FIELD_12(k,...) static const text<63> $##k; EXP(FIELD_11(__VA_ARGS__))
+#define FIELD_13(k,...) static const text<63> $##k; EXP(FIELD_12(__VA_ARGS__))
+#define FIELD_14(k,...) static const text<63> $##k; EXP(FIELD_13(__VA_ARGS__))
+#define FIELD_15(k,...) static const text<63> $##k; EXP(FIELD_14(__VA_ARGS__))
+#define FIELD_16(k,...) static const text<63> $##k; EXP(FIELD_15(__VA_ARGS__))
+#define FIELD_17(k,...) static const text<63> $##k; EXP(FIELD_16(__VA_ARGS__))
+#define FIELD_18(k,...) static const text<63> $##k; EXP(FIELD_17(__VA_ARGS__))
+#define FIELD_19(k,...) static const text<63> $##k; EXP(FIELD_18(__VA_ARGS__))
+#define FIELD_20(k,...) static const text<63> $##k; EXP(FIELD_19(__VA_ARGS__))
+#define FIELD_21(k,...) static const text<63> $##k; EXP(FIELD_20(__VA_ARGS__))
+#define FIELD_22(k,...) static const text<63> $##k; EXP(FIELD_21(__VA_ARGS__))
+#define FIELD_23(k,...) static const text<63> $##k; EXP(FIELD_22(__VA_ARGS__))
+#define FIELD_24(k,...) static const text<63> $##k; EXP(FIELD_23(__VA_ARGS__))
+#define FIELD_25(k,...) static const text<63> $##k; EXP(FIELD_24(__VA_ARGS__))
+#define FIELD_26(k,...) static const text<63> $##k; EXP(FIELD_25(__VA_ARGS__))
+#define FIELD_27(k,...) static const text<63> $##k; EXP(FIELD_26(__VA_ARGS__))
+#define FIELD_28(k,...) static const text<63> $##k; EXP(FIELD_27(__VA_ARGS__))
+#define FIELD_29(k,...) static const text<63> $##k; EXP(FIELD_28(__VA_ARGS__))
+#define FIELD_30(k,...) static const text<63> $##k; EXP(FIELD_29(__VA_ARGS__))
+#define FIELD_31(k,...) static const text<63> $##k; EXP(FIELD_30(__VA_ARGS__))
+#define FIELD_32(k,...) static const text<63> $##k; EXP(FIELD_31(__VA_ARGS__))
 #define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
 //在结构体内部注册静态类型属性
@@ -448,45 +450,45 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define IOS_32(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_31(o,a,__VA_ARGS__))
 #define IOS_N1(o,a,N,...) EXP(IOS_##N(o,a,__VA_ARGS__))
 #define IOS_N(o,a,N,...) IOS_N1(o,a,N,__VA_ARGS__)
-#define PRO_1(t,k)      const text<31> t::$##k = #k;
-#define PRO_2(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_1(t,__VA_ARGS__))
-#define PRO_3(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_2(t,__VA_ARGS__))
-#define PRO_4(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_3(t,__VA_ARGS__))
-#define PRO_5(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_4(t,__VA_ARGS__))
-#define PRO_6(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_5(t,__VA_ARGS__))
-#define PRO_7(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_6(t,__VA_ARGS__))
-#define PRO_8(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_7(t,__VA_ARGS__))
-#define PRO_9(t,k,...)  const text<31> t::$##k = #k; EXP(PRO_8(t,__VA_ARGS__))
-#define PRO_10(t,k,...) const text<31> t::$##k = #k; EXP(PRO_9(t,__VA_ARGS__))
-#define PRO_11(t,k,...) const text<31> t::$##k = #k; EXP(PRO_10(t,__VA_ARGS__))
-#define PRO_12(t,k,...) const text<31> t::$##k = #k; EXP(PRO_11(t,__VA_ARGS__))
-#define PRO_13(t,k,...) const text<31> t::$##k = #k; EXP(PRO_12(t,__VA_ARGS__))
-#define PRO_14(t,k,...) const text<31> t::$##k = #k; EXP(PRO_13(t,__VA_ARGS__))
-#define PRO_15(t,k,...) const text<31> t::$##k = #k; EXP(PRO_14(t,__VA_ARGS__))
-#define PRO_16(t,k,...) const text<31> t::$##k = #k; EXP(PRO_15(t,__VA_ARGS__))
-#define PRO_17(t,k,...) const text<31> t::$##k = #k; EXP(PRO_16(t,__VA_ARGS__))
-#define PRO_18(t,k,...) const text<31> t::$##k = #k; EXP(PRO_17(t,__VA_ARGS__))
-#define PRO_19(t,k,...) const text<31> t::$##k = #k; EXP(PRO_18(t,__VA_ARGS__))
-#define PRO_20(t,k,...) const text<31> t::$##k = #k; EXP(PRO_19(t,__VA_ARGS__))
-#define PRO_21(t,k,...) const text<31> t::$##k = #k; EXP(PRO_20(t,__VA_ARGS__))
-#define PRO_22(t,k,...) const text<31> t::$##k = #k; EXP(PRO_21(t,__VA_ARGS__))
-#define PRO_23(t,k,...) const text<31> t::$##k = #k; EXP(PRO_22(t,__VA_ARGS__))
-#define PRO_24(t,k,...) const text<31> t::$##k = #k; EXP(PRO_23(t,__VA_ARGS__))
-#define PRO_25(t,k,...) const text<31> t::$##k = #k; EXP(PRO_24(t,__VA_ARGS__))
-#define PRO_26(t,k,...) const text<31> t::$##k = #k; EXP(PRO_25(t,__VA_ARGS__))
-#define PRO_27(t,k,...) const text<31> t::$##k = #k; EXP(PRO_26(t,__VA_ARGS__))
-#define PRO_28(t,k,...) const text<31> t::$##k = #k; EXP(PRO_27(t,__VA_ARGS__))
-#define PRO_29(t,k,...) const text<31> t::$##k = #k; EXP(PRO_28(t,__VA_ARGS__))
-#define PRO_30(t,k,...) const text<31> t::$##k = #k; EXP(PRO_29(t,__VA_ARGS__))
-#define PRO_31(t,k,...) const text<31> t::$##k = #k; EXP(PRO_30(t,__VA_ARGS__))
-#define PRO_32(t,k,...) const text<31> t::$##k = #k; EXP(PRO_31(t,__VA_ARGS__))
+#define PRO_1(t,k)      const text<63> t::$##k = #t"."#k;
+#define PRO_2(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_1(t,__VA_ARGS__))
+#define PRO_3(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_2(t,__VA_ARGS__))
+#define PRO_4(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_3(t,__VA_ARGS__))
+#define PRO_5(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_4(t,__VA_ARGS__))
+#define PRO_6(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_5(t,__VA_ARGS__))
+#define PRO_7(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_6(t,__VA_ARGS__))
+#define PRO_8(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_7(t,__VA_ARGS__))
+#define PRO_9(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_8(t,__VA_ARGS__))
+#define PRO_10(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_9(t,__VA_ARGS__))
+#define PRO_11(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_10(t,__VA_ARGS__))
+#define PRO_12(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_11(t,__VA_ARGS__))
+#define PRO_13(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_12(t,__VA_ARGS__))
+#define PRO_14(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_13(t,__VA_ARGS__))
+#define PRO_15(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_14(t,__VA_ARGS__))
+#define PRO_16(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_15(t,__VA_ARGS__))
+#define PRO_17(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_16(t,__VA_ARGS__))
+#define PRO_18(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_17(t,__VA_ARGS__))
+#define PRO_19(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_18(t,__VA_ARGS__))
+#define PRO_20(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_19(t,__VA_ARGS__))
+#define PRO_21(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_20(t,__VA_ARGS__))
+#define PRO_22(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_21(t,__VA_ARGS__))
+#define PRO_23(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_22(t,__VA_ARGS__))
+#define PRO_24(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_23(t,__VA_ARGS__))
+#define PRO_25(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_24(t,__VA_ARGS__))
+#define PRO_26(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_25(t,__VA_ARGS__))
+#define PRO_27(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_26(t,__VA_ARGS__))
+#define PRO_28(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_27(t,__VA_ARGS__))
+#define PRO_29(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_28(t,__VA_ARGS__))
+#define PRO_30(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_29(t,__VA_ARGS__))
+#define PRO_31(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_30(t,__VA_ARGS__))
+#define PRO_32(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_31(t,__VA_ARGS__))
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
 //在外部为静态属性添加上名称
 #define PROTO(o,...)\
         PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
 constexpr static const char* o##_ios__() {\
-if constexpr (ce_is_pgsql) { return IOS_N("_.", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
-else {return IOS_N("_.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
+if constexpr (ce_is_pgsql) { return IOS_N(#o".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
+else {return IOS_N(#o".", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
 template<> const char* orm::Table<o>::_ios_=o##_ios__();
 #endif
