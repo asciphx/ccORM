@@ -32,7 +32,7 @@ Struct(Type) {
 };
 CONSTRUCT(Type, id, language)
 PROTO(Type, id, language)
-REGIST_PROTO(Type,
+REGIST(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "c/c++");
 Struct(Tab) {
@@ -47,7 +47,7 @@ Struct(Tab) {
 };
 CONSTRUCT(Tab, id, ok, name, date, lang)
 PROTO(Tab, id, ok, name, date)
-REGIST_PROTO(Tab,
+REGIST(Tab,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "false",
   TC::DEFAULT, "ww'zzgg",

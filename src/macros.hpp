@@ -193,12 +193,11 @@ inline const char* GetRealType(const char* s, const char* c) {
 #define OFFSET_N1(o,N,...) EXP(OFFSET_##N(o,__VA_ARGS__))
 #define OFFSET_N(o,N,...) OFFSET_N1(o,N,__VA_ARGS__)
 #endif
-#define REGIST(o,...)\
+#define REGIST_STATIC(o,...)\
  template<> const uint8_t orm::Table<o>::_size_ = NUM_ARGS(__VA_ARGS__);\
  template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)]={ OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
-//REGIST(Tab, id, ok, name, date);
 #define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));
 #define COL_2(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_1(o,__VA_ARGS__))
 #define COL_3(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_2(o,__VA_ARGS__))
@@ -315,15 +314,13 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
 	template<> const char* orm::Table<o>::_alias = #o;\
 	template<> bool orm::Table<o>::_created = true;
-
 #define CONSTRUCT(o,...)\
         ATTRS(o,__VA_ARGS__)\
-        REGIST(o, __VA_ARGS__)\
+        REGIST_STATIC(o, __VA_ARGS__)\
         REGISTER_TABLE(o)\
     template <> inline constexpr auto orm::Schema<o>() {\
       return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
     }
-//CONSTRUCT(Tab, id, ok, name, date, lang)
 #define PTR_2(k,t,v)      _tc_[k] = t; _def_[k] = v;
 #define PTR_4(k,t,v,...)  _tc_[k] = t; _def_[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
 #define PTR_6(k,t,v,...)  _tc_[k] = t; _def_[k] = v; EXP(PTR_4(k+1,__VA_ARGS__))
@@ -367,8 +364,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define RGB_MAGENTA  "\033[35m"
 #define RGB_AZURE    "\033[36m"
 #define RGB_NULL 	 "\033[0m"
-//regist PROPERTY,主键规定只能在第一个位置，同时于此也允许没有主键（不然不好处理）
-#define REGIST_PROTO(o,...)\
+#define REGIST(o,...)\
 template<> uint8_t orm::Table<o>::_tc_[NUM_ARGS(__VA_ARGS__)]={};\
 template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={};\
 template<> void orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
@@ -412,7 +408,6 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define FIELD_32(k,...) static const text<63> $##k; EXP(FIELD_31(__VA_ARGS__))
 #define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
-//在结构体内部注册静态类型属性
 #define FIELD(...)\
         FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 //select * FROM <T> => select (T.`$`,)... FROM
@@ -450,43 +445,43 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define IOS_32(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_31(o,a,__VA_ARGS__))
 #define IOS_N1(o,a,N,...) EXP(IOS_##N(o,a,__VA_ARGS__))
 #define IOS_N(o,a,N,...) IOS_N1(o,a,N,__VA_ARGS__)
-#define PRO_1(t,k)      const text<63> t::$##k = #t"."#k;
-#define PRO_2(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_1(t,__VA_ARGS__))
-#define PRO_3(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_2(t,__VA_ARGS__))
-#define PRO_4(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_3(t,__VA_ARGS__))
-#define PRO_5(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_4(t,__VA_ARGS__))
-#define PRO_6(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_5(t,__VA_ARGS__))
-#define PRO_7(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_6(t,__VA_ARGS__))
-#define PRO_8(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_7(t,__VA_ARGS__))
-#define PRO_9(t,k,...)  const text<63> t::$##k = #t"."#k; EXP(PRO_8(t,__VA_ARGS__))
-#define PRO_10(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_9(t,__VA_ARGS__))
-#define PRO_11(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_10(t,__VA_ARGS__))
-#define PRO_12(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_11(t,__VA_ARGS__))
-#define PRO_13(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_12(t,__VA_ARGS__))
-#define PRO_14(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_13(t,__VA_ARGS__))
-#define PRO_15(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_14(t,__VA_ARGS__))
-#define PRO_16(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_15(t,__VA_ARGS__))
-#define PRO_17(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_16(t,__VA_ARGS__))
-#define PRO_18(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_17(t,__VA_ARGS__))
-#define PRO_19(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_18(t,__VA_ARGS__))
-#define PRO_20(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_19(t,__VA_ARGS__))
-#define PRO_21(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_20(t,__VA_ARGS__))
-#define PRO_22(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_21(t,__VA_ARGS__))
-#define PRO_23(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_22(t,__VA_ARGS__))
-#define PRO_24(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_23(t,__VA_ARGS__))
-#define PRO_25(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_24(t,__VA_ARGS__))
-#define PRO_26(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_25(t,__VA_ARGS__))
-#define PRO_27(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_26(t,__VA_ARGS__))
-#define PRO_28(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_27(t,__VA_ARGS__))
-#define PRO_29(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_28(t,__VA_ARGS__))
-#define PRO_30(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_29(t,__VA_ARGS__))
-#define PRO_31(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_30(t,__VA_ARGS__))
-#define PRO_32(t,k,...) const text<63> t::$##k = #t"."#k; EXP(PRO_31(t,__VA_ARGS__))
+
+#define PRO_1(t,k)      const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`";
+#define PRO_2(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_1(t,__VA_ARGS__))
+#define PRO_3(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_2(t,__VA_ARGS__))
+#define PRO_4(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_3(t,__VA_ARGS__))
+#define PRO_5(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_4(t,__VA_ARGS__))
+#define PRO_6(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_5(t,__VA_ARGS__))
+#define PRO_7(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_6(t,__VA_ARGS__))
+#define PRO_8(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_7(t,__VA_ARGS__))
+#define PRO_9(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_8(t,__VA_ARGS__))
+#define PRO_10(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_9(t,__VA_ARGS__))
+#define PRO_11(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_10(t,__VA_ARGS__))
+#define PRO_12(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_11(t,__VA_ARGS__))
+#define PRO_13(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_12(t,__VA_ARGS__))
+#define PRO_14(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_13(t,__VA_ARGS__))
+#define PRO_15(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_14(t,__VA_ARGS__))
+#define PRO_16(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_15(t,__VA_ARGS__))
+#define PRO_17(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_16(t,__VA_ARGS__))
+#define PRO_18(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_17(t,__VA_ARGS__))
+#define PRO_19(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_18(t,__VA_ARGS__))
+#define PRO_20(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_19(t,__VA_ARGS__))
+#define PRO_21(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_20(t,__VA_ARGS__))
+#define PRO_22(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_21(t,__VA_ARGS__))
+#define PRO_23(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_22(t,__VA_ARGS__))
+#define PRO_24(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_23(t,__VA_ARGS__))
+#define PRO_25(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_24(t,__VA_ARGS__))
+#define PRO_26(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_25(t,__VA_ARGS__))
+#define PRO_27(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_26(t,__VA_ARGS__))
+#define PRO_28(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_27(t,__VA_ARGS__))
+#define PRO_29(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_28(t,__VA_ARGS__))
+#define PRO_30(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_29(t,__VA_ARGS__))
+#define PRO_31(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_30(t,__VA_ARGS__))
+#define PRO_32(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_31(t,__VA_ARGS__))
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
-//在外部为静态属性添加上名称
 #define PROTO(o,...)\
-        PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
+PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
 constexpr static const char* o##_ios__() {\
 if constexpr (ce_is_pgsql) { return IOS_N(#o".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
 else {return IOS_N(#o".", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\

@@ -13,7 +13,12 @@ namespace orm {
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
   template<typename T> struct Sql {
 	friend class Table<T>;
-	Sql<T>() : sql_("SELECT "), ob_(" ORDER BY ") { ob_ += T::_alias; ob_.push_back('.'); ob_ += T::$[0]; }
+	Sql<T>() : sql_("SELECT "), ob_(" ORDER BY ") {
+	  ob_ += T::_alias; ob_.push_back('.');
+	  if constexpr (ce_is_pgsql) {
+		ob_.push_back('"'); ob_ += T::$[0]; ob_.push_back('"');
+	  } else { ob_.push_back('`'); ob_ += T::$[0]; ob_.push_back('`'); }
+	}
 	~Sql<T>() {}
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
@@ -34,13 +39,15 @@ namespace orm {
   private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true };
 		 inline void clear() {
 		   sql_ = "SELECT "; ob_ = " ORDER BY "; ob_ += T::_alias; ob_.push_back('.');
-		   ob_ += T::$[0]; limit_ = 10; offset_ = 0; prepare_ = true;
+		   if constexpr (ce_is_pgsql) {
+			 ob_.push_back('"'); ob_ += T::$[0]; ob_.push_back('"');
+		   } else { ob_.push_back('`'); ob_ += T::$[0]; ob_.push_back('`'); } limit_ = 10; offset_ = 0; prepare_ = true;
 		 }
   };
   template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
   template<typename T> Sql<T>* Sql<T>::orderBy(const text<63>& col, const Sort& ord) {
-	assert(strcmp(col.c_str(), T::$[0])!=0); ob_.push_back(','); ob_ += col.c_str();
+	assert(strcmp(col.c_str(), T::$[0]) != 0); ob_.push_back(','); ob_ += col.c_str();
 	if (ord == Sort::DESC)ob_ += " DESC"; return this;
   }
   template<typename T>
