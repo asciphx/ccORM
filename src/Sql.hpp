@@ -29,16 +29,16 @@ namespace orm {
 	inline Sql<T>* $(K&&...k);
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
-	inline std::vector<T> GetArr();
+	inline std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
 	static void setFields(std::string& os, const text<63>& v_);
 	inline decltype(D)::connection_type Query();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
-  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true };
+  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_, ob_1; bool prepare_{ true };
 		 inline void clear() {
-		   sql_ = "SELECT "; ob_ = " ORDER BY "; ob_ += T::_alias; ob_.push_back('.');
+		   sql_ = "SELECT "; ob_ = " ORDER BY "; ob_ += T::_alias; ob_.push_back('.'); ob_1.clear();
 		   if constexpr (ce_is_pgsql) {
 			 ob_.push_back('"'); ob_ += T::$[0]; ob_.push_back('"');
 		   } else { ob_.push_back('`'); ob_ += T::$[0]; ob_.push_back('`'); } limit_ = 10; offset_ = 0; prepare_ = true;
@@ -47,8 +47,8 @@ namespace orm {
   template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
   template<typename T> Sql<T>* Sql<T>::orderBy(const text<63>& col, const Sort& ord) {
-	assert(strcmp(col.c_str(), T::$[0]) != 0); ob_.push_back(','); ob_ += col.c_str();
-	if (ord == Sort::DESC)ob_ += " DESC"; return this;
+	assert(strcmp(col.c_str(), T::$[0]) != 0); ob_1.push_back(','); ob_1 += col.c_str();
+	if (ord == Sort::DESC)ob_1 += " DESC"; return this;
   }
   template<typename T>
   void Sql<T>::setFields(std::string& os, const text<63>& v_) {
@@ -64,8 +64,9 @@ namespace orm {
   template<typename T>
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { sql_ += " WHERE "; sql_ += v_.c_str(); return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
-  template<typename T> std::vector<T> Sql<T>::GetArr()noexcept(false) {
-	std::string sql(sql_); sql += ob_; sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
+  template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept(false) {
+	std::string sql(sql_); sql += ob_; if (ord == Sort::DESC)sql += " DESC"; sql += ob_1;
+	sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
 	if (offset_ > 0) { sql += " OFFSET " + std::to_string(offset_); } this->clear();// std::cout << sql << '\n';
 	return D.conn()(sql).template findArray<T>();
   }

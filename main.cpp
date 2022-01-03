@@ -15,7 +15,7 @@ void test() {
   //cout << Tab::Q()->$()->GetArr();
   //t->Delete();//删除
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
-  cout << Type::Q()->$()->where(Type::$id > 0)->GetArr();
+  cout << Type::Q()->$()->where(Type::$id > 0)->GetArr(Sort::DESC);
 }
 int main() {
   InitializationOrm<Type, Tab>();//初始化建表语句和创建索引
