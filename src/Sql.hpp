@@ -59,7 +59,7 @@ namespace orm {
   template<typename T>
   template <typename... K> Sql<T>* Sql<T>::$(K&&...k) {
 	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
-	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; return this;
+	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; sql_.push_back(' '); sql_ += T::_alias; return this;
   };
   template<typename T>
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { sql_ += " WHERE "; sql_ += v_.c_str(); return this; }
@@ -128,7 +128,7 @@ namespace orm {
   }
 }//chrono::milliseconds(100)microseconds
 /*
-SELECT user.id, user.account, user.name, user.photo, role.id AS Role_id, role.name AS Role_name FROM user
-LEFT JOIN user_role ON user_role.user_id = user.id LEFT JOIN role
-ON role.id = user_role.role_id  ORDER BY user.id
+SELECT User.id, User.account, User.name, User.photo, Role.id AS Role_id, Role.name AS Role_name FROM user User
+LEFT JOIN user_role UserRole ON UserRole.user_id = User.id LEFT JOIN role Role
+ON Role.id = UserRole.role_id ORDER BY User.id
 */
