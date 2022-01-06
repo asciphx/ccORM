@@ -4,9 +4,10 @@
 #include<vector>
 #include<stdarg.h>
 #include"macros.hpp"
+#include"ccORM.hh"
 #define MAX_LIMIT 100
 namespace orm {
-  enum class Sort { ASC, DESC }; static const char* SORT[2] = { " ASC", " DESC" };
+  enum class Sort { ASC, DESC }; static const char* SORT[2] = { "", " DESC" };
   constexpr bool ce_is_pgsql = std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>;
   constexpr bool ce_is_mysql = std::is_same_v<decltype(D)::db_tag, crow::mysql_tag>;
   constexpr bool ce_is_sqlite = std::is_same_v<decltype(D)::db_tag, crow::sqlite_tag>;
@@ -18,8 +19,8 @@ namespace orm {
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
 	inline Sql<T>* orderBy(const text<63>& col, const Sort& ord = Sort::ASC);//default Sort::ASC
-	//select <_.?,>... from <T> _ ORDER BY _.$1 LIMIT 10 OFFSET 0;
-	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; return this; };
+	//select <_.`$`>,... from <T> _ WHERE <_.`$`=?> ORDER BY _.`$1` LIMIT 10 OFFSET 0;
+	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; sql_.push_back(' '); sql_ += T::_alias; return this; };
 	template <typename... K>
 	inline Sql<T>* $(K&&...k);
 	template<unsigned short I>
@@ -61,7 +62,7 @@ namespace orm {
 	  ob_.push_back('"'); ob_ += T::$[0]; ob_.push_back('"');
 	} else { ob_.push_back('`'); ob_ += T::$[0]; ob_.push_back('`'); }
 	sql += ob_; sql += SORT[static_cast<short>(ord)]; sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
-	sql += " OFFSET " + std::to_string(offset_); this->clear();// std::cout << sql << '\n';
+	sql += " OFFSET " + std::to_string(offset_); this->clear(); std::cout << sql << '\n';
 	return D.conn()(sql).template findArray<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept(false) {
@@ -125,5 +126,5 @@ namespace orm {
 /*
 SELECT User.id, User.account, User.name, User.photo, Role.id AS Role_id, Role.name AS Role_name FROM user User
 LEFT JOIN user_role UserRole ON UserRole.user_id = User.id LEFT JOIN role Role
-ON Role.id = UserRole.role_id ORDER BY User.id
+ON Role.id = UserRole.role_id  WHERE User.id>1 ORDER BY User.id
 */
