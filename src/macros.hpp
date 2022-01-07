@@ -410,8 +410,8 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
 #define FIELD(...)\
         FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
-//select * FROM <T> => select (T.`$`,)... FROM
-#define IOS_1(o,a,k)      IOS_(o,a,k)" FROM "
+//select * FROM <T> => select (T.`$`,)...
+#define IOS_1(o,a,k)      IOS_(o,a,k)
 #define IOS_2(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
 #define IOS_3(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_2(o,a,__VA_ARGS__))
 #define IOS_4(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_3(o,a,__VA_ARGS__))

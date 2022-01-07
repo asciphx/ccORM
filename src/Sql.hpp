@@ -12,10 +12,10 @@ namespace orm {
   constexpr bool ce_is_mysql = std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value;
   constexpr bool ce_is_sqlite = std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value;
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
+  template<typename T> class Sql;
   template<typename T, typename U>//test
   struct TLinkU {
-	friend class Table<T>; friend class Table<U>;
-	TLinkU<T, U>() : sql_("SELECT ") {}
+	TLinkU<T, U>(std::string& sql, std::string& ob) : sql_(sql), ob_(ob) {}
 	~TLinkU<T, U>() {}
 	inline void GetArr(const Sort& ord = Sort::ASC) {
 	  constexpr auto v = Schema<T>(); constexpr auto u = Schema<U>();
@@ -47,67 +47,81 @@ namespace orm {
 		  s += "\":"; s << t;
 		} s.push_back(',');
 		}); s[s.size() - 1] = '}';
-		std::cout << '\n' << s;
+		std::cout << '\n' << s << '\n' << sql_;
 	};
-  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true };
-		 inline void clear() { sql_ = "SELECT "; ob_.clear(); limit_ = 10; offset_ = 0; prepare_ = true; }
+  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_;
   };
   template<typename T> struct Sql {
 	friend class Table<T>;
-	Sql<T>() : sql_("SELECT ") {}
+	Sql<T>() : sql_("SELECT ") { sql_.reserve(0xff); ob_.reserve(0x3f); wh_.reserve(0x7f); }
 	~Sql<T>() {}
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
-	inline Sql<T>* orderBy(const text<63>& col, const Sort& ord = Sort::ASC);//default Sort::ASC
+	inline Sql<T>* orderBy(const text<0x3f>& col, const Sort& ord = Sort::ASC);//default Sort::ASC
 	//select <_.`$`>,... from <T> _ WHERE <_.`$`=?> ORDER BY _.`$1` LIMIT 10 OFFSET 0;
-	inline Sql<T>* $() { sql_ += T::_ios_; sql_ += T::_name; sql_.push_back(' '); sql_ += T::_alias; return this; };
+	inline Sql<T>* $() { sql_ += T::_ios_; return this; };
 	template <typename... K>
 	inline Sql<T>* $(K&&...k);
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
 	template<typename U>
-	inline TLinkU<T, U> Join() { return TLinkU<T, U>(); };
+	inline TLinkU<T, U> Join() { /*warning: not choose field*/return TLinkU<T, U>(sql_, ob_); };
+	template<typename U, typename... K>
+	inline TLinkU<T, U> Join(K&&...k) {
+	  sql_.push_back(','); (void)std::initializer_list<int>{(useFields<U>(sql_, std::forward<K>(k)), 0)...};
+	  sql_.pop_back(); return TLinkU<T, U>(sql_, ob_);
+	};
 	inline std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
-	static void setFields(std::string& os, const text<63>& v_);
+	template<typename U>
+	inline void useFields(std::string& os, const text<0x3f>& v_);//
+	inline void setFields(std::string& os, const text<0x3f>& v_);//not only but also
+	inline void setFields(std::string& os, const char* v_);//v_ only belongs T
 	inline decltype(D)::connection_type Query();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
-  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true };
-		 inline void clear() { sql_ = "SELECT "; ob_.clear(); limit_ = 10; offset_ = 0; prepare_ = true; }
+  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_, wh_; bool prepare_{ true };
+		 inline void clear() { sql_ = "SELECT "; limit_ = 10; ob_[0] = wh_[0] = offset_ = 0; prepare_ = true; }
   };
   template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
-  template<typename T> Sql<T>* Sql<T>::orderBy(const text<63>& col, const Sort& ord) {
+  template<typename T> Sql<T>* Sql<T>::orderBy(const text<0x3f>& col, const Sort& ord) {
 	ob_ += col.c_str(); ob_ += SORT[static_cast<short>(ord)]; ob_.push_back(','); return this;
   }
   template<typename T>
-  void Sql<T>::setFields(std::string& os, const text<63>& v_) {
-	if constexpr (ce_is_pgsql) {
-	  os.push_back('"'); os += v_.c_str(); os.push_back('"');
-	} else { os.push_back('`'); os += v_.c_str(); os.push_back('`'); } os.push_back(',');
+  template<typename U>
+  void Sql<T>::useFields(std::string& os, const text<0x3f>& v_) {
+	os += v_.c_str(); os += " AS "; os += U::_alias; os.push_back(0x5f); const char* c = v_.c_str();
+	while (*++c) { if (*c == 0x60)break; }; while (*++c != 0x60)os.push_back(*c); os.push_back(',');
+  };
+  template<typename T>
+  void Sql<T>::setFields(std::string& os, const text<0x3f>& v_) { os += v_.c_str(); os.push_back(','); };
+  template<typename T>
+  void Sql<T>::setFields(std::string& os, const char* v_) {
+	os += T::_alias; os.push_back('.'); if constexpr (ce_is_pgsql) {
+	  os.push_back('"'); os += v_; os.push_back('"');
+	} else { os.push_back('`'); os += v_; os.push_back('`'); } os.push_back(',');
   };
   template<typename T>
   template <typename... K> Sql<T>* Sql<T>::$(K&&...k) {
-	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...};
-	sql_.pop_back(); sql_ += " FROM "; sql_ += T::_name; sql_.push_back(' '); sql_ += T::_alias; return this;
+	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...}; sql_.pop_back(); return this;
   };
   template<typename T>
-  template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { sql_ += " WHERE "; sql_ += v_.c_str(); return this; }
+  template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { wh_ = " WHERE "; wh_ += v_.c_str(); return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept(false) {
-	std::string sql(sql_); sql += " ORDER BY "; ob_ += T::_alias; ob_.push_back('.');
-	if constexpr (ce_is_pgsql) {
+	std::string sql(sql_); sql += " FROM "; sql += T::_name; sql.push_back(' '); sql += T::_alias; sql += wh_; sql += " ORDER BY ";
+	ob_ += T::_alias; ob_.push_back('.'); if constexpr (ce_is_pgsql) {
 	  ob_.push_back('"'); ob_ += T::$[0]; ob_.push_back('"');
 	} else { ob_.push_back('`'); ob_ += T::$[0]; ob_.push_back('`'); }
 	sql += ob_; sql += SORT[static_cast<short>(ord)]; sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
-	sql += " OFFSET " + std::to_string(offset_); this->clear();// std::cout << sql << '\n';
-	return D.conn()(sql).template findArray<T>();
+	sql += " OFFSET " + std::to_string(offset_);// std::cout << sql << '\n';
+	this->clear(); return D.conn()(sql).template findArray<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept(false) {
-	std::string sql(sql_); this->clear();// std::cout << sql << '\n';
-	return D.conn()(sql).template findOne<T>();
+	std::string sql(sql_); sql += " FROM "; sql += T::_name; sql.push_back(' '); sql += T::_alias; sql += wh_;// std::cout << sql << '\n';
+	this->clear(); return D.conn()(sql).template findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::Query() { prepare_ = true; return D.conn(); }
   template<typename T> void Sql<T>::InsertArr(typename T::ptr_arr& input) {

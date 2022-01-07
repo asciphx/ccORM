@@ -1,4 +1,3 @@
-
 #ifndef INCLUDE_NLOHMANN_JSON_HPP_
 #define INCLUDE_NLOHMANN_JSON_HPP_
 #define NLOHMANN_JSON_VERSION_MAJOR 3
@@ -1962,11 +1961,11 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 #if !defined(JSON_SKIP_UNSUPPORTED_COMPILER_CHECK)
 #if defined(__clang__)
 #if (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__) < 30400
-#error "unsupported Clang version - see https:
+#error "unsupported Clang version - see https://github.com/nlohmann/json#supported-compilers"
 #endif
 #elif defined(__GNUC__) && !(defined(__ICC) || defined(__INTEL_COMPILER))
 #if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) < 40800
-#error "unsupported GCC version - see https:
+#error "unsupported GCC version - see https://github.com/nlohmann/json#supported-compilers"
 #endif
 #endif
 #endif
