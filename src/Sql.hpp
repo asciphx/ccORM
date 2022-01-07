@@ -64,11 +64,10 @@ namespace orm {
 	inline Sql<T>* $(K&&...k);
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
-	template<typename U>
-	inline TLinkU<T, U> Join() { /*warning: not choose field*/return TLinkU<T, U>(sql_, ob_); };
 	template<typename U, typename... K>
 	inline TLinkU<T, U> Join(K&&...k) {
-	  sql_.push_back(','); (void)std::initializer_list<int>{(useFields<U>(sql_, std::forward<K>(k)), 0)...};
+	  static_assert(sizeof...(K) > 0); sql_.push_back(',');
+	  (void)std::initializer_list<int>{(useFields<U>(sql_, std::forward<K>(k)), 0)...};
 	  sql_.pop_back(); return TLinkU<T, U>(sql_, ob_);
 	};
 	inline std::vector<T> GetArr(const Sort& ord = Sort::ASC);
