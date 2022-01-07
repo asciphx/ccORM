@@ -8,10 +8,50 @@
 #define MAX_LIMIT 100
 namespace orm {
   enum class Sort { ASC, DESC }; static const char* SORT[2] = { "", " DESC" };
-  constexpr bool ce_is_pgsql = std::is_same_v<decltype(D)::db_tag, crow::pgsql_tag>;
-  constexpr bool ce_is_mysql = std::is_same_v<decltype(D)::db_tag, crow::mysql_tag>;
-  constexpr bool ce_is_sqlite = std::is_same_v<decltype(D)::db_tag, crow::sqlite_tag>;
+  constexpr bool ce_is_pgsql = std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value;
+  constexpr bool ce_is_mysql = std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value;
+  constexpr bool ce_is_sqlite = std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value;
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
+  template<typename T, typename U>//test
+  struct TLinkU {
+	friend class Table<T>; friend class Table<U>;
+	TLinkU<T, U>() : sql_("SELECT ") {}
+	~TLinkU<T, U>() {}
+	inline void GetArr(const Sort& ord = Sort::ASC) {
+	  constexpr auto v = Schema<T>(); constexpr auto u = Schema<U>();
+	  constexpr auto $ = std::tuple_cat(v, u); std::string s("{");
+	  ForEachTuple($, [](auto _) {
+		std::cout << '\n' << typeid(&_).name();
+		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+	  T table; int8_t i = 0;
+	  ForEachField(&table, [&s, &i](auto& t) {
+		s.push_back('"'); s.push_back('$'); s += std::to_string(++i);
+		if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+		  s += "\":", s += t == true ? "true" : "false";
+		} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+		  s += "\":" + std::to_string(t);
+		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		  s += "\":\"" + t + "\"";
+		} else if constexpr (crow::is_vector<std::remove_reference_t<decltype(t)>>::value) {
+		  s += "\":"; s << t;
+		} else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+		  s += "\":\""; std::ostringstream os; const tm* time = &t; os << std::setfill('0');
+#ifdef _WIN32
+		  os << std::setw(4) << time->tm_year + 1900;
+#else
+		  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
+#endif
+		  os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
+			<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
+		} else {
+		  s += "\":"; s << t;
+		} s.push_back(',');
+		}); s[s.size() - 1] = '}';
+		std::cout << '\n' << s;
+	};
+  private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true };
+		 inline void clear() { sql_ = "SELECT "; ob_.clear(); limit_ = 10; offset_ = 0; prepare_ = true; }
+  };
   template<typename T> struct Sql {
 	friend class Table<T>;
 	Sql<T>() : sql_("SELECT ") {}
@@ -25,6 +65,8 @@ namespace orm {
 	inline Sql<T>* $(K&&...k);
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
+	template<typename U>
+	inline TLinkU<T, U> Join() { return TLinkU<T, U>(); };
 	inline std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
 	static void setFields(std::string& os, const text<63>& v_);
@@ -33,14 +75,12 @@ namespace orm {
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
   private: size_t limit_{ 10 }, offset_{ 0 }; std::string sql_, ob_; bool prepare_{ true };
-		 inline void clear() {
-		   sql_ = "SELECT "; ob_.clear(); limit_ = 10; offset_ = 0; prepare_ = true;
-		 }
+		 inline void clear() { sql_ = "SELECT "; ob_.clear(); limit_ = 10; offset_ = 0; prepare_ = true; }
   };
   template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
   template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
   template<typename T> Sql<T>* Sql<T>::orderBy(const text<63>& col, const Sort& ord) {
-	assert(strcmp(col.c_str(), T::$[0]) != 0); ob_ += col.c_str(); ob_ += SORT[static_cast<short>(ord)]; ob_.push_back(','); return this;
+	ob_ += col.c_str(); ob_ += SORT[static_cast<short>(ord)]; ob_.push_back(','); return this;
   }
   template<typename T>
   void Sql<T>::setFields(std::string& os, const text<63>& v_) {
@@ -62,7 +102,7 @@ namespace orm {
 	  ob_.push_back('"'); ob_ += T::$[0]; ob_.push_back('"');
 	} else { ob_.push_back('`'); ob_ += T::$[0]; ob_.push_back('`'); }
 	sql += ob_; sql += SORT[static_cast<short>(ord)]; sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
-	sql += " OFFSET " + std::to_string(offset_); this->clear(); std::cout << sql << '\n';
+	sql += " OFFSET " + std::to_string(offset_); this->clear();// std::cout << sql << '\n';
 	return D.conn()(sql).template findArray<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept(false) {

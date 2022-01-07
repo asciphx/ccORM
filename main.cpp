@@ -16,6 +16,7 @@ void test() {
   //t->Delete();//删除
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
   cout << Type::Q()->$()->orderBy(Type::$bigBlob)->GetArr(Sort::DESC);
+  Tab::Q()->Join<Type>().GetArr();//test Join<table>
 }
 int main() {
   InitializationOrm<Type, Tab>();//初始化建表语句和创建索引

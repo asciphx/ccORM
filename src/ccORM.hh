@@ -143,6 +143,9 @@ static char* UnicodeToUtf8(const char* str) {
 }
 #endif
 namespace crow {
+  template <class T> struct is_vector : std::false_type {};
+  template <class T> struct is_vector<T[]> : std::false_type {};
+  template <class T> struct is_vector<std::vector<T>> : std::true_type {};
   template <typename T> struct is_tuple_after_decay : std::false_type {};
   template <typename... T> struct is_tuple_after_decay<std::tuple<T...>> : std::true_type {};
   template <typename T> struct is_tuple : is_tuple_after_decay<std::decay_t<T>> {};
