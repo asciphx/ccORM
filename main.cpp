@@ -16,7 +16,7 @@ void test() {
   //t->Delete();//删除
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
   cout << Type::Q()->$()->orderBy(Type::$bigBlob)->GetArr(Sort::DESC);
-  cout << Tab::Q()->$()->Join<Type>(Type::$bigBlob)->GetArr();//test Join<table>
+  Tab::Q()->$()->Join<Type>(Type::$bigBlob).GetArr();//test Join<table>
 }
 int main() {
   InitializationOrm<Type, Tab>();//初始化建表语句和创建索引
@@ -29,7 +29,7 @@ int main() {
 	run = false;//代表副线程结束
 	}, 6);
   int i = 0; for (; i < 99998; ++i) {
-	Tab::Q()->$()->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->$()->Join<Type>(Type::$bigBlob).GetArr();
   }//多线程测试，这里是第一个线程也就是主线程
   printf("<%d>", i);
   while (run) { this_thread::yield(); }//run为true则阻止程序提前结束

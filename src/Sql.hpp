@@ -14,9 +14,9 @@ namespace orm {
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
   template<typename T, typename U>//test
   struct TLinkU {
-	TLinkU<T, U>(std::string& sql) : sql_(sql), ob_("") {}
+	TLinkU<T, U>(const text<0xbff>&sql) : sql_(std::move(sql)), ob_("") {}
 	~TLinkU<T, U>() {}
-	inline std::string GetArr(const Sort& ord = Sort::ASC) {
+	inline void GetArr(const Sort& ord = Sort::ASC) {
 	  constexpr auto v = Tuple<T>(); constexpr auto u = Tuple<U>();
 	  constexpr auto $ = std::tuple_cat(v, u); std::string s("{");
 	  ForEachTuple($, [](auto _) {
@@ -45,8 +45,7 @@ namespace orm {
 		} else {
 		  s += "\":"; s << t;
 		} s.push_back(',');
-		}); s[s.size() - 1] = '}';
-		std::cout << '\n' << sql_; delete this; return s;
+		}); s[s.size() - 1] = '}';// std::cout << '\n' << sql_;
 	};
   private: size_t limit_{ 10 }, offset_{ 0 }; text<0xbff> sql_; text<0xff> ob_;
   };
@@ -64,15 +63,15 @@ namespace orm {
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
 	template<typename U, typename... K>
-	inline TLinkU<T, U>* Join(K&&...k) {
-	  static_assert(sizeof...(K) > 0); sql_.push_back(',');
-	  (void)std::initializer_list<int>{(useFields<U>(sql_, std::forward<K>(k)), 0)...};
-	  sql_.pop_back(); static TLinkU<T, U>* TU = new TLinkU<T, U>(sql_); this->clear(); return TU;
+	TLinkU<T, U> Join(K&&...k) {
+	  static_assert(sizeof...(K) > 0); text<0xbff> sql(sql_); sql.push_back(',');
+	  (void)std::initializer_list<int>{(useFields<U>(sql, std::forward<K>(k)), 0)...};
+	  sql.pop_back(); TLinkU<T, U> TU(sql); this->clear(); return TU;
 	};
 	inline std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
 	template<typename U>
-	inline void useFields(std::string& os, const text<0x3f>& v_);//
+	inline void useFields(text<0xbff>& os, const text<0x3f>& v_);//
 	inline void setFields(std::string& os, const text<0x3f>& v_);//not only but also
 	inline void setFields(std::string& os, const char* v_);//v_ only belongs T
 	inline decltype(D)::connection_type Query();
@@ -89,7 +88,7 @@ namespace orm {
   }
   template<typename T>
   template<typename U>
-  void Sql<T>::useFields(std::string& os, const text<0x3f>& v_) {
+  void Sql<T>::useFields(text<0xbff>& os, const text<0x3f>& v_) {
 	const char* c = v_.c_str(); os += c; os += " AS "; os += U::_alias; os.push_back(0x5f); if constexpr (ce_is_pgsql) {
 	  while (*++c) { if (*c == 0x22)break; }; while (*++c != 0x22)os.push_back(*c);
 	} else { while (*++c) { if (*c == 0x60)break; }; while (*++c != 0x60)os.push_back(*c); } os.push_back(',');
