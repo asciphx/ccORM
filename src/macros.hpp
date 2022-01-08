@@ -56,12 +56,12 @@ namespace orm {
 	(void)Expander { ((void)fn(std::get<I>(tuple)), 0)... };
   }
   template <typename T>
-  inline constexpr auto Schema() { return std::make_tuple(); }
+  inline constexpr auto Tuple() { return std::make_tuple(); }
   template <typename T, typename Fn>
   inline constexpr void ForEachField(T* value, Fn&& fn) {
-	constexpr const auto schema = Schema<T>();
-	ForEachTuple(schema, [value, &fn](auto field) { fn(value->*(field)); },
-	  std::make_index_sequence<std::tuple_size<decltype(schema)>::value>{});
+	constexpr const auto tuple = Tuple<T>();
+	ForEachTuple(tuple, [value, &fn](auto field) { fn(value->*(field)); },
+	  std::make_index_sequence<std::tuple_size<decltype(tuple)>::value>{});
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
@@ -318,7 +318,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
         ATTRS(o,__VA_ARGS__)\
         REGIST_STATIC(o, __VA_ARGS__)\
         REGISTER_TABLE(o)\
-    template <> inline constexpr auto orm::Schema<o>() {\
+    template <> inline constexpr auto orm::Tuple<o>() {\
       return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
     }
 #define PTR_2(k,t,v)      _tc_[k] = t; _def_[k] = v;

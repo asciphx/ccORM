@@ -80,7 +80,7 @@ namespace orm {
 	void Update() {
 	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
 	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
-	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Tuple<T>());
 	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
 		condition += std::to_string(t);
 	  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
@@ -113,7 +113,7 @@ namespace orm {
 	//Delete the object based on this object's frist key
 	void Delete() {
 	  std::ostringstream os; os << "DELETE FROM " << _name << " WHERE " << $[0] << '=';
-	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Schema<T>());
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Tuple<T>());
 	  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 		if constexpr (ce_is_pgsql) { os << (t ? "true" : "false"); } else { os << t; }
 	  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
@@ -129,7 +129,7 @@ namespace orm {
 	}
 	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
 	  if (_created) {
-		_created = false;
+		_created = false; std::cout << "hello!!!";
 		if (_tc_[0] & TC::PRIMARY_KEY || _tc_[0] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
 		  switch (hack8Str(_[0])) {
 		  case "signed char"_l: case 'a': case "short"_l: case 's': case 'int': case 'i': case "__int64"_l: case 'x':

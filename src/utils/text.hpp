@@ -5,7 +5,7 @@
 #include <iostream>
 #include <iosfwd>
 #include "./str.h"//If it is utf8, please set three times the length
-template<unsigned short I = 255>//Max [65535(char),21845(utf8)], Min 1.
+template<unsigned short I = 255>//Max [65535(char),21845(utf8)], Min 1, default 255.
 class text {
   unsigned short l = I; char* _ = new char[I + 1];
   friend std::string& operator<<(std::string& s, text<I>& c) {
@@ -46,7 +46,7 @@ public:
   inline const unsigned short length() const { return l; }
   inline char& operator[](unsigned short i) { return _[i]; }
   void operator += (const char* c) {
-	while (*c && l < I) { _[l++] = *c++; } _[I] = 0;
+	while (*c && l < I) { _[l++] = *c++; } _[l] = 0;
   }
   inline void operator +=(char c) { _[l++] = c; }
   void operator += (const text& t) {
@@ -54,20 +54,21 @@ public:
 	if (&t == this) {
 	  short i = 2 * l, k = -1; if (i > I)i = I; while (l < i) { _[l++] = s[++k]; } _[i] = 0;
 	} else {
-	  unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0;
+	  unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[l] = 0;
 	}
   }
   template<unsigned short L>
   void operator += (const text<L>& t) {
-	const char* s = t.c_str(); unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[I] = 0;
+	const char* s = t.c_str(); unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[l] = 0;
   }
   void operator += (const std::string& t) {
-	unsigned short i = 0xffff; while (t[++i] && l < I) { _[l++] = t[i]; } _[I] = 0;
+	unsigned short i = 0xffff; while (t[++i] && l < I) { _[l++] = t[i]; } _[l] = 0;
   }
   inline void push_back(const char c) { if (l < I) _[l++] = c; }
   inline void pop_back() { _[--l] = 0; }
   inline void push_begin(const char c) { unsigned short i = l; while (i) { _[i] = _[i - 1]; --i; } _[++l] = 0; _[0] = c; }
   inline void end() { _[l] = 0; }
+  inline void clear() { _[0] = 0; l = 0; }
 };
 template<unsigned short I>
 std::ostream& operator<<(std::ostream& s, text<I> c) {

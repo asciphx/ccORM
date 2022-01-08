@@ -143,9 +143,14 @@ static char* UnicodeToUtf8(const char* str) {
 }
 #endif
 namespace crow {
+  template<typename C> struct tuple_idex {};
+  template<template<typename ...T> class C, typename ...T>
+  struct tuple_idex<C<T...>> { template<size_t i> using type = typename std::tuple_element<i, std::tuple<T...> >::type; };
   template <class T> struct is_vector : std::false_type {};
   template <class T> struct is_vector<T[]> : std::false_type {};
   template <class T> struct is_vector<std::vector<T>> : std::true_type {};
+  template<typename C> struct vector_pack {};
+  template<template<typename, typename> class C, typename A, typename B> struct vector_pack<C<A, B>> { using type = A; };
   template <typename T> struct is_tuple_after_decay : std::false_type {};
   template <typename... T> struct is_tuple_after_decay<std::tuple<T...>> : std::true_type {};
   template <typename T> struct is_tuple : is_tuple_after_decay<std::decay_t<T>> {};
