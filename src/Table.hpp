@@ -129,7 +129,7 @@ namespace orm {
 	}
 	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
 	  if (_created) {
-		_created = false; std::cout << "hello!!!";
+		_created = false;
 		if (_tc_[0] & TC::PRIMARY_KEY || _tc_[0] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
 		  switch (hack8Str(_[0])) {
 		  case "signed char"_l: case 'a': case "short"_l: case 's': case 'int': case 'i': case "__int64"_l: case 'x':

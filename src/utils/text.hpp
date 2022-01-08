@@ -45,9 +45,8 @@ public:
   inline const char* c_str() const { return _; }
   inline const unsigned short length() const { return l; }
   inline char& operator[](unsigned short i) { return _[i]; }
-  void operator += (const char* c) {
-	while (*c && l < I) { _[l++] = *c++; } _[l] = 0;
-  }
+  inline void operator += (const char* c) { while (*c && l < I) { _[l++] = *c++; } _[l] = 0; }
+  inline void operator & (const char* c) { while (*c) { _[l++] = *c++; } _[l] = 0; }
   inline void operator +=(char c) { _[l++] = c; }
   void operator += (const text& t) {
 	const char* s = t.c_str();

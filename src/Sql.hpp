@@ -110,7 +110,7 @@ namespace orm {
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { wh_ = " WHERE "; wh_ += v_.c_str(); return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept(false) {
-	text<0x4ff> sql(sql_); sql += " FROM "; sql += T::_name; sql.push_back(' '); sql += T::_alias; sql += wh_; sql += " ORDER BY ";
+	text<0x4ff> sql(sql_); sql & " FROM "; sql += T::_name; sql.push_back(' '); sql & T::_alias; sql += wh_; sql & " ORDER BY ";
 	ob_ += T::_alias; ob_.push_back('.'); if constexpr (ce_is_pgsql) {
 	  ob_.push_back(34); ob_ += T::$[0]; ob_.push_back(34);
 	} else { ob_.push_back(96); ob_ += T::$[0]; ob_.push_back(96); }
@@ -119,7 +119,7 @@ namespace orm {
 	this->clear(); return D.conn()(sql.c_str()).template findArray<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept(false) {
-	text<0x3ff> sql(sql_); sql += " FROM "; sql += T::_name; sql.push_back(' '); sql += T::_alias; sql += wh_;// std::cout << sql << '\n';
+	text<0x3ff> sql(sql_); sql & " FROM "; sql += T::_name; sql.push_back(' '); sql & T::_alias; sql += wh_;// std::cout << sql << '\n';
 	this->clear(); return D.conn()(sql.c_str()).template findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::Query() { prepare_ = true; return D.conn(); }
