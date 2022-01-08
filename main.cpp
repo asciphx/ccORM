@@ -16,19 +16,19 @@ void test() {
   //t->Delete();//删除
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
   cout << Type::Q()->$()->orderBy(Type::$bigBlob)->GetArr(Sort::DESC);
-  Tab::Q()->$()->Join<Type>(Type::$bigBlob).GetArr();//test Join<table>
+  cout << Tab::Q()->$()->Join<Type>(Type::$bigBlob)->GetArr();//test Join<table>
 }
 int main() {
   InitializationOrm<Type, Tab>();//初始化建表语句和创建索引
   clock_t start = clock(); test();
   Timer t; bool run = true;//标记第二个线程的运行状态
   t.setTimeout([&run] {
-	int i = 0; for (; i < 9999; ++i) {
+	int i = 0; for (; i < 99999; ++i) {
 	  Tab::Q()->$()->where(Tab::$id == 2)->GetOne();
 	} printf("<%d>", i);
 	run = false;//代表副线程结束
 	}, 6);
-  int i = 0; for (; i < 9998; ++i) {
+  int i = 0; for (; i < 99998; ++i) {
 	Tab::Q()->$()->where(Tab::$id == 1)->GetOne();
   }//多线程测试，这里是第一个线程也就是主线程
   printf("<%d>", i);

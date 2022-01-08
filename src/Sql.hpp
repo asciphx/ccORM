@@ -14,9 +14,9 @@ namespace orm {
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
   template<typename T, typename U>//test
   struct TLinkU {
-	TLinkU<T, U>(std::string& sql, std::string& ob) : sql_(sql), ob_(ob) {}
+	TLinkU<T, U>(std::string& sql) : sql_(sql), ob_("") {}
 	~TLinkU<T, U>() {}
-	inline void GetArr(const Sort& ord = Sort::ASC) {
+	inline std::string GetArr(const Sort& ord = Sort::ASC) {
 	  constexpr auto v = Tuple<T>(); constexpr auto u = Tuple<U>();
 	  constexpr auto $ = std::tuple_cat(v, u); std::string s("{");
 	  ForEachTuple($, [](auto _) {
@@ -46,7 +46,7 @@ namespace orm {
 		  s += "\":"; s << t;
 		} s.push_back(',');
 		}); s[s.size() - 1] = '}';
-		std::cout << '\n' << s << '\n' << sql_;
+		std::cout << '\n' << sql_; delete this; return s;
 	};
   private: size_t limit_{ 10 }, offset_{ 0 }; text<0xbff> sql_; text<0xff> ob_;
   };
@@ -64,10 +64,10 @@ namespace orm {
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
 	template<typename U, typename... K>
-	inline TLinkU<T, U> Join(K&&...k) {
+	inline TLinkU<T, U>* Join(K&&...k) {
 	  static_assert(sizeof...(K) > 0); sql_.push_back(',');
 	  (void)std::initializer_list<int>{(useFields<U>(sql_, std::forward<K>(k)), 0)...};
-	  sql_.pop_back(); return TLinkU<T, U>(sql_, ob_);
+	  sql_.pop_back(); static TLinkU<T, U>* TU = new TLinkU<T, U>(sql_); this->clear(); return TU;
 	};
 	inline std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
@@ -110,7 +110,7 @@ namespace orm {
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { wh_ = " WHERE "; wh_ += v_.c_str(); return this; }
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept(false) {
-	text<0x4ff> sql(sql_); sql & " FROM "; sql += T::_name; sql.push_back(' '); sql & T::_alias; sql += wh_; sql & " ORDER BY ";
+	text<0x7ff> sql(sql_); sql & " FROM "; sql += T::_name; sql.push_back(' '); sql & T::_alias; sql += wh_; sql & " ORDER BY ";
 	ob_ += T::_alias; ob_.push_back('.'); if constexpr (ce_is_pgsql) {
 	  ob_.push_back(34); ob_ += T::$[0]; ob_.push_back(34);
 	} else { ob_.push_back(96); ob_ += T::$[0]; ob_.push_back(96); }
@@ -119,7 +119,7 @@ namespace orm {
 	this->clear(); return D.conn()(sql.c_str()).template findArray<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept(false) {
-	text<0x3ff> sql(sql_); sql & " FROM "; sql += T::_name; sql.push_back(' '); sql & T::_alias; sql += wh_;// std::cout << sql << '\n';
+	text<0x5ff> sql(sql_); sql & " FROM "; sql += T::_name; sql.push_back(' '); sql & T::_alias; sql += wh_;// std::cout << sql << '\n';
 	this->clear(); return D.conn()(sql.c_str()).template findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::Query() { prepare_ = true; return D.conn(); }
