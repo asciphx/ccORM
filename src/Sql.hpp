@@ -17,7 +17,7 @@ namespace orm {
 	TLinker(TLinker const&) = delete; TLinker& operator=(TLinker&&) = delete;
 	TLinker(TLinker&&) = default; TLinker& operator=(TLinker const&) = delete;
 	TLinker<T, U>() : sql_("SELECT "), ob_("") {} ~TLinker<T, U>() {}
-	inline void useFields(text<0xbff>& os, const text<0x3f>& v_);
+	inline void useFields(text<0x7ff>& os, const text<0x3f>& v_);
 	inline TLinker<T, U>* $() { sql_ += T::_ios_; return this; };
 	inline void GetArr(const Sort& ord = Sort::ASC) {
 	  constexpr auto v = Tuple<T>(); constexpr auto u = Tuple<U>();
@@ -51,7 +51,7 @@ namespace orm {
 		}); s[s.size() - 1] = '}';
 		std::cout << '\n' << sql_ << " -> " << s;
 	};
-	template<typename U, typename... K>
+	template<typename... K>
 	TLinker<T, U>* Join(K&&...k) {
 	  static_assert(sizeof...(K) > 0); sql_.push_back(',');
 	  (void)std::initializer_list<int>{(useFields(sql_, std::forward<K>(k)), 0)...};
@@ -60,7 +60,7 @@ namespace orm {
   private: size_t limit_{ 10 }, offset_{ 0 }; text<0x7ff> sql_; text<0xff> ob_;
   };
   template<class T, class U>
-  void TLinker<T, U>::useFields(text<0xbff>& os, const text<0x3f>& v_) {
+  void TLinker<T, U>::useFields(text<0x7ff>& os, const text<0x3f>& v_) {
 	const char* c = v_.c_str(); os += c; os += " AS "; os += U::_alias; os.push_back(0x5f); if constexpr (ce_is_pgsql) {
 	  while (*++c != 0x22) {}; while (*++c != 0x22)os.push_back(*c);
 	} else { while (*++c != 0x60) {}; while (*++c != 0x60)os.push_back(*c); } os.push_back(',');
