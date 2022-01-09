@@ -43,8 +43,7 @@ namespace orm {
 	Table(); ~Table() {} Table(const Table&) = default;
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
-	  int8_t idex = -1; (void)std::initializer_list<int>{($et(++idex, &t), 0)...};
-	  return; /*This code will never arrive*/ *this = T(t...);//detect types
+	  int8_t idex = -1; Exp{($et(++idex, &t), 0)...}; return; /*This code will never arrive && detect types*/ *this = T(t...);
 	}
 	//Query builder
 	static Sql<T>* Q() {

@@ -54,8 +54,7 @@ namespace orm {
 	template<typename... K>
 	TLinker<T, U>* Join(K&&...k) {
 	  static_assert(sizeof...(K) > 0); sql_.push_back(',');
-	  (void)std::initializer_list<int>{(useFields(sql_, std::forward<K>(k)), 0)...};
-	  sql_.pop_back(); return this;
+	  Exp{ (useFields(sql_, std::forward<K>(k)), 0)... }; sql_.pop_back(); return this;
 	};
   private: size_t limit_{ 10 }, offset_{ 0 }; text<0x7ff> sql_; text<0xff> ob_;
   };
@@ -106,7 +105,7 @@ namespace orm {
   };
   template<typename T>
   template <typename... K> Sql<T>* Sql<T>::$(K&&...k) {
-	(void)std::initializer_list<int>{(setFields(sql_, std::forward<K>(k)), 0)...}; sql_.pop_back();
+	Exp{ (setFields(sql_, std::forward<K>(k)), 0)... }; sql_.pop_back();
 	sql_ += " FROM "; sql_ += T::_name; sql_.push_back(' '); sql_ += T::_alias; return this;
   };
   template<typename T>
@@ -116,8 +115,8 @@ namespace orm {
 	text<0x3ff> sql(sql_); sql & " ORDER BY "; ob_ += T::_alias; ob_.push_back('.'); if constexpr (ce_is_pgsql) {
 	  ob_.push_back(34); ob_ += T::$[0]; ob_.push_back(34);
 	} else { ob_.push_back(96); ob_ += T::$[0]; ob_.push_back(96); }
-	sql += ob_; sql += SORT[static_cast<short>(ord)]; sql += " LIMIT " + std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
-	sql += " OFFSET " + std::to_string(offset_);// std::cout << sql << '\n';
+	sql += ob_; sql += SORT[static_cast<short>(ord)]; sql & " LIMIT "; sql += std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
+	sql & " OFFSET "; sql += std::to_string(offset_);// std::cout << sql << '\n';
 	this->clear(); return D.conn()(sql.c_str()).template findArray<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept(false) {

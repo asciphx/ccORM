@@ -32,7 +32,6 @@ namespace orm {
   static inline typename std::enable_if<is_text<T>::value, const char*>::type DuckTyping(const T& _v) { return _v.c_str(); }
   template <class T>
   static inline typename std::enable_if<!is_text<T>::value, T>::type DuckTyping(const T& _v) { return _v; }
-
   inline void OriginalType(tm& _v, const char* s, const json& j) {
 	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {
 	  _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0;
@@ -49,11 +48,12 @@ namespace orm {
   static inline typename std::enable_if<!is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
 	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
   }
+  using Expand = short[];
+#define Exp (void)Expand
   template <typename T, typename Fn, std::size_t... I>
   inline constexpr void ForEachTuple(T& tuple, Fn&& fn,
 	std::index_sequence<I...>) {
-	using Expander = int[];
-	(void)Expander { ((void)fn(std::get<I>(tuple)), 0)... };
+	Exp{ ((void)fn(std::get<I>(tuple)), 0)... };
   }
   template <typename T>
   inline constexpr auto Tuple() { return std::make_tuple(); }
