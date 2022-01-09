@@ -194,7 +194,7 @@ inline const char* GetRealType(const char* s, const char* c) {
 #define OFFSET_N(o,N,...) OFFSET_N1(o,N,__VA_ARGS__)
 #endif
 #define REGIST_STATIC(o,...)\
- template<> const uint8_t orm::Table<o>::_size_ = NUM_ARGS(__VA_ARGS__);\
+ template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__);\
  template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)]={ OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
@@ -309,8 +309,8 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define REGISTER_TABLE(o)\
 	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
 	template<> uint8_t orm::Table<o>::_idex = 0;\
-	template<> std::string orm::Table<o>::_create_ = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
-	template<> const std::string orm::Table<o>::_drop_ = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
+	template<> std::string orm::Table<o>::_create = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
+	template<> const std::string orm::Table<o>::_drop = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
 	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
 	template<> const char* orm::Table<o>::_alias = #o;\
 	template<> bool orm::Table<o>::_created = true;
@@ -321,38 +321,38 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
     template <> inline constexpr auto orm::Tuple<o>() {\
       return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
     }
-#define PTR_2(k,t,v)      _tc_[k] = t; _def_[k] = v;
-#define PTR_4(k,t,v,...)  _tc_[k] = t; _def_[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
-#define PTR_6(k,t,v,...)  _tc_[k] = t; _def_[k] = v; EXP(PTR_4(k+1,__VA_ARGS__))
-#define PTR_8(k,t,v,...)  _tc_[k] = t; _def_[k] = v; EXP(PTR_6(k+1,__VA_ARGS__))
-#define PTR_10(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_8(k+1,__VA_ARGS__))
-#define PTR_12(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_10(k+1,__VA_ARGS__))
-#define PTR_14(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_12(k+1,__VA_ARGS__))
-#define PTR_16(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_14(k+1,__VA_ARGS__))
-#define PTR_18(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_16(k+1,__VA_ARGS__))
-#define PTR_20(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_18(k+1,__VA_ARGS__))
-#define PTR_22(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_20(k+1,__VA_ARGS__))
-#define PTR_24(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_22(k+1,__VA_ARGS__))
-#define PTR_26(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_24(k+1,__VA_ARGS__))
-#define PTR_28(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_26(k+1,__VA_ARGS__))
-#define PTR_30(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_28(k+1,__VA_ARGS__))
-#define PTR_32(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_30(k+1,__VA_ARGS__))
-#define PTR_34(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_32(k+1,__VA_ARGS__))
-#define PTR_36(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_34(k+1,__VA_ARGS__))
-#define PTR_38(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_36(k+1,__VA_ARGS__))
-#define PTR_40(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_38(k+1,__VA_ARGS__))
-#define PTR_42(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_40(k+1,__VA_ARGS__))
-#define PTR_44(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_42(k+1,__VA_ARGS__))
-#define PTR_46(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_44(k+1,__VA_ARGS__))
-#define PTR_48(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_46(k+1,__VA_ARGS__))
-#define PTR_50(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_48(k+1,__VA_ARGS__))
-#define PTR_52(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_50(k+1,__VA_ARGS__))
-#define PTR_54(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_52(k+1,__VA_ARGS__))
-#define PTR_56(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_54(k+1,__VA_ARGS__))
-#define PTR_58(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_56(k+1,__VA_ARGS__))
-#define PTR_60(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_58(k+1,__VA_ARGS__))
-#define PTR_62(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_60(k+1,__VA_ARGS__))
-#define PTR_64(k,t,v,...) _tc_[k] = t; _def_[k] = v; EXP(PTR_62(k+1,__VA_ARGS__))
+#define PTR_2(k,t,v)      _tc[k] = t; _def[k] = v;
+#define PTR_4(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
+#define PTR_6(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_4(k+1,__VA_ARGS__))
+#define PTR_8(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_6(k+1,__VA_ARGS__))
+#define PTR_10(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_8(k+1,__VA_ARGS__))
+#define PTR_12(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_10(k+1,__VA_ARGS__))
+#define PTR_14(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_12(k+1,__VA_ARGS__))
+#define PTR_16(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_14(k+1,__VA_ARGS__))
+#define PTR_18(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_16(k+1,__VA_ARGS__))
+#define PTR_20(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_18(k+1,__VA_ARGS__))
+#define PTR_22(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_20(k+1,__VA_ARGS__))
+#define PTR_24(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_22(k+1,__VA_ARGS__))
+#define PTR_26(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_24(k+1,__VA_ARGS__))
+#define PTR_28(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_26(k+1,__VA_ARGS__))
+#define PTR_30(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_28(k+1,__VA_ARGS__))
+#define PTR_32(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_30(k+1,__VA_ARGS__))
+#define PTR_34(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_32(k+1,__VA_ARGS__))
+#define PTR_36(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_34(k+1,__VA_ARGS__))
+#define PTR_38(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_36(k+1,__VA_ARGS__))
+#define PTR_40(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_38(k+1,__VA_ARGS__))
+#define PTR_42(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_40(k+1,__VA_ARGS__))
+#define PTR_44(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_42(k+1,__VA_ARGS__))
+#define PTR_46(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_44(k+1,__VA_ARGS__))
+#define PTR_48(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_46(k+1,__VA_ARGS__))
+#define PTR_50(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_48(k+1,__VA_ARGS__))
+#define PTR_52(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_50(k+1,__VA_ARGS__))
+#define PTR_54(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_52(k+1,__VA_ARGS__))
+#define PTR_56(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_54(k+1,__VA_ARGS__))
+#define PTR_58(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_56(k+1,__VA_ARGS__))
+#define PTR_60(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_58(k+1,__VA_ARGS__))
+#define PTR_62(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_60(k+1,__VA_ARGS__))
+#define PTR_64(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_62(k+1,__VA_ARGS__))
 #define PTRS_N(N,...) EXP(PTR_##N(0,__VA_ARGS__))
 #define PTRS(N,...) PTRS_N(N,__VA_ARGS__)
 //`1;`->加粗，`4`->下划线，`0`->还原,`m`<=>`\033[`
@@ -365,12 +365,12 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define RGB_AZURE    "\033[36m"
 #define RGB_NULL 	 "\033[0m"
 #define REGIST(o,...)\
-template<> uint8_t orm::Table<o>::_tc_[NUM_ARGS(__VA_ARGS__)]={};\
-template<> const char* orm::Table<o>::_def_[NUM_ARGS(__VA_ARGS__)]={};\
+template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};\
+template<> const char* orm::Table<o>::_def[NUM_ARGS(__VA_ARGS__)]={};\
 template<> void orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
 if(strLen(#o)>31){throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m The length of the name cannot exceed 31!\n\033[0m"));}\
-  bool b=true;if(_tc_[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
-     if(_tc_[i] & TC::PRIMARY_KEY){ if(b){b=false;\
+  bool b=true;if(_tc[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
+     if(_tc[i] & TC::PRIMARY_KEY){ if(b){b=false;\
 throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
 else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}
 
@@ -485,5 +485,5 @@ PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
 constexpr static const char* o##_ios__() {\
 if constexpr (ce_is_pgsql) { return IOS_N(#o".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
 else {return IOS_N(#o".", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
-template<> const char* orm::Table<o>::_ios_=o##_ios__();
+template<> const char* orm::Table<o>::_ios=o##_ios__();
 #endif
