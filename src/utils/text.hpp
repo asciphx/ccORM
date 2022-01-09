@@ -6,7 +6,7 @@
 #include <iosfwd>
 #include "./str.h"//If it is utf8, please set three times the length
 template<unsigned short I = 255>//Max [65535(char),21845(utf8)], Min 1, default 255.
-class text {
+class text {//It is similar to a dynamic std::string_view with a fixed maximum length
   unsigned short l = I; char* _ = new char[I + 1];
   friend std::string& operator<<(std::string& s, text<I>& c) {
 	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
@@ -16,12 +16,11 @@ class text {
   };
 public:
   ~text() { delete[]_; _ = nullptr; };
-  text(const char* c = 0) {
+  text() { static_assert(I != 0); _[0] = l = 0; };
+  text(const char* c) {
 	static_assert(I != 0); size_t i = strlen(c); if (i < I)l = i; strncpy(_, c, I); _[l] = 0;
   };
-  text(const text& str) {
-	strcpy(_, str._); l = str.l;
-  }
+  text(const text& str) { strcpy(_, str._); l = str.l; }
   template<unsigned short L>
   text(const text<L>& str) {
 	static_assert(I >= L); strcpy(_, str.c_str()); l = str.length();
@@ -42,12 +41,12 @@ public:
   text& operator = (const text<L>& str) {
 	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); l = str.length(); _[l] = 0; return *this;
   }
-  inline const char* c_str() const { return _; }
-  inline const unsigned short length() const { return l; }
-  inline char& operator[](unsigned short i) { return _[i]; }
-  inline void operator += (const char* c) { while (*c && l < I) { _[l++] = *c++; } _[l] = 0; }
-  inline void operator & (const char* c) { while (*c) { _[l++] = *c++; } }
-  inline void operator +=(char c) { _[l++] = c; }
+  inline const char* c_str() const { return _; }//Same as std::string
+  inline const unsigned short length() const { return l; }//Same as std::string
+  inline char& operator[](unsigned short i) { return _[i]; }//Same as std::string
+  inline void operator +=(const char* c) { while (*c && l < I) { _[l++] = *c++; } _[l] = 0; }//Safe, like std::string
+  inline void operator & (const char* c) { while (*c) { _[l++] = *c++; } }//Fast, but not safe. Unless you're sure it's long enough
+  inline void operator +=(char c) { _[l++] = c; }//Incomplete safety, but it's generally safe and fast
   void operator += (const text& t) {
 	const char* s = t.c_str();
 	if (&t == this) {
@@ -67,7 +66,7 @@ public:
   inline void pop_back() { _[--l] = 0; }
   inline void push_begin(const char c) { unsigned short i = l; while (i) { _[i] = _[i - 1]; --i; } _[++l] = 0; _[0] = c; }
   inline void end() { _[l] = 0; }
-  inline void clear() { _[0] = 0; l = 0; }
+  inline void clear() { _[0] = l = 0; }
 };
 template<unsigned short I>
 std::ostream& operator<<(std::ostream& s, text<I> c) {

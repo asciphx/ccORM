@@ -130,17 +130,16 @@ namespace orm {
 	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
 	  if (_created) {
 		_created = false;
-		if (_tc[0] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
-		  switch (hack8Str(_[0])) {
-		  case "signed char"_l: case 'a': case "short"_l: case 's': case 'int': case 'i': case "__int64"_l: case 'x':
-		  case "d char"_l: case 'h': case "d short"_l: case 't': case "d int"_l: case 'j': case "d __int64"_l: case 'y':
-		  break; default:throw std::runtime_error("\033[1;34m[sequence]\033[31;4m type must be number!\n\033[0m");
-		  }
-		}
 		for (uint8_t i = 0; i < _size; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
 		  if (_[i][0] == 'S') { continue; }
-		  TC tc = (TC)_tc[i]; const char* def = _def[i];
-		  if (i)_create += ",\n";
+		  if (_tc[i] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
+			switch (hack8Str(_[i])) {
+			case "signed char"_l: case 'a': case "short"_l: case 's': case 'int': case 'i': case "__int64"_l: case 'x':
+			case "d char"_l: case 'h': case "d short"_l: case 't': case "d int"_l: case 'j': case "d __int64"_l: case 'y':
+			break; default:throw std::runtime_error("\033[1;34m[sequence]\033[31;4m type must be number!\n\033[0m");
+			}
+		  }
+		  TC tc = (TC)_tc[i]; const char* def = _def[i]; if (i)_create += ",\n";
 		  if constexpr (ce_is_pgsql) {
 			_create.push_back('"'); _create += $[i]; _create.push_back('"');
 			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) { //Compatible layer, unsigned field may be only half the size

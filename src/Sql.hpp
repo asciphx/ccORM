@@ -12,13 +12,13 @@ namespace orm {
   constexpr bool ce_is_mysql = std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value;
   constexpr bool ce_is_sqlite = std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value;
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
-  template<typename T, typename U>//Table Linker
+  template<typename T, typename U>//Table Linker. Perfect programming! Follow the principle of minimum code.
   struct TLinker {
 	TLinker(TLinker const&) = delete; TLinker& operator=(TLinker&&) = delete;
 	TLinker(TLinker&&) = default; TLinker& operator=(TLinker const&) = delete;
-	TLinker<T, U>() : _("SELECT "), __("") {} ~TLinker<T, U>() {}
+	TLinker<T, U>() : _("SELECT ") {} ~TLinker<T, U>() {}
 	inline TLinker<T, U>* $() { _ += T::_ios; return this; };
-	inline void GetArr(const Sort& ord = Sort::ASC) {
+	void GetArr(const Sort& ord = Sort::ASC) {
 	  constexpr auto v = Tuple<T>(); constexpr auto u = Tuple<U>();
 	  constexpr auto $ = std::tuple_cat(v, u); std::string s("{"); s.reserve(0xff);
 	  ForEachTuple($, [](auto _) {
@@ -50,8 +50,8 @@ namespace orm {
 		}); s[s.size() - 1] = '}';
 		std::cout << '\n' << _ << " -> " << s;
 	};
-	template<typename... K>
-	TLinker<T, U>* Join(K&&...k) {
+	template<typename... K>//The fields of the connected Table<U> to query, U.`<$>` -> U.`<$>` AS U_<$>
+	TLinker<T, U>* add(K&&...k) {
 	  static_assert(sizeof...(K) > 0); _.push_back(','); Exp{ (fields(_, std::forward<K>(k)), 0)... }; _.pop_back(); return this;
 	};
   private: size_t limit_{ 10 }, offset_{ 0 }; text<0x7ff> _; text<0xff> __;
@@ -59,12 +59,13 @@ namespace orm {
   };
   template<class T, class U>
   void TLinker<T, U>::fields(text<0x7ff>& os, const text<0x3f>& v_) {
-	const char* c = v_.c_str(); os += c; os += " AS "; os += U::_alias; os.push_back(0x5f); if constexpr (ce_is_pgsql) {
+	const char* c = v_.c_str(); os & c; os & " AS "; os += U::_alias; os.push_back(0x5f); if constexpr (ce_is_pgsql) {
 	  while (*++c != 0x22) {}; while (*++c != 0x22)os.push_back(*c);
 	} else { while (*++c != 0x60) {}; while (*++c != 0x60)os.push_back(*c); } os.push_back(',');
   };/* SELECT User.id, User.account, User.name, User.photo, Role.id AS Role_id, Role.name AS Role_name
   FROM user User LEFT JOIN user_role UserRole ON UserRole.user_id = User.id LEFT JOIN role Role
   ON Role.id = UserRole.role_id  WHERE User.id>1 ORDER BY User.id */
+  //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> struct Sql {
 	friend class Table<T>;
 	Sql<T>() : _("SELECT ") { _.reserve(0x1ff); __.reserve(0x5f); }
@@ -72,7 +73,7 @@ namespace orm {
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
 	inline Sql<T>* orderBy(const text<0x3f>& col, const Sort& ord = Sort::ASC);//default Sort::ASC
-	//select <_.`$`>,... from <T> _ WHERE <_.`$`=?> ORDER BY _.`$1` LIMIT 10 OFFSET 0;
+	//select <T.`$`>,... from <T> T WHERE <T.`$`=?> ORDER BY T.`$1` LIMIT 10 OFFSET 0;
 	inline Sql<T>* $() { _ += T::_ios; _ += " FROM "; _ += T::_name; _.push_back(' '); _ += T::_alias; return this; };
 	template <typename... K>
 	inline Sql<T>* $(K&&...k);
@@ -109,7 +110,6 @@ namespace orm {
   };
   template<typename T>
   template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { _ += " WHERE "; _ += v_.c_str(); return this; }
-  //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept(false) {
 	text<0x3ff> sql(_); sql & " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (ce_is_pgsql) {
 	  __.push_back(34); __ += T::$[0]; __.push_back(34);

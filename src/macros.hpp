@@ -17,7 +17,7 @@
 #include <stdexcept>
 #include "json.hpp"
 namespace orm {
-  static const unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
+  static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
   inline std::string DuckTyping(const tm& _v) {
 	std::ostringstream os; os << std::setfill('0');
 #ifdef _WIN32
@@ -305,7 +305,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define STAR_32(o,k,...) &o::k, EXP(STAR_31(o,__VA_ARGS__))
 #define STARS_N(o,N,...) EXP(STAR_##N(o,__VA_ARGS__))
 #define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
-
+ 
 #define REGISTER_TABLE(o)\
 	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
 	template<> uint8_t orm::Table<o>::_idex = 0;\
