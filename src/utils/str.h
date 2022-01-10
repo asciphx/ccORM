@@ -64,12 +64,12 @@ extern "C" {
 	} return t;
   }
   static inline constexpr unsigned long long hack8Str(const char* s) {
-	unsigned long long r = 0; for (int i = 0; i < 8 && s[i]; r *= 0x100, r += s[i++]); return r;
+	unsigned long long r = 0; for (signed char i = -1; ++i < 8 && s[i]; r *= 0x100, r += s[i]); return r;
   }//If only the first four digits need to be matched and there is no conflict, it is recommended to use hack4Str to improve efficiency
-  static inline constexpr int hack4Str(const char* s) { int r = 0; for (int i = 0; i < 4 && s[i]; r *= 0x100, r += s[i++]); return r; }
+  static inline constexpr int hack4Str(const char* s) { int r = 0; for (signed char i = -1; ++i < 4 && s[i]; r *= 0x100, r += s[i]); return r; }
   //Hack8str is downward compatible with hack4str, however, it is not compatible with the hackallstr method
   static inline constexpr unsigned long long hackAllStr(const char* s) {
-	unsigned long long r = 0; for (int i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
+	unsigned long long r = 0; for (unsigned short i = 0xffff; s[++i]; r *= 0x1f, r += s[i]); return r;
   }
 #ifdef __cplusplus
 }  /* extern "C" */
@@ -94,11 +94,11 @@ static std::string& toUpperCase(std::string& s) {
 }
 static std::string toUpperCase(const char* s) {
   std::string e;
-  if (*s > 0x60 && *s < 0x7b) { e += *s - 0x20; }
+  if (*s > 0x60 && *s < 0x7b) { e.push_back(*s - 0x20); }
   while (*++s) {
 	if (*s > 0x60 && *s < 0x7b) {
-	  e += *s - 0x20;
-	} else { e += *s; }
+	  e.push_back(*s - 0x20);
+	} else { e.push_back(*s); }
   } return e;
 }
 static std::string& toLowerCase(std::string& s) {
@@ -111,20 +111,20 @@ static std::string& toLowerCase(std::string& s) {
 }
 static std::string toLowerCase(const char* s) {
   std::string e;
-  if (*s > 0x40 && *s < 0x5b) { e += *s + 0x20; }
+  if (*s > 0x40 && *s < 0x5b) { e.push_back(*s + 0x20); }
   while (*++s) {
 	if (*s > 0x40 && *s < 0x5b) {
-	  e += *s + 0x20;
-	} else { e += *s; }
+	  e.push_back(*s + 0x20);
+	} else { e.push_back(*s); }
   } return e;
 }
 static std::string toSqlLowerCase(const char* s) {
   std::string e;
-  if (*s > 0x40 && *s < 0x5b) { e += *s + 0x20; }
+  if (*s > 0x40 && *s < 0x5b) { e.push_back(*s + 0x20); }
   while (*++s) {
 	if (*s > 0x40 && *s < 0x5b) {
-	  e += 0x5f; e += *s + 0x20;
-	} else { e += *s; }
+	  e.push_back(0x5f); e.push_back(*s + 0x20);
+	} else { e.push_back(*s); }
   } return e;
 }
 template<typename T> const char* getObjectName() {
@@ -138,8 +138,8 @@ template<typename T> const char* getObjectName() {
 static std::string toQuotes(const char* s) {
   std::string e; while (*s) {
 	if (*s == 0x27) {
-	  e += 0x27; e += 0x27;
-	} else { e += *s; }
+	  e.push_back(0x27); e.push_back(0x27);
+	} else { e.push_back(*s); }
 	*++s;
   } return e;
 }

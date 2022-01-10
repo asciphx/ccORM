@@ -45,8 +45,8 @@ public:
   inline const unsigned short length() const { return l; }//Same as std::string
   inline char& operator[](unsigned short i) { return _[i]; }//Same as std::string
   inline void operator +=(const char* c) { while (*c && l < I) { _[l++] = *c++; } _[l] = 0; }//Safe, like std::string
-  inline void operator & (const char* c) { while (*c) { _[l++] = *c++; } }//Fast, but not safe. Unless you're sure it's long enough
-  inline void operator +=(char c) { _[l++] = c; }//Incomplete safety, but it's generally safe and fast
+  inline void operator & (const char* c) { while (*c) { _[l++] = *c++; } }//Fast, but not safe. Unless you're sure it's enough(maybe need .end())
+  inline void operator +=(char c) { _[l++] = c; }//Incomplete safety, but it's generally safe and fast(maybe need .end())
   void operator += (const text& t) {
 	const char* s = t.c_str();
 	if (&t == this) {

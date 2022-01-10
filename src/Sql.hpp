@@ -72,13 +72,15 @@ namespace orm {
 	~Sql<T>() {}
 	inline Sql<T>* limit(size_t limit);
 	inline Sql<T>* offset(size_t offset);
-	inline Sql<T>* orderBy(const text<0x3f>& col, const Sort& ord = Sort::ASC);//default Sort::ASC
+	//Cannot be the first field(Because PgSQL does not sort the primary key)
+	inline Sql<T>* orderBy(const text<0x3f>& col, const Sort& ord = Sort::ASC);
 	//select <T.`$`>,... from <T> T WHERE <T.`$`=?> ORDER BY T.`$1` LIMIT 10 OFFSET 0;
 	inline Sql<T>* $() { _ += T::_ios; _ += " FROM "; _ += T::_name; _.push_back(' '); _ += T::_alias; return this; };
 	template <typename... K>
 	inline Sql<T>* $(K&&...k);
 	template<unsigned short I>
 	inline Sql<T>* where(const text<I>& str);
+	//Default sort for the first field
 	inline std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
 	inline decltype(D)::connection_type Query();

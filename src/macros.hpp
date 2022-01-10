@@ -44,11 +44,11 @@ namespace orm {
   static inline typename std::enable_if<is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
 	try { _v = j.at(s); } catch (const std::exception&) {}
   }
-  template <typename T>
+  template <class T>
   static inline typename std::enable_if<!is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
 	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
   }
-  using Expand = short[];
+  using Expand = char[];
 #define Exp (void)Expand
   template <typename T, typename Fn, std::size_t... I>
   inline constexpr void ForEachTuple(T& tuple, Fn&& fn,
@@ -305,7 +305,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define STAR_32(o,k,...) &o::k, EXP(STAR_31(o,__VA_ARGS__))
 #define STARS_N(o,N,...) EXP(STAR_##N(o,__VA_ARGS__))
 #define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
- 
+
 #define REGISTER_TABLE(o)\
 	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
 	template<> uint8_t orm::Table<o>::_idex = 0;\

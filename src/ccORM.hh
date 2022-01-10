@@ -166,7 +166,7 @@ namespace crow {
 		if (hash == -1)
 		  ++hash = counter_;
 	  }
-	  if (hash >= values_.size() or !values_[hash].has_value()) {
+	  if (hash >= values_.size() || !values_[hash].has_value()) {
 		if (values_.size() < hash + 1)
 		  values_.resize(hash + 1);
 		values_[hash] = E();

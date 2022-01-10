@@ -127,7 +127,7 @@ namespace orm {
 	  } os << ";";
 	  Q()->Query()(os.str());
 	}
-	static void _addTable() {//Mac is temporarily not supported, adaptation type is needed here
+	static void _addTable() {//MAC system is not necessarily supported because I don't have physical machine test
 	  if (_created) {
 		_created = false;
 		for (uint8_t i = 0; i < _size; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
@@ -142,7 +142,7 @@ namespace orm {
 		  TC tc = (TC)_tc[i]; const char* def = _def[i]; if (i)_create += ",\n";
 		  if constexpr (ce_is_pgsql) {
 			_create.push_back('"'); _create += $[i]; _create.push_back('"');
-			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) { //Compatible layer, unsigned field may be only half the size
+			if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {//Compatible layer, unsigned field may be only half the size
 			  switch (hack8Str(_[i])) {
 			  case "signed char"_l: case 'a':
 			  case "d char"_l: case 'h':
