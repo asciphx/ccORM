@@ -254,7 +254,7 @@ namespace orm {
 		  }
 		} _create += "\n);";
 	  }
-	  auto&& DbQuery = static_cast<Sql<T>*>(__[0])->Query();
+	  auto DbQuery = D.conn();
 	  std::cout << _create;
 	  if constexpr (ce_is_pgsql) {
 		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name; str_ += "';";
@@ -270,7 +270,7 @@ namespace orm {
 		}
 	  }
 	}
-	static void _dropTable() { static_cast<Sql<T>*>(__[0])->Query()(_drop).flush_results(); }
+	static void _dropTable() { D.conn()(_drop).flush_results(); }
   };
   template<typename T> Table<T>::Table() {}
   template<typename T> template<typename ... Args>

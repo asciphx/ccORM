@@ -932,7 +932,7 @@ namespace crow {
 	int last_step_ret_; uint32_t rowcount_ = 0;
 	inline void flush_results() { sqlite3_reset(stmt_); }
 	template <typename T> void readOne(T* j) {
-	  char ncols = sqlite3_column_count(stmt_), z = -1;
+	  int8_t ncols = sqlite3_column_count(stmt_), z = -1;
 	  ForEachField(j, [&ncols, &z, this](auto& t) { ++z;
 	  for (int8_t i = 0; i < ncols; ++i) {
 		if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
@@ -972,7 +972,7 @@ namespace crow {
 	}
 	template <typename T> void readArr(std::vector<T>* output) {
 	  if (last_step_ret_ != SQLITE_ROW) return;
-	  T j; char ncols = sqlite3_column_count(stmt_), z; _: z = -1;
+	  T j; int8_t ncols = sqlite3_column_count(stmt_), z; _: z = -1;
 	  ForEachField(&j, [&ncols, &z, this](auto& t) { ++z;
 	  for (int8_t i = 0; i < ncols; ++i) {
 		if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }

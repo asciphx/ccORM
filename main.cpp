@@ -16,7 +16,7 @@ void test() {
   //t->Delete();//删除
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
   cout << Type::Q()->$()->orderBy(Type::$bigBlob)->GetArr(Sort::DESC);
-  TLinker<Tab,Type>().$()->add(Type::$bigBlob)->GetArr();//测试联表构建语句
+  TLinker<Tab, Type>(J$::LEFT).$()->add(Type::$bigBlob)->on(Tab::$id, Type::$id)->GetArr();//测试联表构建语句
 }
 int main() {
   InitializationOrm<Type, Tab>();//初始化建表语句和创建索引

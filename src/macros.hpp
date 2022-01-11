@@ -312,7 +312,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> std::string orm::Table<o>::_create = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
 	template<> const std::string orm::Table<o>::_drop = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
 	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
-	template<> const char* orm::Table<o>::_alias = #o;\
+	template<> const char* orm::Table<o>::_alias = " "#o;\
 	template<> bool orm::Table<o>::_created = true;
 #define CONSTRUCT(o,...)\
         ATTRS(o,__VA_ARGS__)\

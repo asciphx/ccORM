@@ -34,7 +34,7 @@ namespace orm {
 	std::locale::global(std::locale("en_US.UTF8"));
 #endif
 	if (ce_is_pgsql) {
-	  auto&& DbQuery = D.conn();//auto support tinyint and unsigned fields.
+	  auto DbQuery = D.conn();//auto support tinyint and unsigned fields.
 	  if (DbQuery("SELECT count(*) FROM pg_type WHERE typname = 'tinyint';").template r__<int>() == 0) {
 		DbQuery("CREATE DOMAIN TINYINT AS int2 CHECK(VALUE > -129 AND VALUE < 128);");
 		DbQuery("CREATE DOMAIN UNSIGNED_TINYINT AS int2 CHECK(VALUE > -1 AND VALUE < 256);");
