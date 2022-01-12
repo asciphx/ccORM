@@ -19,6 +19,8 @@ namespace orm {
 	TLinker<T, U>() : _("SELECT ") {} ~TLinker<T, U>() {}
 	//[select all] T.`<$>`,...
 	inline TLinker<T, U>* $() { _ += T::_ios; return this; };
+	inline TLinker<T, U>* size(size_t size) { size_ = size > MAX_LIMIT ? MAX_LIMIT : size; return this; }
+	inline TLinker<T, U>* page(size_t page) { page_ = page < 1 ? 1 : page; return this; }
 	json Get() {
 	  constexpr auto v = Tuple<T>(); constexpr auto u = Tuple<U>();
 	  constexpr auto $ = std::tuple_cat(v, u); std::string s("{"); s.reserve(0xff);
@@ -98,7 +100,7 @@ namespace orm {
 		 inline void fields(std::string& os, const char* v_);//v_ only belongs T
   };
   template<typename T> Sql<T>* Sql<T>::size(size_t size) { size_ = size > MAX_LIMIT ? MAX_LIMIT : size; return this; }
-  template<typename T> Sql<T>* Sql<T>::page(size_t page) { page_ = page < 1 ? 1 : page return this; }
+  template<typename T> Sql<T>* Sql<T>::page(size_t page) { page_ = page < 1 ? 1 : page; return this; }
   template<typename T> Sql<T>* Sql<T>::orderBy(const text<0x3f>& col, const Sort& ord) {
 	__ += col.c_str(); __ += SORT[static_cast<char>(ord)]; __.push_back(','); return this;
   }
