@@ -8,7 +8,6 @@
 #define MAX_LIMIT 100
 namespace orm {
   enum class Sort { ASC, DESC }; static const char* SORT[2] = { "", " DESC" };
-  enum class J$ { INNER, LEFT, RIGHT }; static const char* JOIN[3] = { " INNER JOIN ", " LEFT JOIN " ," RIGHT JOIN " };
   constexpr bool ce_is_pgsql = std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value;
   constexpr bool ce_is_mysql = std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value;
   constexpr bool ce_is_sqlite = std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value;
@@ -17,50 +16,49 @@ namespace orm {
   struct TLinker {
 	TLinker(TLinker const&) = delete; TLinker& operator=(TLinker&&) = delete;
 	TLinker(TLinker&&) = default; TLinker& operator=(TLinker const&) = delete;
-	TLinker<T, U>(const J$& j = J$::INNER) : _("SELECT "), j_(j) {} ~TLinker<T, U>() {}
+	TLinker<T, U>() : _("SELECT ") {} ~TLinker<T, U>() {}
+	//[select all] T.`<$>`,...
 	inline TLinker<T, U>* $() { _ += T::_ios; return this; };
-	void GetArr(const Sort& ord = Sort::ASC) {
+	const char* Get() {
 	  constexpr auto v = Tuple<T>(); constexpr auto u = Tuple<U>();
 	  constexpr auto $ = std::tuple_cat(v, u); std::string s("{"); s.reserve(0xff);
 	  ForEachTuple($, [](auto _) {
 		//std::cout << '\n' << typeid(&_).name();
 		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	  T table; int8_t i = -1;
-	  ForEachField(&table, [&s, &i](auto& t) {
-		s.push_back(34); s += T::$[++i];
-		if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		  s += "\":", s += t == true ? "true" : "false";
-		} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-		  s += "\":" + std::to_string(t);
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
-		  s += "\":\"" + t + "\"";
-		} else if constexpr (crow::is_vector<std::remove_reference_t<decltype(t)>>::value) {
-		  s += "\":"; s << t;
-		} else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  s += "\":\""; std::ostringstream os; const tm* time = &t; os << std::setfill('0');
-#ifdef _WIN32
-		  os << std::setw(4) << time->tm_year + 1900;
-#else
-		  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
-#endif
-		  os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
-			<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
-		} else {
-		  s += "\":"; s << t;
-		} s.push_back(',');
-		}); s[s.size() - 1] = '}';
-		std::cout << '\n' << _ << " -> " << s;
+	  return _.c_str();
 	};
-	template<typename... K>//U.`<$>` -> U.`<$>` AS U_<$>
-	TLinker<T, U>* add(K&&...k) {
+	//[select all] U.`<$>` AS U_<$>,...
+	template<typename... K> inline TLinker<T, U>* f() {
+	  fields(_, U::$[1]); for (uint8_t i = 2; i < U::_size; ++i) { fields(_, U::$[i]); } return this;
+	};
+	//[select K] U.`<$>` -> U.`<$>` AS U_<$>
+	template<typename... K> inline TLinker<T, U>* f(K&&...k) {
 	  static_assert(sizeof...(K) > 0); _.push_back(','); Exp{ (fields(_, std::forward<K>(k)), 0)... }; _.pop_back();
-	  _ & " FROM "; _ += T::_name; _& T::_alias; _& JOIN[static_cast<char>(j_)]; _ += U::_name; _& U::_alias; return this;
+	  _ & " FROM "; _ += T::_name; _& T::_alias; return this;
 	};
-	inline TLinker<T, U>* on(const text<0x3f>& tid, const text<0x3f>& uid) {
-	  _ & " ON "; _ += tid; _ & " = "; _ += uid; return this;
+	inline TLinker<T, U>* on(const text<0x3f>& t, const text<0x3f>& u) {
+	  tId_ = const_cast<text<0x3f>*>(&t); uId_ = const_cast<text<0x3f>*>(&u); return this;
 	};
-  private: size_t limit_{ 10 }, offset_{ 0 }; text<0x7ff> _; text<0xff> __; J$ j_;
+	inline TLinker<T, U>* inner() {
+	  _ & " INNER JOIN "; _ += U::_name; _& U::_alias; _ & " ON "; _ += *tId_; _ & " = "; _ += *uId_; return this;
+	};
+	inline TLinker<T, U>* left() {
+	  _ & " LEFT JOIN "; _ += U::_name; _& U::_alias; _ & " ON "; _ += *tId_; _ & " = "; _ += *uId_; return this;
+	};
+	inline TLinker<T, U>* right() {
+	  _ & " RIGHT JOIN "; _ += U::_name; _& U::_alias; _ & " ON "; _ += *tId_; _ & " = "; _ += *uId_; return this;
+	};
+  private: size_t limit_{ 10 }, offset_{ 0 }; text<0x7ff> _; text<0xff> __; text<0x3f>* tId_, * uId_;
+		 inline void fields(text<0x7ff>& os, const char* c);
 		 inline void fields(text<0x7ff>& os, const text<0x3f>& v_);
+  };
+  template<class T, class U>
+  void TLinker<T, U>::fields(text<0x7ff>& os, const char* c) {
+	os.push_back(','); os += U::_alias + 1; os & "."; if constexpr (ce_is_pgsql) {
+	  os.push_back(0x22); os& c; os & "\" AS";
+	} else {
+	  os.push_back(0x60); os& c; os & "` AS";
+	} os += U::_alias; os.push_back(0x5f); os += c;
   };
   template<class T, class U>
   void TLinker<T, U>::fields(text<0x7ff>& os, const text<0x3f>& v_) {
@@ -68,7 +66,7 @@ namespace orm {
 	  while (*++c != 0x22) {}; while (*++c != 0x22)os.push_back(*c);
 	} else { while (*++c != 0x60) {}; while (*++c != 0x60)os.push_back(*c); } os.push_back(',');
   };/* SELECT User.id, User.account, User.name, User.photo, Role.id AS Role_id, Role.name AS Role_name
-  FROM user User LEFT JOIN user_role UserRole ON UserRole.user_id = User.id LEFT J$ role Role
+  FROM user User LEFT JOIN user_role UserRole ON UserRole.user_id = User.id LEFT JOIN role Role
   ON Role.id = UserRole.role_id  WHERE User.id>1 ORDER BY User.id*/
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> struct Sql {
@@ -88,7 +86,7 @@ namespace orm {
 	//Default sort for the first field
 	std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
-	inline decltype(D)::connection_type Query();
+	inline decltype(D)::connection_type DB();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
@@ -128,7 +126,7 @@ namespace orm {
   template<typename T> T Sql<T>::GetOne()noexcept(false) {
 	std::string sql(_); this->clear(); return D.conn()(sql).template findOne<T>();
   };
-  template<typename T> decltype(D)::connection_type Sql<T>::Query() { ___ = true; return D.conn(); }
+  template<typename T> decltype(D)::connection_type Sql<T>::DB() { ___ = true; return D.conn(); }
   template<typename T> void Sql<T>::InsertArr(typename T::ptr_arr& input) {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size; ++i) {

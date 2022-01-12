@@ -81,7 +81,7 @@ struct Timer {
   template<typename F> void setInterval(F func, uint32_t milliseconds);
   template<typename F> void setTimeoutSec(F func, uint32_t seconds);
   template<typename F> void setIntervalSec(F func, uint32_t seconds);
-  void stop();
+  inline void stop();
 private: std::atomic<bool> alive{ true };
 };
 template<typename F> void Timer::setTimeout(F func, uint32_t milliseconds) {

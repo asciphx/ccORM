@@ -7,7 +7,7 @@
 #include "./str.h"//If it is utf8, please set three times the length
 template<unsigned short I = 255>//Max [65535(char),21845(utf8)], Min 1, default 255.
 class text {//It is similar to a dynamic std::string_view with a fixed maximum length
-  unsigned short l = I; char* _ = new char[I + 1];
+  unsigned short l = 0; char* _ = new char[I + 1];
   friend std::string& operator<<(std::string& s, text<I>& c) {
 	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
   };
@@ -16,7 +16,7 @@ class text {//It is similar to a dynamic std::string_view with a fixed maximum l
   };
 public:
   ~text() { delete[]_; _ = nullptr; };
-  text() { static_assert(I != 0); _[0] = l = 0; };
+  text() { static_assert(I != 0); _[0] = 0; };
   text(const char* c) {
 	static_assert(I != 0); size_t i = strlen(c); if (i < I)l = i; strncpy(_, c, I); _[l] = 0;
   };

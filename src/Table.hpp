@@ -73,7 +73,7 @@ namespace orm {
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str();
 	  if constexpr (ce_is_pgsql) { os << " RETURNING " << T::$[0] << ";"; } else { os << ";"; }
-	  crow::sql_result<decltype(D)::db_rs>&& rs = Q()->Query()(os.str());
+	  crow::sql_result<decltype(D)::db_rs>&& rs = D.conn()(os.str());
 	  if (T::_tc[0] & TC::PRIMARY_KEY) { return rs.last_insert_id(); } else if constexpr (ce_is_mysql) { return 0ULL; } else { return 0LL; }
 	}
 	//Update the object (The default condition is the value of the frist key)
@@ -108,7 +108,7 @@ namespace orm {
 		}
 		});
 	  os.seekp(-1, os.cur); os << condition << ";";
-	  Q()->Query()(os.str());
+	  D.conn()(os.str());
 	}
 	//Delete the object based on this object's frist key
 	void Delete() {
@@ -125,7 +125,7 @@ namespace orm {
 	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
 		os << '\'' << toQuotes(t.c_str()) << '\'';
 	  } os << ";";
-	  Q()->Query()(os.str());
+	  D.conn()(os.str());
 	}
 	static void _addTable() {//MAC system is not necessarily supported because I don't have physical machine test
 	  if (_created) {
