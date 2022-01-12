@@ -15,8 +15,8 @@ void test() {
   //cout << Tab::Q()->$()->GetArr();
   //t->Delete();//删除
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
-  cout << Type::Q()->$()->orderBy(Type::$bigBlob)->GetArr(Sort::DESC);
-  TLinker<Tab, Type>().$()
+  cout << Type::Q()->$()->orderBy(Type::$bigBlob)->GetArr(Sort::DESC) << '\n';
+  cout << TLinker<Tab, Type>().$()
 	->f()
 	->on(Tab::$id, Type::$id)
 	->inner()

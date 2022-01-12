@@ -841,13 +841,17 @@ namespace crow {
 	template <typename T> void r__(std::optional<T>& o);
 
 	template <typename F> void map(F f);
+	json JSON(size_t size, size_t page);
 	json JSON();
 	template <typename T> T findOne();
 	template <typename T> std::vector<T> findArray();
   };
-  template <typename B> json sql_result<B>::JSON() {
+  template <typename B> json sql_result<B>::JSON(size_t size, size_t page) {
 	json t; auto result = impl_.readJson(&t);
-	return json{ {"num",result},{"result",t} };
+	return json{ {"count",result},{"page",page},{"size",size},{ "list",t } };
+  }
+  template <typename B> json sql_result<B>::JSON() {
+	json t; impl_.readJson(&t); return t;
   }
   template <typename B>
   template <typename O> O sql_result<B>::findOne() {

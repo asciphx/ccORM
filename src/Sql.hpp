@@ -19,19 +19,21 @@ namespace orm {
 	TLinker<T, U>() : _("SELECT ") {} ~TLinker<T, U>() {}
 	//[select all] T.`<$>`,...
 	inline TLinker<T, U>* $() { _ += T::_ios; return this; };
-	const char* Get() {
+	json Get() {
 	  constexpr auto v = Tuple<T>(); constexpr auto u = Tuple<U>();
 	  constexpr auto $ = std::tuple_cat(v, u); std::string s("{"); s.reserve(0xff);
 	  ForEachTuple($, [](auto _) {
 		//std::cout << '\n' << typeid(&_).name();
 		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	  return _.c_str();
+	  //std::cout << _ << '\n';
+	  return D.conn()(_.c_str()).JSON(size_, page_);
 	};
-	//[select all] U.`<$>` AS U_<$>,...
+	//[select all] U.`<$>` AS U_<$>,... FROM <T> T
 	template<typename... K> inline TLinker<T, U>* f() {
-	  fields(_, U::$[1]); for (uint8_t i = 2; i < U::_size; ++i) { fields(_, U::$[i]); } return this;
+	  fields(_, U::$[1]); for (uint8_t i = 2; i < U::_size; ++i) { fields(_, U::$[i]); }
+	  _ & " FROM "; _ += T::_name; _& T::_alias; return this;
 	};
-	//[select K] U.`<$>` -> U.`<$>` AS U_<$>
+	//[select K] U.`<$>` -> U.`<$>` AS U_<$> FROM <T> T
 	template<typename... K> inline TLinker<T, U>* f(K&&...k) {
 	  static_assert(sizeof...(K) > 0); _.push_back(','); Exp{ (fields(_, std::forward<K>(k)), 0)... }; _.pop_back();
 	  _ & " FROM "; _ += T::_name; _& T::_alias; return this;
@@ -48,7 +50,7 @@ namespace orm {
 	inline TLinker<T, U>* right() {
 	  _ & " RIGHT JOIN "; _ += U::_name; _& U::_alias; _ & " ON "; _ += *tId_; _ & " = "; _ += *uId_; return this;
 	};
-  private: size_t limit_{ 10 }, offset_{ 0 }; text<0x7ff> _; text<0xff> __; text<0x3f>* tId_, * uId_;
+  private: size_t size_{ 10 }, page_{ 1 }; text<0x7ff> _; text<0xff> __; text<0x3f>* tId_, * uId_;
 		 inline void fields(text<0x7ff>& os, const char* c);
 		 inline void fields(text<0x7ff>& os, const text<0x3f>& v_);
   };
@@ -73,8 +75,8 @@ namespace orm {
 	friend class Table<T>;
 	Sql<T>() : _("SELECT ") { _.reserve(0x1ff); __.reserve(0x5f); }
 	~Sql<T>() {}
-	inline Sql<T>* limit(size_t limit);
-	inline Sql<T>* offset(size_t offset);
+	inline Sql<T>* size(size_t size);
+	inline Sql<T>* page(size_t page);
 	//Cannot be the first field(Because PgSQL does not sort the primary key)
 	inline Sql<T>* orderBy(const text<0x3f>& col, const Sort& ord = Sort::ASC);
 	//select <T.`$`>,... from <T> T WHERE <T.`$`=?> ORDER BY T.`$1` LIMIT 10 OFFSET 0;
@@ -90,13 +92,13 @@ namespace orm {
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::ptr_arr& t);
 	static void InsertArr(std::vector<T>* t);
-  private: size_t limit_{ 10 }, offset_{ 0 }; std::string _, __; bool ___{ true };
-		 inline void clear() { _ = "SELECT "; limit_ = 10; __[0] = offset_ = 0; ___ = true; }
+  private: size_t size_{ 10 }, page_{ 1 }; std::string _, __; bool ___{ true };
+		 inline void clear() { _ = "SELECT "; size_ = 10; __[0] = 0; page_ = 1; ___ = true; }
 		 inline void fields(std::string& os, const text<0x3f>& v_);//not only but also
 		 inline void fields(std::string& os, const char* v_);//v_ only belongs T
   };
-  template<typename T> Sql<T>* Sql<T>::limit(size_t limit) { limit_ = limit; return this; }
-  template<typename T> Sql<T>* Sql<T>::offset(size_t offset) { offset_ = offset; return this; }
+  template<typename T> Sql<T>* Sql<T>::size(size_t size) { size_ = size > MAX_LIMIT ? MAX_LIMIT : size; return this; }
+  template<typename T> Sql<T>* Sql<T>::page(size_t page) { page_ = page < 1 ? 1 : page return this; }
   template<typename T> Sql<T>* Sql<T>::orderBy(const text<0x3f>& col, const Sort& ord) {
 	__ += col.c_str(); __ += SORT[static_cast<char>(ord)]; __.push_back(','); return this;
   }
@@ -119,8 +121,8 @@ namespace orm {
 	text<0x3ff> sql(_); sql & " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (ce_is_pgsql) {
 	  __.push_back(34); __ += T::$[0]; __.push_back(34);
 	} else { __.push_back(96); __ += T::$[0]; __.push_back(96); }
-	sql += __; sql += SORT[static_cast<char>(ord)]; sql & " LIMIT "; sql += std::to_string(limit_ > MAX_LIMIT ? MAX_LIMIT : limit_);
-	sql & " OFFSET "; sql += std::to_string(offset_);// std::cout << sql << '\n';
+	sql += __; sql += SORT[static_cast<char>(ord)]; sql & " LIMIT "; sql += std::to_string(size_);
+	sql & " OFFSET "; sql += std::to_string(page_ * size_ - size_);// std::cout << sql << '\n';
 	this->clear(); return D.conn()(sql.c_str()).template findArray<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept(false) {
