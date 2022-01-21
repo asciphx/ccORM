@@ -554,7 +554,7 @@ namespace crow {
 	  }
 	}
 	ForEachField(j, [&nfields, &i, this](auto& t) {
-	if (++i < current_result_nrows_) {
+	if (++i < nfields) {
 	  char* val = PQgetvalue(current_result_, 0, i);
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		if (val == nullptr) {
@@ -610,7 +610,7 @@ namespace crow {
 	for (T j; row_i_ < current_result_nrows_; ++row_i_) {
 	  i = -1;
 	  ForEachField(&j, [&nfields, &i, this](auto& t) {
-	  if (++i < current_result_nrows_) {
+	  if (++i < nfields) {
 		char* val = PQgetvalue(current_result_, row_i_, i);
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		  if (val == nullptr) {

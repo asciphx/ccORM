@@ -225,14 +225,15 @@ static const char* orm::getAkTs(const char* _) {
 #define M_TABLE(o, o_k, p, p_k)\
  static int o##p_(){std::string s;if constexpr(pgsqL){s="select count(*) from pg_class where relname = '";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
 if(D.conn()(s).template r__<int>()!=0){return 0;}}s="CREATE TABLE IF NOT EXISTS "; s+=toSqlCase(#o"_")+toSqlCase(#p" "); s.push_back('(');\
-s+="\n\""#o"_"#o_k"\" "; s+=orm::getAkTs(Inject(o, o_k)); s+=" NOT NULL,\n\""; s+=#p"_"#p_k"\" "; s+=orm::getAkTs(Inject(p, p_k));\
+s+=pgsqL?"\n\""#o"_"#o_k"\" ":"\n`"#o"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
+s+=" NOT NULL,\n"; s+=pgsqL?"\""#p"_"#p_k"\" ":"`"#p"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\
 s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"#o"_"#p" PRIMARY KEY(\""#o"_"#o_k"\",\""#p"_"#p_k"\")":\
 " NOT NULL,\nCONSTRAINT pk_"#o"_"#p" PRIMARY KEY(`"#o"_"#o_k"`,`"#p"_"#p_k"`)";s+=",\nCONSTRAINT fk_";\
 s+=pgsqL?#o"_"#o_k" FOREIGN KEY(\""#o"_"#o_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#o_k"\")":#o"_"#o_k" FOREIGN KEY(`"\
 #o"_"#o_k"`) REFERENCES `"+toSqlCase(#o)+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";\
 s+=pgsqL?#p"_"#p_k" FOREIGN KEY(\""#p"_"#p_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#p_k"\")":#p"_"#p_k" FOREIGN KEY(`"\
-#p"_"#p_k"`) REFERENCES `"+toSqlCase(#p)+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);";D.conn()(s);return 0;}\
- template<> const std::string orm::Table<o>::_mTable = toSqlCase(#o)+"_"+toSqlCase(#p);\
+#p"_"#p_k"`) REFERENCES `"+toSqlCase(#p)+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);";D.conn()(s);printf(s.c_str());\
+return 0;} template<> const std::string orm::Table<o>::_mTable = toSqlCase(#o)+"_"+toSqlCase(#p);\
  template<> const std::string orm::Table<p>::_mTable = toSqlCase(#o)+"_"+toSqlCase(#p); template<> int orm::Table<p>::_r2=o##p_();
 
 #define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));
