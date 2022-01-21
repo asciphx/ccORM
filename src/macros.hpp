@@ -51,38 +51,46 @@ namespace orm {
   using Expand = char[];
 #define Exp (void)Expand
   template <typename T, typename Fn, std::size_t... I>
-  inline constexpr void ForEachTuple(T& tuple, Fn&& fn,
-	std::index_sequence<I...>) {
+  inline constexpr void ForEachTuple(T& tuple, Fn&& fn, std::index_sequence<I...>) {
 	Exp{ ((void)fn(std::get<I>(tuple)), 0)... };
   }
   template <typename T>
   inline constexpr auto Tuple() { return std::make_tuple(); }
   template <typename T, typename Fn>
   inline constexpr void ForEachField(T* value, Fn&& fn) {
-	constexpr const auto tuple = Tuple<T>();
-	ForEachTuple(tuple, [value, &fn](auto field) { fn(value->*(field)); },
-	  std::make_index_sequence<std::tuple_size<decltype(tuple)>::value>{});
+	constexpr const auto tuplE = Tuple<T>();
+	ForEachTuple(tuplE, [value, &fn](auto field) { fn(value->*(field)); },
+	  std::make_index_sequence<std::tuple_size<decltype(tuplE)>::value>{});
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
+  constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value;
+  constexpr bool mysqL = std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value;
+  constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value;
+  static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
+#ifdef _MSC_VER
+  inline const char* GetRealType(const char* _);//get key's type char
+#else
+  inline const char* GetRealType(const char* _, const char* $);//get key's type char
+#endif
 }
 #if 1
 #define EXP(O) O
 #ifdef _MSC_VER
-inline const char* GetRealType(const char* s) {
+inline const char* orm::GetRealType(const char* s) {
   if (s[11] == 118) { return "S"; } if (s[0] == 117) { return s + 7; } return s;
 }
-#define InjectTS(U, T) GetRealType(typeid(U::T).name())
+#define Inject(U, T) orm::GetRealType(typeid(U::T).name())
 #define TO_CHAR "\""
 #define FOR_CHAR "`"
 #define IOS_(o,a,k) o##a#k##a
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
-inline const char* GetRealType(const char* s, const char* c) {
+inline const char* orm::GetRealType(const char* s, const char* c) {
   unsigned char l = strLen(s); l > 9 ? l += 3 : l += 2; return c + l;
 }
-#define InjectTS(U, T) GetRealType(#U,typeid(&U::T).name())
+#define Inject(U, T) orm::GetRealType(#U,typeid(&U::T).name())
 #define TO_CHAR "
 /*\" for web markdown, ~!@#$%^&*///"
 #define FOR_CHAR `
@@ -124,38 +132,38 @@ inline const char* GetRealType(const char* s, const char* c) {
 #define PROTO_32(k,...) #k, EXP(PROTO_31(__VA_ARGS__))
 #define PROTO_N1(N,...) EXP(PROTO_##N(__VA_ARGS__))
 #define PROTO_N(N,...) PROTO_N1(N,__VA_ARGS__)
-#define TYPE_1(o,k)      InjectTS(o, k)
-#define TYPE_2(o,k,...)  InjectTS(o, k), EXP(TYPE_1(o,__VA_ARGS__))
-#define TYPE_3(o,k,...)  InjectTS(o, k), EXP(TYPE_2(o,__VA_ARGS__))
-#define TYPE_4(o,k,...)  InjectTS(o, k), EXP(TYPE_3(o,__VA_ARGS__))
-#define TYPE_5(o,k,...)  InjectTS(o, k), EXP(TYPE_4(o,__VA_ARGS__))
-#define TYPE_6(o,k,...)  InjectTS(o, k), EXP(TYPE_5(o,__VA_ARGS__))
-#define TYPE_7(o,k,...)  InjectTS(o, k), EXP(TYPE_6(o,__VA_ARGS__))
-#define TYPE_8(o,k,...)  InjectTS(o, k), EXP(TYPE_7(o,__VA_ARGS__))
-#define TYPE_9(o,k,...)  InjectTS(o, k), EXP(TYPE_8(o,__VA_ARGS__))
-#define TYPE_10(o,k,...) InjectTS(o, k), EXP(TYPE_9(o,__VA_ARGS__))
-#define TYPE_11(o,k,...) InjectTS(o, k), EXP(TYPE_10(o,__VA_ARGS__))
-#define TYPE_12(o,k,...) InjectTS(o, k), EXP(TYPE_11(o,__VA_ARGS__))
-#define TYPE_13(o,k,...) InjectTS(o, k), EXP(TYPE_12(o,__VA_ARGS__))
-#define TYPE_14(o,k,...) InjectTS(o, k), EXP(TYPE_13(o,__VA_ARGS__))
-#define TYPE_15(o,k,...) InjectTS(o, k), EXP(TYPE_14(o,__VA_ARGS__))
-#define TYPE_16(o,k,...) InjectTS(o, k), EXP(TYPE_15(o,__VA_ARGS__))
-#define TYPE_17(o,k,...) InjectTS(o, k), EXP(TYPE_16(o,__VA_ARGS__))
-#define TYPE_18(o,k,...) InjectTS(o, k), EXP(TYPE_17(o,__VA_ARGS__))
-#define TYPE_19(o,k,...) InjectTS(o, k), EXP(TYPE_18(o,__VA_ARGS__))
-#define TYPE_20(o,k,...) InjectTS(o, k), EXP(TYPE_19(o,__VA_ARGS__))
-#define TYPE_21(o,k,...) InjectTS(o, k), EXP(TYPE_20(o,__VA_ARGS__))
-#define TYPE_22(o,k,...) InjectTS(o, k), EXP(TYPE_21(o,__VA_ARGS__))
-#define TYPE_23(o,k,...) InjectTS(o, k), EXP(TYPE_22(o,__VA_ARGS__))
-#define TYPE_24(o,k,...) InjectTS(o, k), EXP(TYPE_23(o,__VA_ARGS__))
-#define TYPE_25(o,k,...) InjectTS(o, k), EXP(TYPE_24(o,__VA_ARGS__))
-#define TYPE_26(o,k,...) InjectTS(o, k), EXP(TYPE_25(o,__VA_ARGS__))
-#define TYPE_27(o,k,...) InjectTS(o, k), EXP(TYPE_26(o,__VA_ARGS__))
-#define TYPE_28(o,k,...) InjectTS(o, k), EXP(TYPE_27(o,__VA_ARGS__))
-#define TYPE_29(o,k,...) InjectTS(o, k), EXP(TYPE_28(o,__VA_ARGS__))
-#define TYPE_30(o,k,...) InjectTS(o, k), EXP(TYPE_29(o,__VA_ARGS__))
-#define TYPE_31(o,k,...) InjectTS(o, k), EXP(TYPE_30(o,__VA_ARGS__))
-#define TYPE_32(o,k,...) InjectTS(o, k), EXP(TYPE_31(o,__VA_ARGS__))
+#define TYPE_1(o,k)      Inject(o, k)
+#define TYPE_2(o,k,...)  Inject(o, k), EXP(TYPE_1(o,__VA_ARGS__))
+#define TYPE_3(o,k,...)  Inject(o, k), EXP(TYPE_2(o,__VA_ARGS__))
+#define TYPE_4(o,k,...)  Inject(o, k), EXP(TYPE_3(o,__VA_ARGS__))
+#define TYPE_5(o,k,...)  Inject(o, k), EXP(TYPE_4(o,__VA_ARGS__))
+#define TYPE_6(o,k,...)  Inject(o, k), EXP(TYPE_5(o,__VA_ARGS__))
+#define TYPE_7(o,k,...)  Inject(o, k), EXP(TYPE_6(o,__VA_ARGS__))
+#define TYPE_8(o,k,...)  Inject(o, k), EXP(TYPE_7(o,__VA_ARGS__))
+#define TYPE_9(o,k,...)  Inject(o, k), EXP(TYPE_8(o,__VA_ARGS__))
+#define TYPE_10(o,k,...) Inject(o, k), EXP(TYPE_9(o,__VA_ARGS__))
+#define TYPE_11(o,k,...) Inject(o, k), EXP(TYPE_10(o,__VA_ARGS__))
+#define TYPE_12(o,k,...) Inject(o, k), EXP(TYPE_11(o,__VA_ARGS__))
+#define TYPE_13(o,k,...) Inject(o, k), EXP(TYPE_12(o,__VA_ARGS__))
+#define TYPE_14(o,k,...) Inject(o, k), EXP(TYPE_13(o,__VA_ARGS__))
+#define TYPE_15(o,k,...) Inject(o, k), EXP(TYPE_14(o,__VA_ARGS__))
+#define TYPE_16(o,k,...) Inject(o, k), EXP(TYPE_15(o,__VA_ARGS__))
+#define TYPE_17(o,k,...) Inject(o, k), EXP(TYPE_16(o,__VA_ARGS__))
+#define TYPE_18(o,k,...) Inject(o, k), EXP(TYPE_17(o,__VA_ARGS__))
+#define TYPE_19(o,k,...) Inject(o, k), EXP(TYPE_18(o,__VA_ARGS__))
+#define TYPE_20(o,k,...) Inject(o, k), EXP(TYPE_19(o,__VA_ARGS__))
+#define TYPE_21(o,k,...) Inject(o, k), EXP(TYPE_20(o,__VA_ARGS__))
+#define TYPE_22(o,k,...) Inject(o, k), EXP(TYPE_21(o,__VA_ARGS__))
+#define TYPE_23(o,k,...) Inject(o, k), EXP(TYPE_22(o,__VA_ARGS__))
+#define TYPE_24(o,k,...) Inject(o, k), EXP(TYPE_23(o,__VA_ARGS__))
+#define TYPE_25(o,k,...) Inject(o, k), EXP(TYPE_24(o,__VA_ARGS__))
+#define TYPE_26(o,k,...) Inject(o, k), EXP(TYPE_25(o,__VA_ARGS__))
+#define TYPE_27(o,k,...) Inject(o, k), EXP(TYPE_26(o,__VA_ARGS__))
+#define TYPE_28(o,k,...) Inject(o, k), EXP(TYPE_27(o,__VA_ARGS__))
+#define TYPE_29(o,k,...) Inject(o, k), EXP(TYPE_28(o,__VA_ARGS__))
+#define TYPE_30(o,k,...) Inject(o, k), EXP(TYPE_29(o,__VA_ARGS__))
+#define TYPE_31(o,k,...) Inject(o, k), EXP(TYPE_30(o,__VA_ARGS__))
+#define TYPE_32(o,k,...) Inject(o, k), EXP(TYPE_31(o,__VA_ARGS__))
 #define TYPE_N1(o,N,...) EXP(TYPE_##N(o,__VA_ARGS__))
 #define TYPE_N(o,N,...) TYPE_N1(o,N,__VA_ARGS__)
 #define OFFSET_1(o,k)      (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k))
@@ -195,9 +203,38 @@ inline const char* GetRealType(const char* s, const char* c) {
 #endif
 #define REGIST_STATIC(o,...)\
  template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__);\
- template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)]={ OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
+ template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)] = { OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
+
+static const char* orm::getAkTs(const char* _) {
+  switch (hack8Str(_)) {
+  case "signed char"_l: case 'a': if constexpr (!sqlitE) { return "TINYINT"; }
+  case "d char"_l: case 'h': if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; }
+  case "short"_l: case 's': if constexpr (!sqlitE) { return "SMALLINT"; }
+  case "d short"_l: case 't': if constexpr (mysqL) { return "SMALLINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_SMALLINT"; }
+  case 'int': case 'i': return "INTEGER";
+  case "d int"_l: case 'j': if constexpr (mysqL) { return "INTEGER UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_INTEGER"; }
+  case "__int64"_l: case 'x': if constexpr (!sqlitE) { return "BIGINT"; }
+  case "d __int64"_l: case 'y': if constexpr (sqlitE) { return "INTEGER"; }
+					if constexpr (mysqL) { return "BIGINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_BIGINT"; }
+  default: return "[TYPE] MUST BE <NUMBER>!";
+  }
+}
+//Create middle table(_k -> PRIMARY KEY)
+#define M_TABLE(o, o_k, p, p_k)\
+ static int o##p_(){std::string s;if constexpr(pgsqL){s="select count(*) from pg_class where relname = '";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
+if(D.conn()(s).template r__<int>()!=0){return 0;}}s="CREATE TABLE IF NOT EXISTS "; s+=toSqlCase(#o"_")+toSqlCase(#p" "); s.push_back('(');\
+s+="\n\""#o"_"#o_k"\" "; s+=orm::getAkTs(Inject(o, o_k)); s+=" NOT NULL,\n\""; s+=#p"_"#p_k"\" "; s+=orm::getAkTs(Inject(p, p_k));\
+s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"#o"_"#p" PRIMARY KEY(\""#o"_"#o_k"\",\""#p"_"#p_k"\")":\
+" NOT NULL,\nCONSTRAINT pk_"#o"_"#p" PRIMARY KEY(`"#o"_"#o_k"`,`"#p"_"#p_k"`)";s+=",\nCONSTRAINT fk_";\
+s+=pgsqL?#o"_"#o_k" FOREIGN KEY(\""#o"_"#o_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#o_k"\")":#o"_"#o_k" FOREIGN KEY(`"\
+#o"_"#o_k"`) REFERENCES `"+toSqlCase(#o)+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";\
+s+=pgsqL?#p"_"#p_k" FOREIGN KEY(\""#p"_"#p_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#p_k"\")":#p"_"#p_k" FOREIGN KEY(`"\
+#p"_"#p_k"`) REFERENCES `"+toSqlCase(#p)+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);";D.conn()(s);return 0;}\
+ template<> const std::string orm::Table<o>::_mTable = toSqlCase(#o)+"_"+toSqlCase(#p);\
+ template<> const std::string orm::Table<p>::_mTable = toSqlCase(#o)+"_"+toSqlCase(#p); template<> int orm::Table<p>::_r2=o##p_();
+
 #define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));
 #define COL_2(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_1(o,__VA_ARGS__))
 #define COL_3(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_2(o,__VA_ARGS__))
@@ -309,10 +346,11 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define REGISTER_TABLE(o)\
 	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
 	template<> uint8_t orm::Table<o>::_idex = 0;\
-	template<> std::string orm::Table<o>::_create = "CREATE TABLE IF NOT EXISTS "#o" (\n";\
-	template<> const std::string orm::Table<o>::_drop = "DROP TABLE IF EXISTS "+toSqlLowerCase(#o";");\
-	template<> const std::string orm::Table<o>::_name = toSqlLowerCase(#o);\
-	template<> const char* orm::Table<o>::_alias = " "#o;\
+	template<> std::string orm::Table<o>::_create = pgsqL?"CREATE TABLE IF NOT EXISTS \""+toSqlCase(#o"\" (\n"):"CREATE TABLE IF NOT EXISTS `"#o"` (\n";\
+	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""+toSqlCase(#o"\""):"DROP TABLE IF EXISTS `"#o"`";\
+	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+toSqlCase(#o"\""):"`"+toSqlCase(#o"`");\
+	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
+	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
 	template<> bool orm::Table<o>::_created = true;
 #define CONSTRUCT(o,...)\
         ATTRS(o,__VA_ARGS__)\
@@ -367,12 +405,15 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define REGIST(o,...)\
 template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};\
 template<> const char* orm::Table<o>::_def[NUM_ARGS(__VA_ARGS__)]={};\
-template<> void orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
-if(strLen(#o)>31){throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m The length of the name cannot exceed 31!\n\033[0m"));}\
+template<> int orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
+try {if(strLen(#o)>31){throw std::runtime_error("\033[1;34m["#o"]\033[31;4m The length of the name cannot exceed 31!\n\033[0m");}\
   bool b=true;if(_tc[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
      if(_tc[i] & TC::PRIMARY_KEY){ if(b){b=false;\
-throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m"));}\
-else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m"));} }}}
+throw std::runtime_error("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m");}\
+else{ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m");} }}\
+} catch (const std::exception& e) { std::cerr << e.what();return 0; }unsigned int i = HARDWARE_ASYNCHRONOUS;\
+while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };return 1;} template<> int orm::Table<o>::_r=orm::Table<o>::Init();\
+template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
 
 #define FIELD_1(k)      static const text<63> $##k;
 #define FIELD_2(k,...)  static const text<63> $##k; EXP(FIELD_1(__VA_ARGS__))
@@ -410,7 +451,7 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
 #define FIELD(...)\
         FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
-//select * FROM <T> => select (T.`$`,)...
+//select * FROM <T> => select (`T`.`$`,)...
 #define IOS_1(o,a,k)      IOS_(o,a,k)
 #define IOS_2(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
 #define IOS_3(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_2(o,a,__VA_ARGS__))
@@ -446,45 +487,46 @@ else{ throw std::runtime_error(std::string("\033[1;34m["#o"]\033[31;4m can't hav
 #define IOS_N1(o,a,N,...) EXP(IOS_##N(o,a,__VA_ARGS__))
 #define IOS_N(o,a,N,...) IOS_N1(o,a,N,__VA_ARGS__)
 
-#define PRO_1(t,k)      const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`";
-#define PRO_2(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_1(t,__VA_ARGS__))
-#define PRO_3(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_2(t,__VA_ARGS__))
-#define PRO_4(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_3(t,__VA_ARGS__))
-#define PRO_5(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_4(t,__VA_ARGS__))
-#define PRO_6(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_5(t,__VA_ARGS__))
-#define PRO_7(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_6(t,__VA_ARGS__))
-#define PRO_8(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_7(t,__VA_ARGS__))
-#define PRO_9(t,k,...)  const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_8(t,__VA_ARGS__))
-#define PRO_10(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_9(t,__VA_ARGS__))
-#define PRO_11(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_10(t,__VA_ARGS__))
-#define PRO_12(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_11(t,__VA_ARGS__))
-#define PRO_13(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_12(t,__VA_ARGS__))
-#define PRO_14(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_13(t,__VA_ARGS__))
-#define PRO_15(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_14(t,__VA_ARGS__))
-#define PRO_16(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_15(t,__VA_ARGS__))
-#define PRO_17(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_16(t,__VA_ARGS__))
-#define PRO_18(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_17(t,__VA_ARGS__))
-#define PRO_19(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_18(t,__VA_ARGS__))
-#define PRO_20(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_19(t,__VA_ARGS__))
-#define PRO_21(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_20(t,__VA_ARGS__))
-#define PRO_22(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_21(t,__VA_ARGS__))
-#define PRO_23(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_22(t,__VA_ARGS__))
-#define PRO_24(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_23(t,__VA_ARGS__))
-#define PRO_25(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_24(t,__VA_ARGS__))
-#define PRO_26(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_25(t,__VA_ARGS__))
-#define PRO_27(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_26(t,__VA_ARGS__))
-#define PRO_28(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_27(t,__VA_ARGS__))
-#define PRO_29(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_28(t,__VA_ARGS__))
-#define PRO_30(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_29(t,__VA_ARGS__))
-#define PRO_31(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_30(t,__VA_ARGS__))
-#define PRO_32(t,k,...) const text<63> t::$##k = ce_is_pgsql?#t".\""#k"\"":#t".`"#k"`"; EXP(PRO_31(t,__VA_ARGS__))
+#define PRO_1(t,k)      const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`";
+#define PRO_2(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_1(t,__VA_ARGS__))
+#define PRO_3(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_2(t,__VA_ARGS__))
+#define PRO_4(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_3(t,__VA_ARGS__))
+#define PRO_5(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_4(t,__VA_ARGS__))
+#define PRO_6(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_5(t,__VA_ARGS__))
+#define PRO_7(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_6(t,__VA_ARGS__))
+#define PRO_8(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_7(t,__VA_ARGS__))
+#define PRO_9(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_8(t,__VA_ARGS__))
+#define PRO_10(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_9(t,__VA_ARGS__))
+#define PRO_11(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_10(t,__VA_ARGS__))
+#define PRO_12(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_11(t,__VA_ARGS__))
+#define PRO_13(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_12(t,__VA_ARGS__))
+#define PRO_14(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_13(t,__VA_ARGS__))
+#define PRO_15(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_14(t,__VA_ARGS__))
+#define PRO_16(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_15(t,__VA_ARGS__))
+#define PRO_17(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_16(t,__VA_ARGS__))
+#define PRO_18(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_17(t,__VA_ARGS__))
+#define PRO_19(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_18(t,__VA_ARGS__))
+#define PRO_20(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_19(t,__VA_ARGS__))
+#define PRO_21(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_20(t,__VA_ARGS__))
+#define PRO_22(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_21(t,__VA_ARGS__))
+#define PRO_23(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_22(t,__VA_ARGS__))
+#define PRO_24(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_23(t,__VA_ARGS__))
+#define PRO_25(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_24(t,__VA_ARGS__))
+#define PRO_26(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_25(t,__VA_ARGS__))
+#define PRO_27(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_26(t,__VA_ARGS__))
+#define PRO_28(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_27(t,__VA_ARGS__))
+#define PRO_29(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_28(t,__VA_ARGS__))
+#define PRO_30(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_29(t,__VA_ARGS__))
+#define PRO_31(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_30(t,__VA_ARGS__))
+#define PRO_32(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_31(t,__VA_ARGS__))
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
+//Build field statements at compile time and connect them into const char*
 #define PROTO(o,...)\
 PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
 constexpr static const char* o##_ios__() {\
-if constexpr (ce_is_pgsql) { return IOS_N(#o".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
-else {return IOS_N(#o".", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
+if constexpr (pgsqL) { return "SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
+else {return "SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
 template<> const char* orm::Table<o>::_ios=o##_ios__();
 
 #define STR_1(k,i)  k[i]

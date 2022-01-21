@@ -1,4 +1,4 @@
-﻿# ccORM[版本 1.2]
+﻿# ccORM[版本 1.3]
 > ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
 > 🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是编译期的静态反射。
 
@@ -18,6 +18,8 @@
 - [x] 具备编译期类型检测
 - [x] VARCHAR数据类型采用text<>
 - [x] 原生类型，支持无符号类型[例如:uint8_t,uint16_t,uint32_t,uint64_t]
+- [x] 自动创建表，全局初始化，非侵入式
+- [x] 增加中间表的构建宏`M_TABLE`
 
 ## 即将推出
 一对多查询，多对多查询，索引列建立，以及缓存查询
@@ -53,6 +55,7 @@ REGIST(Tab,
   TC::DEFAULT, "false",
   TC::DEFAULT, "ww'zzgg",
   TC::DEFAULT | TC::NOT_NULL, "");
+M_TABLE(Type, id, Tab, id)
 ```
 ## 主函数
 ```c++
@@ -70,20 +73,20 @@ void test() {
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   t->Insert();//插入,返回值是long long类型
-  cout << Tab::Q()->$()->GetArr();
+  cout << Tab::Q()->GetArr();
   t->Delete();//删除
-  *t = Tab::Q()->$(Tab::$id, Tab::$name)->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
 }
 int main() {
-  InitializationOrm<Type, Tab>(); clock_t start = clock(); test();
+  clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->$()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->$(Tab::$id, Tab::$name, Tab::$date, Tab::$ok)->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->where(Tab::$id == 1)->GetOne();
   }//多线程测试
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
@@ -115,6 +118,17 @@ g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
     - Linux: G++ 9.2, Clang++ 9.0
     - MacOS: Apple clang version 12.0.0 
     - Windows: MSVC C++ compiler version 1930.
+
+## 普遍命名规则
+constexpr -> 小写+大写驼峰分隔，最后一个为大写收尾 => nameBegin
+static 属性 -> `_` 开头，后面全小写+下划线分隔 => _name_begin
+static 全局变量 -> `RES_` 开头，后面全大写+下划线分隔 => RES_NAME_BEGIN
+private 属性 -> 小写+大写驼峰分隔， `_`收尾 => nameBegin_
+public 属性 -> 小写+大写驼峰分隔 => nameBegin
+参数 -> 小写+下划线分隔 => name_begin
+特殊字段 -> `_` 开头，中间小写+下划线分隔, `_`收尾 => _name_begin_
+struct或者class -> 大写开头，后面小写+大写驼峰分隔 => NameBegin
+宏 或者static constexpr -> 大写+下划线分隔 => NAME_BEGIN
 
 ### 归属
     ccORM使用以下库。

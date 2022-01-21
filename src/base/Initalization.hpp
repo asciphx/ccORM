@@ -13,18 +13,8 @@ namespace orm {
 	RES_last = std::chrono::steady_clock::now();
 	return RES_NOW;
   }
-  template<typename T>
-  void regist() {
-	unsigned int i = HARDWARE_ASYNCHRONOUS; while (i--) { orm::Table<T>::__[i] = new Sql<T>(); }
-	try {
-	  T::Init();//Build and check whether the table creation statement of table is correct
-	  T::_addTable();//Create table
-	} catch (const std::exception& e) {
-	  std::cerr << e.what(); return;
-	}
-  }
-  template <typename ...Args>//Create Center
-  static void InitializationOrm() {
+  //准备全局时间变量，以及pgsql的类型系统(Prepare the global time variable and the type system of PgSQL)
+  static int InitializationOrm() {
 	time_t RES_ti; std::time(&RES_ti);
 #if defined(_MSC_VER) || defined(__MINGW32__)
 	system("chcp 65001");
@@ -33,7 +23,7 @@ namespace orm {
 	localtime_r(&RES_ti, &RES_NOW);
 	std::locale::global(std::locale("en_US.UTF8"));
 #endif
-	if (ce_is_pgsql) {
+	if (pgsqL) {
 	  auto DbQuery = D.conn();//auto support tinyint and unsigned fields.
 	  if (DbQuery("SELECT count(*) FROM pg_type WHERE typname = 'tinyint';").template r__<int>() == 0) {
 		DbQuery("CREATE DOMAIN TINYINT AS int2 CHECK(VALUE > -129 AND VALUE < 128);");
@@ -43,7 +33,7 @@ namespace orm {
 		DbQuery("CREATE DOMAIN UNSIGNED_BIGINT AS int8 CHECK(VALUE > -1);").flush_results();// AND VALUE <= 18446744073709551615
 	  }
 	}
-	(void)std::initializer_list<int>{(regist<Args>(), 0)...};
+	return 1;
   }
   static std::string Time2Str(const time_t* t) {
 	tm* _v; _v = std::localtime(t); std::ostringstream os; os << std::setfill('0');

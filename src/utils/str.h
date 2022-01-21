@@ -118,7 +118,7 @@ static std::string toLowerCase(const char* s) {
 	} else { e.push_back(*s); }
   } return e;
 }
-static std::string toSqlLowerCase(const char* s) {
+static std::string toSqlCase(const char* s) {
   std::string e;
   if (*s > 0x40 && *s < 0x5b) { e.push_back(*s + 0x20); }
   while (*++s) {

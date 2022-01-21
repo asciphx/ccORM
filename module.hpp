@@ -1,5 +1,5 @@
-#include "src/Sql.hpp"
 #include "src/Table.hpp"
+static int RES_INIT = orm::InitializationOrm();
 using namespace std; using namespace orm;
 Struct(Type) {
   uint8_t id;
@@ -32,3 +32,4 @@ REGIST(Tab,
   TC::DEFAULT, "false",
   TC::DEFAULT, "ww'zzgg",
   TC::DEFAULT | TC::NOT_NULL, "");
+M_TABLE(Type, id, Tab, id)

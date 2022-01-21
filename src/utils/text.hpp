@@ -50,7 +50,7 @@ public:
   void operator += (const text& t) {
 	const char* s = t.c_str();
 	if (&t == this) {
-	  short i = 2 * l, k = -1; if (i > I)i = I; while (l < i) { _[l++] = s[++k]; } _[i] = 0;
+	  int i = 2 * l, k = -1; if (i > I)i = I; while (l < i) { _[l++] = s[++k]; } _[i] = 0;
 	} else {
 	  unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[l] = 0;
 	}
@@ -67,6 +67,7 @@ public:
   inline void push_begin(const char c) { unsigned short i = l; while (i) { _[i] = _[i - 1]; --i; } _[++l] = 0; _[0] = c; }
   inline void end() { _[l] = 0; }
   inline void clear() { _[0] = l = 0; }
+  inline void slice(unsigned char i) { assert(i < I); _[i] = 0; l = i; }
 };
 template<unsigned short I>
 std::ostream& operator<<(std::ostream& s, text<I> c) {
