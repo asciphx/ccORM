@@ -3,7 +3,7 @@
 #include "./base/Initalization.hpp"
 #include "./base/s2o.hpp"
 #include "./base/so2s.hpp"
-#define Struct(T) struct T : orm::Table<T> /*multiple inheritance from std::enable_shared_from_this<T> => needed for
+#define Struct(T) struct T : orm::Table<T>/*multiple inheritance from std::enable_shared_from_this<T> => needed for
 struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B { };*/
 namespace orm {
   struct enable_virtual : std::enable_shared_from_this<enable_virtual> { virtual ~enable_virtual() {} };
@@ -13,13 +13,13 @@ namespace orm {
 	}
   };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
   template<typename T> class Table : public virtual_shared<T> { /*Store (T.<k>,)... *//*Store <k> name[]*//*Store alias*//*AS [alias]_<k>*/
-	static const std::string _name, _drop, _mTable; static const uint8_t _size; const static char* _ios, * $[], * _alias, * _as_alia;//^
+	static const std::string _name, _drop, _lower; static const uint8_t _size; const static char* _ios, * $[], * _alias, * _as_alia;//^
 	static bool _created; static unsigned char _idex; static std::string _create; static const size_t _o$[];/*Store offset[]*/
 #ifdef _WIN32
 	friend typename T; const static char* _def[];/*Store default values[]*/static unsigned char _tc[];/*Store key type[]*/
 #endif
 	template<typename U, typename V> friend struct TLinker; friend typename decltype(D)::db_rs;
-	friend struct Sql<T>; static const char* _[];/*Store type character[]*/static int _r, _r1, _r2;/*Prepare Run Serialization*/
+	friend struct Sql<T>; static const char* _[];/*Store type character[]*/static int _r, _r1;/*Prepare Run Serialization*/
 	template <typename U> void $et(int8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
 		switch (hack8Str(_[i])) {
@@ -30,16 +30,19 @@ namespace orm {
 		}
 	  } else *reinterpret_cast<U*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
 	}
-	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//Object serialized as string
-	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<Object> serialized as string
+	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//<T> serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, Table<U>* c);
+	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<T> serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U> c);
+	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U>* c);//vector<T>* serialized as string
+	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U>* c);
+
   public:
 #ifndef _WIN32
 	const static char* _def[]; static unsigned char _tc[];
 #endif
 	using ptr = typename std::shared_ptr<T>; static Sql<T>* __[];
-	using ptr_arr = typename std::vector<typename std::shared_ptr<T>>;
+	using arr = typename std::vector<typename std::shared_ptr<T>>;
 	Table& operator=(const Table&) = default; static int Init();//Initalization Table
 	Table(); ~Table() {} Table(const Table&) = default;
 	template<typename ... Args> static ptr create(Args&& ... args);
@@ -51,8 +54,7 @@ namespace orm {
 	_: if (++_idex > HARDWARE_CORE) _idex = 0; Sql<T>* q = __[_idex];
 	  if (q->___) { q->___ = false; return q; } std::this_thread::yield(); goto _;
 	};
-	static std::string test() { return _mTable; }
-	//Object serialized as JSON
+	//<T> serialized as JSON without std::vector
 	json get() { return json(*dynamic_cast<T*>(this)); }
 	//-------------------------------------ActiveRecord-------------------------------------
 	//Insert the object (Returns the inserted ID)
@@ -297,22 +299,34 @@ namespace orm {
 		s += "\":" + std::to_string(t);
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":\"" + t + "\"";
+	  } else if constexpr (li::is_vector<std::remove_reference_t<decltype(t)>>::value) {
+		s += "\":"; s << &t;
 	  } else {
 		s += "\":"; s << t;
 	  } s.push_back(',');
 	  }); s[s.size() - 1] = '}'; return s;
   }//Compile into most optimized machine code
+  template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
+	std::string s; s << dynamic_cast<T*>(c); return o << s;
+  };
   template <typename T> std::string& operator<<(std::string& s, std::vector<T> c) {
 	s.push_back('['); size_t l = c.size(); if (l > 0) { s << &c[0]; }
 	for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c[i]; }
 	s.push_back(']'); return s;
   }
-  template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
-	std::string s; s << dynamic_cast<T*>(c); return o << s;
-  };
   template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T> c) {
 	o << '['; size_t l = c.size(); if (l > 0) { o << &c[0]; }
 	for (size_t i = 1; i < l; ++i) { o << ',' << &c[i]; }
+	o << ']'; return o;
+  }
+  template <typename T> std::string& operator<<(std::string& s, std::vector<T>* c) {
+	s.push_back('['); size_t l = c->size(); if (l > 0) { s << &c->at(0); }
+	for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c->at(i); }
+	s.push_back(']'); return s;
+  }
+  template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T>* c) {
+	o << '['; size_t l = c->size(); if (l > 0) { o << &c->at(0); }
+	for (size_t i = 1; i < l; ++i) { o << ',' << &c->at(i); }
 	o << ']'; return o;
   }
 }

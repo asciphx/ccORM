@@ -49,7 +49,7 @@ namespace orm {
 	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
   }
   using Expand = char[];
-#define Exp (void)Expand
+#define Exp (void)orm::Expand
   template <typename T, typename Fn, std::size_t... I>
   inline constexpr void ForEachTuple(T& tuple, Fn&& fn, std::index_sequence<I...>) {
 	Exp{ ((void)fn(std::get<I>(tuple)), 0)... };
@@ -64,9 +64,9 @@ namespace orm {
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
-  constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, crow::pgsql_tag>::value;
-  constexpr bool mysqL = std::is_same<decltype(D)::db_tag, crow::mysql_tag>::value;
-  constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, crow::sqlite_tag>::value;
+  constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value;
+  constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value;
+  constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value;
   static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
 #ifdef _MSC_VER
   inline const char* GetRealType(const char* _);//get key's type char
@@ -221,7 +221,7 @@ static const char* orm::getAkTs(const char* _) {
   default: return "[TYPE] MUST BE <NUMBER>!";
   }
 }
-//Create middle table(_k -> PRIMARY KEY)
+//after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)\
  static int o##p_(){std::string s;if constexpr(pgsqL){s="select count(*) from pg_class where relname = '";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
 if(D.conn()(s).template r__<int>()!=0){return 0;}}s="CREATE TABLE IF NOT EXISTS "; s+=toSqlCase(#o"_")+toSqlCase(#p" "); s.push_back('(');\
@@ -233,8 +233,7 @@ s+=pgsqL?#o"_"#o_k" FOREIGN KEY(\""#o"_"#o_k"\") REFERENCES \""+toSqlCase(#o)+"\
 #o"_"#o_k"`) REFERENCES `"+toSqlCase(#o)+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";\
 s+=pgsqL?#p"_"#p_k" FOREIGN KEY(\""#p"_"#p_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#p_k"\")":#p"_"#p_k" FOREIGN KEY(`"\
 #p"_"#p_k"`) REFERENCES `"+toSqlCase(#p)+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);";D.conn()(s);printf(s.c_str());\
-return 0;} template<> const std::string orm::Table<o>::_mTable = toSqlCase(#o)+"_"+toSqlCase(#p);\
- template<> const std::string orm::Table<p>::_mTable = toSqlCase(#o)+"_"+toSqlCase(#p); template<> int orm::Table<p>::_r2=o##p_();
+return 0;} static int _##o##p=o##p_();
 
 #define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));
 #define COL_2(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_1(o,__VA_ARGS__))
@@ -350,16 +349,17 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> std::string orm::Table<o>::_create = pgsqL?"CREATE TABLE IF NOT EXISTS \""+toSqlCase(#o"\" (\n"):"CREATE TABLE IF NOT EXISTS `"#o"` (\n";\
 	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""+toSqlCase(#o"\""):"DROP TABLE IF EXISTS `"#o"`";\
 	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+toSqlCase(#o"\""):"`"+toSqlCase(#o"`");\
+	template<> const std::string orm::Table<o>::_lower = toSqlCase(#o);\
 	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
 	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
 	template<> bool orm::Table<o>::_created = true;
 #define CONSTRUCT(o,...)\
-        ATTRS(o,__VA_ARGS__)\
         REGIST_STATIC(o, __VA_ARGS__)\
         REGISTER_TABLE(o)\
     template <> inline constexpr auto orm::Tuple<o>() {\
       return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
     }
+
 #define PTR_2(k,t,v)      _tc[k] = t; _def[k] = v;
 #define PTR_4(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
 #define PTR_6(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_4(k+1,__VA_ARGS__))
@@ -522,9 +522,9 @@ template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
 #define PRO_32(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_31(t,__VA_ARGS__))
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
-//Build field statements at compile time and connect them into const char*
+//Build field statements and serialized as json without std::vector at compile time.
 #define PROTO(o,...)\
-PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
+PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)ATTRS(o, __VA_ARGS__)\
 constexpr static const char* o##_ios__() {\
 if constexpr (pgsqL) { return "SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
 else {return "SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\

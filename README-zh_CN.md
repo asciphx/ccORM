@@ -73,20 +73,20 @@ void test() {
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   t->Insert();//插入,返回值是long long类型
-  cout << Tab::Q()->GetArr();
+  cout << Tab::Q()->$()->GetArr();
   t->Delete();//删除
-  *t = Tab::Q()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q()->$()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
 }
 int main() {
   clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q()->$()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->$()->where(Tab::$id == 1)->GetOne();
   }//多线程测试
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
@@ -120,15 +120,15 @@ g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
     - Windows: MSVC C++ compiler version 1930.
 
 ## 普遍命名规则
-constexpr -> 小写+大写驼峰分隔，最后一个为大写收尾 => nameBegin
-static 属性 -> `_` 开头，后面全小写+下划线分隔 => _name_begin
-static 全局变量 -> `RES_` 开头，后面全大写+下划线分隔 => RES_NAME_BEGIN
-private 属性 -> 小写+大写驼峰分隔， `_`收尾 => nameBegin_
-public 属性 -> 小写+大写驼峰分隔 => nameBegin
-参数 -> 小写+下划线分隔 => name_begin
-特殊字段 -> `_` 开头，中间小写+下划线分隔, `_`收尾 => _name_begin_
-struct或者class -> 大写开头，后面小写+大写驼峰分隔 => NameBegin
-宏 或者static constexpr -> 大写+下划线分隔 => NAME_BEGIN
+constexpr -> 小写+大写驼峰分隔，最后一个为大写收尾 => `nameBegiN`  
+static 属性 -> `_` 开头，后面全小写+下划线分隔 => `_name_begin`  
+static 全局变量 -> `RES_` 开头，后面全大写+下划线分隔 => `RES_NAME_BEGIN`  
+private 属性 -> 小写+大写驼峰分隔， `_`收尾 => `nameBegin_`  
+public 属性 -> 小写+大写驼峰分隔 => `nameBegin`  
+参数 -> 小写+下划线分隔 => `name_begin`  
+特殊字段 -> `_` 开头，中间小写+下划线分隔, `_`收尾 => `_name_begin_`  
+struct或者class -> 大写开头，后面小写+大写驼峰分隔 => `NameBegin`  
+宏 或者static constexpr -> 大写+下划线分隔 => `NAME_BEGIN`  
 
 ### 归属
     ccORM使用以下库。

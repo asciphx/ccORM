@@ -72,20 +72,20 @@ void test() {
 "lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';
   t->Insert();//insert, the return value is long long type
-  cout << Tab::Q()->GetArr();
+  cout << Tab::Q()->$()->GetArr();
   t->Delete();//delete
-  *t = Tab::Q()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q()->$()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
 }
 int main() {
   clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q()->$()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->$()->where(Tab::$id == 1)->GetOne();
   }//Multithreading test
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
@@ -122,15 +122,15 @@ g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
     - Windows: MSVC C++ compiler version 1930.
 
 ## General naming rules
-Constexpr -> lowercase + uppercase hump separation, and the last one is uppercase ending => `nameBegin`
-Static attribute -> `_` Beginning, followed by all lowercase + underscore => `_name_begin`
-Static global variables -> ` res_` Beginning, followed by all uppercase + underscore => `RES_NAME_BEGIN`
-private Attribute -> lowercase + uppercase hump separation, `_` Finishing => `nameBegin_`
-public Attribute -> lowercase + uppercase hump separation => `nameBegin`
-Parameter -> lowercase + underscore => `name_begin`
-Special fields -> `_` Beginning, separated by lowercase + underline in the middle, `_` Finishing => `_name_begin_`
-Struct or class -> starts with uppercase, followed by lowercase + uppercase, separated by hump => `NameBegin`
-Macro or static constexpr -> uppercase + underscore => `NAME_BEGIN`
+Constexpr -> lowercase + uppercase hump separation, and the last one is uppercase ending => `nameBegiN`  
+Static attribute -> `_` Beginning, followed by all lowercase + underscore => `_name_begin`  
+Static global variables -> ` res_` Beginning, followed by all uppercase + underscore => `RES_NAME_BEGIN`  
+private Attribute -> lowercase + uppercase hump separation, `_` Finishing => `nameBegin_`  
+public Attribute -> lowercase + uppercase hump separation => `nameBegin`  
+Parameter -> lowercase + underscore => `name_begin`  
+Special fields -> `_` Beginning, separated by lowercase + underline in the middle, `_` Finishing => `_name_begin_`  
+Struct or class -> starts with uppercase, followed by lowercase + uppercase, separated by hump => `NameBegin`  
+Macro or static constexpr -> uppercase + underscore => `NAME_BEGIN`  
 
 ### Attributions
     ccORM uses the following libraries.

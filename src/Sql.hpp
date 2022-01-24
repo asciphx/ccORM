@@ -16,12 +16,12 @@ namespace orm {
 	inline TLinker<T, U>* size(uint8_t size) { size_ = size; return this; }
 	inline TLinker<T, U>* page(size_t page) { page_ = page; return this; }
 	json Get() {
-	  //std::cout << _ << '\n';
+	  std::cout << _ << '\n';
 	  return D.conn()(_.c_str()).JSON(size_, page_);
 	};
 	//[select all] U.`<$>` AS U_<$>,... FROM <T> T
 	template<typename... K> inline TLinker<T, U>* $() {
-	  f(_, U::$[1]); for (uint8_t i = 2; i < U::_size; ++i) { f(_, U::$[i]); } _ & " FROM "; _ += T::_name; _& T::_alias; return this;
+	  f(_, U::$[1]); for (uint8_t i = 2; i < U::_size && U::_[i][0] != 'S'; ++i) { f(_, U::$[i]); } _ & " FROM "; _ += T::_name; _& T::_alias; return this;
 	};
 	//[select K] U.`<$>` -> U.`<$>` AS U_<$> FROM <T> T
 	template<typename... K> inline TLinker<T, U>* $(K&&...k) {
@@ -74,7 +74,7 @@ namespace orm {
 	inline T GetOne();
 	inline decltype(D)::connection_type DB();
 	//-------------------------------------DataMapper-------------------------------------
-	static void InsertArr(typename T::ptr_arr& t);
+	static void InsertArr(typename T::arr& t);
 	static void InsertArr(std::vector<T>* t);
   private: uint8_t size_{ 10 }; size_t page_{ 1 }; std::string _, __; bool ___{ true };
 		 inline void clear() {
@@ -100,7 +100,7 @@ namespace orm {
 	std::string sql(_); this->clear(); return D.conn()(sql).template findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::DB() { ___ = true; return D.conn(); }
-  template<typename T> void Sql<T>::InsertArr(typename T::ptr_arr& input) {
+  template<typename T> void Sql<T>::InsertArr(typename T::arr& input) {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size; ++i) {
 	  if (T::_[i][0] != 'S' && !(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) os << T::$[i] << ',';

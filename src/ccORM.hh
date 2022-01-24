@@ -142,7 +142,7 @@ static char* UnicodeToUtf8(const char* str) {
   pc[size] = 0; delete[] pw; pw = nullptr; return pc;
 }
 #endif
-namespace crow {
+namespace li {
   template<typename C> struct tuple_idex {};
   template<template<typename ...T> class C, typename ...T>
   struct tuple_idex<C<T...>> { template<size_t i> using type = typename std::tuple_element<i, std::tuple<T...> >::type; };
@@ -332,10 +332,10 @@ namespace crow {
   }
 }
 template <typename... T> std::ostream& operator<<(std::ostream& os, std::tuple<T...> t) {
-  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
+  bool one = true; os << "TUPLE<"; li::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
 	if (one) os << v, one = false; else os << "," << v; }); os << ">"; return os;
 }
-namespace crow {
+namespace li {
   template <typename T, typename F> constexpr auto tuple_reduce(T&& t, F&& f) {
 	return std::apply(std::forward<F>(f), std::forward<T>(t));
   }
@@ -721,7 +721,7 @@ namespace crow {
 	if (nfields != std::tuple_size_v<std::decay_t<T>>)
 	  throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
 		"field and the outputs.");
-	crow::tuple_map(std::forward<T>(output), [&](auto& m) {
+	li::tuple_map(std::forward<T>(output), [&](auto& m) {
 	  fetch_value(m, i, proto_type_[i]);
 	  ++i;
 	  });
@@ -871,7 +871,7 @@ namespace crow {
   template <typename B>
   template <typename T1, typename... T>
   bool sql_result<B>::r__(T1&& t1, T&... tail) {
-	if constexpr (crow::is_tuple<std::decay_t<T1>>::value) {
+	if constexpr (li::is_tuple<std::decay_t<T1>>::value) {
 	  static_assert(sizeof...(T) == 0);
 	  return impl_.read(std::forward<T1>(t1));
 	} else
@@ -1058,7 +1058,7 @@ namespace crow {
 		this->read_column(i, v, sqlite3_column_type(stmt_, i));
 		++i;
 	  };
-	  ::crow::tuple_map(std::forward<T>(output), read_elt);
+	  ::li::tuple_map(std::forward<T>(output), read_elt);
 	  return true;
 	}
 	inline long long int last_insert_id() { return sqlite3_last_insert_rowid(db_); }
@@ -1102,7 +1102,7 @@ namespace crow {
 	  sqlite3_reset(stmt_);
 	  sqlite3_clear_bindings(stmt_);
 	  int i = 1;
-	  crow::tuple_map(std::forward_as_tuple(args...), [&](auto& m) {
+	  li::tuple_map(std::forward_as_tuple(args...), [&](auto& m) {
 		int err;
 		if ((err = this->bind(stmt_, i, m)) != SQLITE_OK)
 		  throw std::runtime_error(std::string("Sqlite error during binding: ") + sqlite3_errmsg(db_));
@@ -1583,7 +1583,7 @@ namespace crow {
   template <typename A> mysql_bind_data<1> mysql_bind_output(mysql_statement_data& data, A& o) {
 	if (data.num_fields_ != 1)
 	  throw std::runtime_error("mysql_statement error: The number of column in the result set "
-		"shoud be 1. Use std::tuple or crow::sio to fetch several columns or "
+		"shoud be 1. Use std::tuple or li::sio to fetch several columns or "
 		"modify the request so that it returns a set of 1 column.");
 	mysql_bind_data<1> bind_data; mysql_bind_output(bind_data.bind[0], &bind_data.real_lengths[0], o);
 	return bind_data;
@@ -1651,7 +1651,7 @@ namespace crow {
 	bool result_allocated_ = false;
   };
 }
-namespace crow {
+namespace li {
   template <typename B> long long int mysql_statement_result<B>::affected_rows() {
 	return mysql_stmt_affected_rows(data_.stmt_);
   }
@@ -1965,7 +1965,7 @@ namespace crow {
 		std::to_string(current_row_num_fields_) +
 		") does not match the size of the tuple (" +
 		std::to_string(std::tuple_size_v<std::decay_t<T>>) + ")");
-	crow::tuple_map(std::forward<T>(output), [&](auto& v) {
+	li::tuple_map(std::forward<T>(output), [&](auto& v) {
 	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(std::string_view(current_row_[i], current_row_lengths_[i]));
 	  ++i;
 	  });
@@ -1983,7 +1983,7 @@ namespace crow {
 	typedef mysql_tag db_tag;
 	inline mysql_connection(const mysql_connection&) = delete;
 	inline mysql_connection& operator=(const mysql_connection&) = delete;
-	inline mysql_connection(B mysql_wrapper, std::shared_ptr<crow::mysql_connection_data>& data);
+	inline mysql_connection(B mysql_wrapper, std::shared_ptr<li::mysql_connection_data>& data);
 	long long int last_insert_rowid();
 	sql_result<mysql_result<B>> operator()(const std::string& rq);
 	mysql_statement<B> query(const std::string& rq);
@@ -1994,9 +1994,9 @@ namespace crow {
 	std::shared_ptr<mysql_connection_data> data_;
   };
 }
-namespace crow {
+namespace li {
   template <typename B>
-  inline mysql_connection<B>::mysql_connection(B mysql_wrapper, std::shared_ptr<crow::mysql_connection_data>& data)
+  inline mysql_connection<B>::mysql_connection(B mysql_wrapper, std::shared_ptr<li::mysql_connection_data>& data)
 	: mysql_wrapper_(mysql_wrapper), data_(data) {}
   template <typename B> long long int mysql_connection<B>::last_insert_rowid() {
 	return mysql_insert_id(data_->connection_);
@@ -2158,9 +2158,9 @@ namespace crow {
 
   typedef sql_database<mysql, 100> Mysql;
   typedef sql_database<pgsql, 100> Pgsql;
-#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"utf8")
-#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
+#define D_mysql() li::Mysql("127.0.0.1","test","root","",3306,"utf8")
+#define D_pgsql() li::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
   //SQLite is not suitable for multi-threaded environments
-#define D_sqlite(path) crow::Sqlite(path)
+#define D_sqlite(path) li::Sqlite(path)
   auto COMPILE_USE = D_mysql();//Note that this line is for compilation.
 }
