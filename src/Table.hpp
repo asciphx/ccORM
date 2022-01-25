@@ -30,6 +30,7 @@ namespace orm {
 		}
 	  } else *reinterpret_cast<U*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
 	}
+	template <typename U> friend typename std::enable_if<li::is_vector<U>::value, void>::type FuckJSON(const U& u, const char* s, json& j);
 	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//<T> serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, Table<U>* c);
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<T> serialized as string
@@ -77,7 +78,7 @@ namespace orm {
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str();
 	  if constexpr (pgsqL) { os << " RETURNING " << T::$[0] << ";"; } else { os << ";"; }
-	  crow::sql_result<decltype(D)::db_rs>&& rs = D.conn()(os.str());
+	  li::sql_result<decltype(D)::db_rs>&& rs = D.conn()(os.str());
 	  if (T::_tc[0] & TC::AUTO_INCREMENT) { return rs.last_insert_id(); } else if constexpr (mysqL) { return 0ULL; } else { return 0LL; }
 	}
 	//Update the object (The default condition is the value of the frist key)
@@ -283,7 +284,7 @@ namespace orm {
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
 	s.push_back('{'); int8_t i = -1;
 	ForEachField(dynamic_cast<T*>(c), [&i, c, &s](auto& t) {
-	  s.push_back('"'); s += c->$[++i];
+	  if constexpr (!li::is_vector<std::remove_reference_t<decltype(t)>>::value) { s.push_back('"'); s += c->$[++i]; }
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":\""; std::ostringstream os; const tm* time = &t; os << std::setfill('0');
 #ifdef _WIN32
@@ -300,33 +301,33 @@ namespace orm {
 	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":\"" + t + "\"";
 	  } else if constexpr (li::is_vector<std::remove_reference_t<decltype(t)>>::value) {
-		s += "\":"; s << &t;
+		size_t l = t.size(); if (l) { s.push_back('"'); s += c->$[++i]; s += "\":"; s << &t; } else { s.pop_back(); }
 	  } else {
 		s += "\":"; s << t;
 	  } s.push_back(',');
 	  }); s[s.size() - 1] = '}'; return s;
-  }//Compile into most optimized machine code
+  }//Filter empty std::vectors
   template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
 	std::string s; s << dynamic_cast<T*>(c); return o << s;
-  };
+  };//Compile into most optimized machine code
   template <typename T> std::string& operator<<(std::string& s, std::vector<T> c) {
-	s.push_back('['); size_t l = c.size(); if (l > 0) { s << &c[0]; }
+	s.push_back('['); size_t l = c.size(); if (l > 0) { s << &c[0];
 	for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c[i]; }
-	s.push_back(']'); return s;
+	} s.push_back(']'); return s;
   }
   template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T> c) {
-	o << '['; size_t l = c.size(); if (l > 0) { o << &c[0]; }
+	o << '['; size_t l = c.size(); if (l > 0) { o << &c[0];
 	for (size_t i = 1; i < l; ++i) { o << ',' << &c[i]; }
-	o << ']'; return o;
+	} o << ']'; return o;
   }
   template <typename T> std::string& operator<<(std::string& s, std::vector<T>* c) {
-	s.push_back('['); size_t l = c->size(); if (l > 0) { s << &c->at(0); }
+	s.push_back('['); size_t l = c->size(); if (l > 0) { s << &c->at(0);
 	for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c->at(i); }
-	s.push_back(']'); return s;
+	} s.push_back(']'); return s;
   }
   template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T>* c) {
-	o << '['; size_t l = c->size(); if (l > 0) { o << &c->at(0); }
+	o << '['; size_t l = c->size(); if (l > 0) { o << &c->at(0);
 	for (size_t i = 1; i < l; ++i) { o << ',' << &c->at(i); }
-	o << ']'; return o;
+	} o << ']'; return o;
   }
 }

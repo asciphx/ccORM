@@ -11,6 +11,9 @@ class text {//It is similar to a dynamic std::string_view with a fixed maximum l
   friend std::string& operator<<(std::string& s, text<I>& c) {
 	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
   };
+  friend std::string& operator<<(std::string& s, const text<I>& c) {
+	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
+  };
   friend std::ostream& operator<<(std::ostream& s, text<I>& c) {
 	return s << c.c_str();
   };

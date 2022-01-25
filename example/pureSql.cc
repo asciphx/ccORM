@@ -1,7 +1,7 @@
 #include "../src/ccORM.hh"
 #include "generic_sql_tests.hh"
 auto d = D_mysql(); auto d1 = D_sqlite("test.db"); auto d2 = D_pgsql();
-using namespace crow; using namespace std;
+using namespace li; using namespace std;
 int main(int argc, char* argv[]) {
   json js = json::parse("{ \"state\": true, \"pi\": 3.1415926, \"name\": \"中文测试\" }");
   std::cout<<js<<std::endl;

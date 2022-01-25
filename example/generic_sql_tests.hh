@@ -98,7 +98,7 @@ template <typename Q> void test_long_strings_prepared_statement(Q& q) {
 }
 
 template <typename D> std::string placeholder(int pos) {
-  if constexpr (std::is_same_v<typename D::db_tag, crow::pgsql_tag>) {
+  if constexpr (std::is_same_v<typename D::db_tag, li::pgsql_tag>) {
     std::stringstream ss;
     ss << "$" << pos;
     return ss.str();
@@ -136,7 +136,7 @@ template <typename D> void generic_sql_tests(D& database) {
   EXPECT_EQUAL(
       (std::make_tuple("John", 42)),(q("select name, age from users_test where id = 1").template r__<std::string, int>()));
   std::string ssss = q("select name from users_test where id = 2").template r__<std::string>();
-  if constexpr (std::is_same_v<typename D::db_tag, crow::sqlite_tag>) {
+  if constexpr (std::is_same_v<typename D::db_tag, li::sqlite_tag>) {
   } else EXPECT_EQUAL("码哥", ssss);
   printf("!!! string: %s\n", ssss.c_str());
 }

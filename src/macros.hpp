@@ -18,7 +18,7 @@
 #include "json.hpp"
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
-  inline std::string DuckTyping(const tm& _v) {
+  inline void FuckJSON(const tm& _v, const char* s, json& j) {
 	std::ostringstream os; os << std::setfill('0');
 #ifdef _WIN32
 	os << std::setw(4) << _v.tm_year + 1900;
@@ -26,13 +26,48 @@ namespace orm {
 	int y = _v.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
 #endif
 	os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
-	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
+	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; j[s] = os.str();
   }
   template <class T>
-  static inline typename std::enable_if<is_text<T>::value, const char*>::type DuckTyping(const T& _v) { return _v.c_str(); }
+  static inline typename std::enable_if<is_text<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+	j[s] = _v.c_str();
+  }
   template <class T>
-  static inline typename std::enable_if<!is_text<T>::value, T>::type DuckTyping(const T& _v) { return _v; }
-  inline void OriginalType(tm& _v, const char* s, const json& j) {
+  static typename std::enable_if<li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
+	size_t l = _v.size(); if (l) {
+	  constexpr auto $ = Tuple<li::vector_pack_t<T>>(); std::string s; s.reserve(0x3f); s.push_back('[');
+	  for (size_t i = 0; i < l; ++i) {
+		auto* t = &_v[i]; s.push_back('{'); int8_t k = -1;
+		ForEachTuple($, [t, &k, &s](auto& _) { s.push_back('"'); s += t->$[++k];
+		if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s += "\":\""; std::ostringstream os; tm time = t->*_; os << std::setfill('0');
+#ifdef _WIN32
+		  os << std::setw(4) << time.tm_year + 1900;
+#else
+		  int y = time.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time.tm_year - y * 100;
+#endif
+		  os << '-' << std::setw(2) << (time.tm_mon + 1) << '-' << std::setw(2) << time.tm_mday << ' ' << std::setw(2)
+			<< time.tm_hour << ':' << std::setw(2) << time.tm_min << ':' << std::setw(2) << time.tm_sec << '"'; s += os.str();
+		} else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s += "\":", s += t->*_ == true ? "true" : "false";
+		} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s += "\":" + std::to_string(t->*_);
+		} else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s += "\":\"" + t->*_ + "\"";
+		} else if constexpr (li::is_vector<std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s += "\":"; s << &t->*_;
+		} else {
+		  s += "\":"; s << t->*_;
+		} s.push_back(',');
+		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); s[s.size() - 1] = '}'; s.push_back(',');
+	  } s[s.size() - 1] = ']'; j[c] = json::parse(s);
+	}
+  }
+  template <class T>
+  static inline typename std::enable_if<!is_text<T>::value && !li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+	j[s] = _v;
+  }
+  inline void DeSerial(tm& _v, const char* s, const json& j) {
 	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {
 	  _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0;
 	} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
@@ -41,11 +76,15 @@ namespace orm {
 	}
   }
   template <class T>
-  static inline typename std::enable_if<is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+  static inline typename std::enable_if<is_text<T>::value, void>::type DeSerial(T& _v, const char* s, const json& j) {
 	try { _v = j.at(s); } catch (const std::exception&) {}
   }
   template <class T>
-  static inline typename std::enable_if<!is_text<T>::value, void>::type OriginalType(T& _v, const char* s, const json& j) {
+  static inline typename std::enable_if<li::is_vector<T>::value, void>::type DeSerial(T& _v, const char* s, const json& j) {
+	try { for (auto& t : j.at(s))_v.push_back(t.get<li::vector_pack_t<T>>()); } catch (const std::exception&) {}
+  }
+  template <class T>
+  static inline typename std::enable_if<!is_text<T>::value && !li::is_vector<T>::value, void>::type DeSerial(T& _v, const char* s, const json& j) {
 	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
   }
   using Expand = char[];
@@ -63,7 +102,7 @@ namespace orm {
 	  std::make_index_sequence<std::tuple_size<decltype(tuplE)>::value>{});
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
-  enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8 };//protoSpecs
+  enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
   constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value;
   constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value;
   constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value;
@@ -235,73 +274,73 @@ s+=pgsqL?#p"_"#p_k" FOREIGN KEY(\""#p"_"#p_k"\") REFERENCES \""+toSqlCase(#o)+"\
 #p"_"#p_k"`) REFERENCES `"+toSqlCase(#p)+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);";D.conn()(s);printf(s.c_str());\
 return 0;} static int _##o##p=o##p_();
 
-#define COL_1(o,k)      j[#k].operator=(orm::DuckTyping(o.k));
-#define COL_2(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_1(o,__VA_ARGS__))
-#define COL_3(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_2(o,__VA_ARGS__))
-#define COL_4(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_3(o,__VA_ARGS__))
-#define COL_5(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_4(o,__VA_ARGS__))
-#define COL_6(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_5(o,__VA_ARGS__))
-#define COL_7(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_6(o,__VA_ARGS__))
-#define COL_8(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_7(o,__VA_ARGS__))
-#define COL_9(o,k,...)  j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_8(o,__VA_ARGS__))
-#define COL_10(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_9(o,__VA_ARGS__))
-#define COL_11(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_10(o,__VA_ARGS__))
-#define COL_12(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_11(o,__VA_ARGS__))
-#define COL_13(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_12(o,__VA_ARGS__))
-#define COL_14(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_13(o,__VA_ARGS__))
-#define COL_15(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_14(o,__VA_ARGS__))
-#define COL_16(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_15(o,__VA_ARGS__))
-#define COL_17(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_16(o,__VA_ARGS__))
-#define COL_18(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_17(o,__VA_ARGS__))
-#define COL_19(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_18(o,__VA_ARGS__))
-#define COL_20(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_19(o,__VA_ARGS__))
-#define COL_21(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_20(o,__VA_ARGS__))
-#define COL_22(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_21(o,__VA_ARGS__))
-#define COL_23(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_22(o,__VA_ARGS__))
-#define COL_24(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_23(o,__VA_ARGS__))
-#define COL_25(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_24(o,__VA_ARGS__))
-#define COL_26(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_25(o,__VA_ARGS__))
-#define COL_27(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_26(o,__VA_ARGS__))
-#define COL_28(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_27(o,__VA_ARGS__))
-#define COL_29(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_28(o,__VA_ARGS__))
-#define COL_30(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_29(o,__VA_ARGS__))
-#define COL_31(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_30(o,__VA_ARGS__))
-#define COL_32(o,k,...) j[#k].operator=(orm::DuckTyping(o.k)), EXP(COL_31(o,__VA_ARGS__))
+#define COL_1(o,k)      orm::FuckJSON(o.k,#k,j);
+#define COL_2(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_1(o,__VA_ARGS__))
+#define COL_3(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_2(o,__VA_ARGS__))
+#define COL_4(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_3(o,__VA_ARGS__))
+#define COL_5(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_4(o,__VA_ARGS__))
+#define COL_6(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_5(o,__VA_ARGS__))
+#define COL_7(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_6(o,__VA_ARGS__))
+#define COL_8(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_7(o,__VA_ARGS__))
+#define COL_9(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_8(o,__VA_ARGS__))
+#define COL_10(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_9(o,__VA_ARGS__))
+#define COL_11(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_10(o,__VA_ARGS__))
+#define COL_12(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_11(o,__VA_ARGS__))
+#define COL_13(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_12(o,__VA_ARGS__))
+#define COL_14(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_13(o,__VA_ARGS__))
+#define COL_15(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_14(o,__VA_ARGS__))
+#define COL_16(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_15(o,__VA_ARGS__))
+#define COL_17(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_16(o,__VA_ARGS__))
+#define COL_18(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_17(o,__VA_ARGS__))
+#define COL_19(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_18(o,__VA_ARGS__))
+#define COL_20(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_19(o,__VA_ARGS__))
+#define COL_21(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_20(o,__VA_ARGS__))
+#define COL_22(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_21(o,__VA_ARGS__))
+#define COL_23(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_22(o,__VA_ARGS__))
+#define COL_24(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_23(o,__VA_ARGS__))
+#define COL_25(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_24(o,__VA_ARGS__))
+#define COL_26(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_25(o,__VA_ARGS__))
+#define COL_27(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_26(o,__VA_ARGS__))
+#define COL_28(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_27(o,__VA_ARGS__))
+#define COL_29(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_28(o,__VA_ARGS__))
+#define COL_30(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_29(o,__VA_ARGS__))
+#define COL_31(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_30(o,__VA_ARGS__))
+#define COL_32(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_31(o,__VA_ARGS__))
 #define COL_N1(o,N,...) EXP(COL_##N(o,__VA_ARGS__))
 #define COL_N(o,N,...) COL_N1(o,N,__VA_ARGS__)
 
-#define ATTR_1(o,k)      orm::OriginalType(o.k,#k,j);
-#define ATTR_2(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_1(o,__VA_ARGS__))
-#define ATTR_3(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_2(o,__VA_ARGS__))
-#define ATTR_4(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_3(o,__VA_ARGS__))
-#define ATTR_5(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_4(o,__VA_ARGS__))
-#define ATTR_6(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_5(o,__VA_ARGS__))
-#define ATTR_7(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_6(o,__VA_ARGS__))
-#define ATTR_8(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_7(o,__VA_ARGS__))
-#define ATTR_9(o,k,...)  orm::OriginalType(o.k,#k,j), EXP(ATTR_8(o,__VA_ARGS__))
-#define ATTR_10(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_9(o,__VA_ARGS__))
-#define ATTR_11(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_10(o,__VA_ARGS__))
-#define ATTR_12(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_11(o,__VA_ARGS__))
-#define ATTR_13(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_12(o,__VA_ARGS__))
-#define ATTR_14(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_13(o,__VA_ARGS__))
-#define ATTR_15(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_14(o,__VA_ARGS__))
-#define ATTR_16(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_15(o,__VA_ARGS__))
-#define ATTR_17(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_16(o,__VA_ARGS__))
-#define ATTR_18(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_17(o,__VA_ARGS__))
-#define ATTR_19(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_18(o,__VA_ARGS__))
-#define ATTR_20(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_19(o,__VA_ARGS__))
-#define ATTR_21(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_20(o,__VA_ARGS__))
-#define ATTR_22(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_21(o,__VA_ARGS__))
-#define ATTR_23(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_22(o,__VA_ARGS__))
-#define ATTR_24(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_23(o,__VA_ARGS__))
-#define ATTR_25(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_24(o,__VA_ARGS__))
-#define ATTR_26(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_25(o,__VA_ARGS__))
-#define ATTR_27(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_26(o,__VA_ARGS__))
-#define ATTR_28(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_27(o,__VA_ARGS__))
-#define ATTR_29(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_28(o,__VA_ARGS__))
-#define ATTR_30(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_29(o,__VA_ARGS__))
-#define ATTR_31(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_30(o,__VA_ARGS__))
-#define ATTR_32(o,k,...) orm::OriginalType(o.k,#k,j), EXP(ATTR_31(o,__VA_ARGS__))
+#define ATTR_1(o,k)      orm::DeSerial(o.k,#k,j);
+#define ATTR_2(o,k,...)  orm::DeSerial(o.k,#k,j), EXP(ATTR_1(o,__VA_ARGS__))
+#define ATTR_3(o,k,...)  orm::DeSerial(o.k,#k,j), EXP(ATTR_2(o,__VA_ARGS__))
+#define ATTR_4(o,k,...)  orm::DeSerial(o.k,#k,j), EXP(ATTR_3(o,__VA_ARGS__))
+#define ATTR_5(o,k,...)  orm::DeSerial(o.k,#k,j), EXP(ATTR_4(o,__VA_ARGS__))
+#define ATTR_6(o,k,...)  orm::DeSerial(o.k,#k,j), EXP(ATTR_5(o,__VA_ARGS__))
+#define ATTR_7(o,k,...)  orm::DeSerial(o.k,#k,j), EXP(ATTR_6(o,__VA_ARGS__))
+#define ATTR_8(o,k,...)  orm::DeSerial(o.k,#k,j), EXP(ATTR_7(o,__VA_ARGS__))
+#define ATTR_9(o,k,...)  orm::DeSerial(o.k,#k,j), EXP(ATTR_8(o,__VA_ARGS__))
+#define ATTR_10(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_9(o,__VA_ARGS__))
+#define ATTR_11(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_10(o,__VA_ARGS__))
+#define ATTR_12(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_11(o,__VA_ARGS__))
+#define ATTR_13(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_12(o,__VA_ARGS__))
+#define ATTR_14(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_13(o,__VA_ARGS__))
+#define ATTR_15(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_14(o,__VA_ARGS__))
+#define ATTR_16(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_15(o,__VA_ARGS__))
+#define ATTR_17(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_16(o,__VA_ARGS__))
+#define ATTR_18(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_17(o,__VA_ARGS__))
+#define ATTR_19(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_18(o,__VA_ARGS__))
+#define ATTR_20(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_19(o,__VA_ARGS__))
+#define ATTR_21(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_20(o,__VA_ARGS__))
+#define ATTR_22(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_21(o,__VA_ARGS__))
+#define ATTR_23(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_22(o,__VA_ARGS__))
+#define ATTR_24(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_23(o,__VA_ARGS__))
+#define ATTR_25(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_24(o,__VA_ARGS__))
+#define ATTR_26(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_25(o,__VA_ARGS__))
+#define ATTR_27(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_26(o,__VA_ARGS__))
+#define ATTR_28(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_27(o,__VA_ARGS__))
+#define ATTR_29(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_28(o,__VA_ARGS__))
+#define ATTR_30(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_29(o,__VA_ARGS__))
+#define ATTR_31(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_30(o,__VA_ARGS__))
+#define ATTR_32(o,k,...) orm::DeSerial(o.k,#k,j), EXP(ATTR_31(o,__VA_ARGS__))
 #define ATTR_N1(o,N,...) EXP(ATTR_##N(o,__VA_ARGS__))
 #define ATTR_N(o,N,...) ATTR_N1(o,N,__VA_ARGS__)
 #define ATTRS(o,...)\
@@ -353,7 +392,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
 	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
 	template<> bool orm::Table<o>::_created = true;
-#define CONSTRUCT(o,...)\
+#define CONSTRUCT(o,...)ATTRS(o, __VA_ARGS__)\
         REGIST_STATIC(o, __VA_ARGS__)\
         REGISTER_TABLE(o)\
     template <> inline constexpr auto orm::Tuple<o>() {\
@@ -524,7 +563,7 @@ template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
 //Build field statements and serialized as json without std::vector at compile time.
 #define PROTO(o,...)\
-PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)ATTRS(o, __VA_ARGS__)\
+PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
 constexpr static const char* o##_ios__() {\
 if constexpr (pgsqL) { return "SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
 else {return "SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\

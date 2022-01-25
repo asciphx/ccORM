@@ -22,39 +22,43 @@
 - [x] 增加中间表的构建宏`M_TABLE`
 
 ## 即将推出
-一对多查询，多对多查询，索引列建立，以及缓存查询
+一对多查询，多对多查询，索引列建立，以及缓存查询等
 
 ## 模型层
 ```c++
-Struct(Type) {
-  uint32_t id;
-  text<10> language;
-  Type(uint32_t a = 0, const char* b = "") :
-	id(a), language(b) {}
-  FIELD(id, language)
-};
-CONSTRUCT(Type, id, language)
-PROTO(Type, id, language)
-REGIST(Type,
-  TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
-  TC::DEFAULT, "c/c++");
+struct Type;
 Struct(Tab) {
   uint32_t id;
   bool ok;
   text<15> name;
   tm date;
-  vector<Type> lang;
+  vector<Type> types;
   Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}) :
-	id(a), ok(b), name(c), date(d), lang(e) {}
+	id(a), ok(b), name(c), date(d), types(e) {}
   FIELD(id, ok, name, date)
 };
-CONSTRUCT(Tab, id, ok, name, date, lang)
+CONSTRUCT(Tab, id, ok, name, date, types)
 PROTO(Tab, id, ok, name, date)
 REGIST(Tab,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "false",
   TC::DEFAULT, "ww'zzgg",
   TC::DEFAULT | TC::NOT_NULL, "");
+Struct(Type) {
+  uint8_t id;
+  text<10> language;
+  double bigBlob;
+  vector<Tab> tabs;
+  Type(uint8_t a = 0, const char* b = "", double c = 0, vector<Tab> d = {}) :
+	id(a), language(b), bigBlob(c), tabs(d) {}
+  FIELD(id, language, bigBlob)
+};
+CONSTRUCT(Type, id, language, bigBlob, tabs)
+PROTO(Type, id, language, bigBlob)
+REGIST(Type,
+  TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
+  TC::DEFAULT, "c/c++",
+  TC::EMPTY, "");
 M_TABLE(Type, id, Tab, id)
 ```
 ## 主函数
