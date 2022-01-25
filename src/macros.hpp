@@ -18,6 +18,20 @@
 #include "json.hpp"
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
+  using Expand = char[];
+#define Exp (void)orm::Expand
+  template <typename T, typename Fn, std::size_t... I>
+  inline constexpr void ForEachTuple(T& tuple, Fn&& fn, std::index_sequence<I...>) {
+	Exp{ ((void)fn(std::get<I>(tuple)), 0)... };
+  }
+  template <typename T>
+  inline constexpr auto Tuple() { return std::make_tuple(); }
+  template <typename T, typename Fn>
+  inline constexpr void ForEachField(T* value, Fn&& fn) {
+	constexpr const auto tuplE = Tuple<T>();
+	ForEachTuple(tuplE, [value, &fn](auto field) { fn(value->*(field)); },
+	  std::make_index_sequence<std::tuple_size<decltype(tuplE)>::value>{});
+  }
   inline void FuckJSON(const tm& _v, const char* s, json& j) {
 	std::ostringstream os; os << std::setfill('0');
 #ifdef _WIN32
@@ -48,14 +62,14 @@ namespace orm {
 #endif
 		  os << '-' << std::setw(2) << (time.tm_mon + 1) << '-' << std::setw(2) << time.tm_mday << ' ' << std::setw(2)
 			<< time.tm_hour << ':' << std::setw(2) << time.tm_min << ':' << std::setw(2) << time.tm_sec << '"'; s += os.str();
-		} else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t->*_)>>::value) {
+		} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
 		  s += "\":", s += t->*_ == true ? "true" : "false";
 		} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
 		  s += "\":" + std::to_string(t->*_);
 		} else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
 		  s += "\":\"" + t->*_ + "\"";
 		} else if constexpr (li::is_vector<std::remove_reference_t<decltype(t->*_)>>::value) {
-		  s += "\":"; s << &t->*_;
+		  s += "\":"; s << &(t->*_);
 		} else {
 		  s += "\":"; s << t->*_;
 		} s.push_back(',');
@@ -86,20 +100,6 @@ namespace orm {
   template <class T>
   static inline typename std::enable_if<!is_text<T>::value && !li::is_vector<T>::value, void>::type DeSerial(T& _v, const char* s, const json& j) {
 	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
-  }
-  using Expand = char[];
-#define Exp (void)orm::Expand
-  template <typename T, typename Fn, std::size_t... I>
-  inline constexpr void ForEachTuple(T& tuple, Fn&& fn, std::index_sequence<I...>) {
-	Exp{ ((void)fn(std::get<I>(tuple)), 0)... };
-  }
-  template <typename T>
-  inline constexpr auto Tuple() { return std::make_tuple(); }
-  template <typename T, typename Fn>
-  inline constexpr void ForEachField(T* value, Fn&& fn) {
-	constexpr const auto tuplE = Tuple<T>();
-	ForEachTuple(tuplE, [value, &fn](auto field) { fn(value->*(field)); },
-	  std::make_index_sequence<std::tuple_size<decltype(tuplE)>::value>{});
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
