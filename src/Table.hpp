@@ -265,18 +265,18 @@ namespace orm {
 	  if constexpr (pgsqL) {
 		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name.c_str() + 1; str_.pop_back(); str_ += "';";
 		if (DbQuery(str_).template r__<int>() == 0) {
-		  DbQuery(_create).flush_results(); Dev(); return 1;
+		  DbQuery(_create); Dev(); return 1;
 		}// else { DbQuery(_drop); DbQuery(_create).flush_results(); }
 	  } else {
 		try {
-		  DbQuery(_create).flush_results(); Dev(); return 1;
+		  DbQuery(_create); Dev(); return 1;
 		} catch (std::runtime_error e) {
 		  std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << _name
 			<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n"; return 0;
 		}
 	  } return 0;
 	}
-	static void _dropTable() { D.conn()(_drop).flush_results(); }
+	static void _dropTable() { D.conn()(_drop); }
   };
   template<typename T> Table<T>::Table() {}
   template<typename T> template<typename ... Args>

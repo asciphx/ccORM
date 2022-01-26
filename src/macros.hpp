@@ -18,7 +18,7 @@
 #include "json.hpp"
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
-  constexpr bool FastestDev = true;//FastestDevJsonMode
+  constexpr bool FastestDev = true;//FastestDev Mode. Each time, the table will be deleted and then recreated
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
   constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value;
   constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value;
@@ -88,8 +88,9 @@ namespace orm {
 	j[s] = _v;
   }
   inline void DeSerial(tm& _v, const char* s, const json& j) {
-	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) { _v.tm_year = -1900; _v.tm_mon = -1; }
-	int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+	std::string d_; try { if (j.contains(s))j.at(s).get_to(d_); } catch (const std::exception&) {
+	  _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0;
+	} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
 	}
@@ -259,10 +260,12 @@ static const char* orm::getAkTs(const char* _) {
   default: return "[TYPE] MUST BE <NUMBER>!";
   }
 }
+//In the fastest development mode, the intermediate table will be deleted first(Only in fatest DevMode)
+#define D_M_TABLE(o, p)static int o##p_d(){std::string s("DROP TABLE IF EXISTS ");\
+if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}return 1;}static int _o##p_d=o##p_d();
 //after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)\
- static int o##p_(){std::string s("DROP TABLE IF EXISTS '");if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p"';");D.conn()(s);}\
-if constexpr(pgsqL){s="select count(*) from pg_class where relname = '";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
+static int o##p_(){std::string s;if constexpr(pgsqL){s="select count(*) from pg_class where relname = '";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
 if(D.conn()(s).template r__<int>()!=0){return 0;}}s="CREATE TABLE IF NOT EXISTS "; s+=toSqlCase(#o"_")+toSqlCase(#p" "); s.push_back('(');\
 s+=pgsqL?"\n\""#o"_"#o_k"\" ":"\n`"#o"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
 s+=" NOT NULL,\n"; s+=pgsqL?"\""#p"_"#p_k"\" ":"`"#p"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\

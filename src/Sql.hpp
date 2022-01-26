@@ -150,6 +150,6 @@ namespace orm {
 		}
 		}); ov.seekp(-1, ov.cur); ov << "),";
 	}
-	os << ')'; os << ' ' << ov.str(); os.seekp(-1, os.cur); os << ";"; D.conn()(os.str());
+	os << ')'; os << ' ' << ov.str(); os.seekp(-1, os.cur); os << ";"; std::cout << os.str(); D.conn()(os.str());
   }
 }//chrono::milliseconds(100)microseconds

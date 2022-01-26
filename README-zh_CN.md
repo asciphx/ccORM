@@ -20,13 +20,14 @@
 - [x] 原生类型，支持无符号类型[例如:uint8_t,uint16_t,uint32_t,uint64_t]
 - [x] 自动创建表，全局初始化，非侵入式
 - [x] 增加中间表的构建宏`M_TABLE`
+- [x] 新增最快开发者模式，每次都会全部重新建表（注意只能在开发环境下用！）
 
 ## 即将推出
 一对多查询，多对多查询，索引列建立，以及缓存查询等
 
 ## 模型层
 ```c++
-struct Type;
+struct Type; D_M_TABLE(Type, Tab)
 Struct(Tab) {
   uint32_t id;
   bool ok;

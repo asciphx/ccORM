@@ -20,12 +20,13 @@
 - [x] native types support unsigned type [for example: uint8_t, uint16_t, uint32_t, uint64_t]
 - [x] Automatic table creation, global initialization, non intrusive
 - [x] Add build macro for intermediate table `M_TABLE`
+- [x] New the fastest developer mode, and the table will be rebuilt every time (note that it can only be used in the development environment!)
 ## Coming soon
 One to many query, many to many query, index column establishment, and cache query...
 
 ## Model layer
 ```c++
-struct Type;
+struct Type; D_M_TABLE(Type, Tab)
 Struct(Tab) {
   uint32_t id;
   bool ok;
