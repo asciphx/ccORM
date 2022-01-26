@@ -20,8 +20,8 @@ void test() {
 	->inner()
 	->Get();//测试联表
 }
-int main() {//最快开发者模式, 每次都全部重新建表，跳过压测片段，保证降低缴付周期
-  clock_t start = clock(); test(); if constexpr (FastestDev) { goto _; }
+int main() {//最快开发者模式, 每次都全部重新建表，跳过压测片段，保证降低交付周期
+  clock_t start = clock(); test(); if constexpr (FastestDev) { return 0; }
   Timer t; bool run = true;//标记第二个线程的运行状态
   t.setTimeout([&run] {
 	int i = 0; for (; i < 9999; ++i) {
@@ -34,6 +34,6 @@ int main() {//最快开发者模式, 每次都全部重新建表，跳过压测�
   }//多线程测试，这里是第一个线程也就是主线程
   printf("<%d>", i);
   while (run) { this_thread::yield(); }//run为true则阻止程序提前结束
-_: printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC);//计算一共所花时间
+  printf("\nuse %.6f seconds", (float)(clock() - start) / CLOCKS_PER_SEC);//计算一共所花时间
   return 0;
 }
