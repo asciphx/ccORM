@@ -112,10 +112,10 @@ namespace orm {
 		  const char* def = T::_def[i];
 		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 			if constexpr (pgsqL) { ov << (t ? "true" : "false") << ','; } else { ov << t << ','; }
-		  } if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; }
+		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+			if (!*((char*)&t) && def[0]) { ov << def << ','; } else { ov << t << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-			if (!*((char*)&t)) ov << '\'' << def << "',"; else ov << '\'' << t << "',";
+			if (!*((char*)&t)) ov << '\'' << (def[0] ? def : "0000-00-00 00:00:00") << "',"; else ov << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) { ov << '\'' << toQuotes(def) << "',"; } else ov << '\'' << toQuotes(t.c_str()) << "',";
 		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
@@ -139,9 +139,9 @@ namespace orm {
 		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 			if constexpr (pgsqL) { ov << (t ? "true" : "false") << ','; } else { ov << t << ','; }
 		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
-			if (!*((char*)&t)) { ov << def << ','; } else { ov << t << ','; }
+			if (!*((char*)&t) && def[0]) { ov << def << ','; } else { ov << t << ','; }
 		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-			if (!*((char*)&t)) ov << '\'' << def << "',"; else ov << '\'' << t << "',";
+			if (!*((char*)&t)) ov << '\'' << (def[0] ? def : "0000-00-00 00:00:00") << "',"; else ov << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
 			if (!*((char*)&t)) { ov << '\'' << toQuotes(def) << "',"; } else ov << '\'' << toQuotes(t.c_str()) << "',";
 		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {

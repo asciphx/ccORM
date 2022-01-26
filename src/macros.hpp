@@ -18,6 +18,12 @@
 #include "json.hpp"
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
+  constexpr bool FastestDev = true;//FastestDevJsonMode
+  enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
+  constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value;
+  constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value;
+  constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value;
+  static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   using Expand = char[];
 #define Exp (void)orm::Expand
   template <typename T, typename Fn, std::size_t... I>
@@ -78,13 +84,12 @@ namespace orm {
 	}
   }
   template <class T>
-  static inline typename std::enable_if<!is_text<T>::value && !li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+  inline typename std::enable_if<!is_text<T>::value && !li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
 	j[s] = _v;
   }
   inline void DeSerial(tm& _v, const char* s, const json& j) {
-	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) {
-	  _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0;
-	} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+	std::string d_; try { j.at(s).get_to(d_); } catch (const std::exception&) { _v.tm_year = -1900; _v.tm_mon = -1; }
+	int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 	if (sscanf(d_.c_str(), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec) == 6) {
 	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
 	}
@@ -101,11 +106,6 @@ namespace orm {
   static inline typename std::enable_if<!is_text<T>::value && !li::is_vector<T>::value, void>::type DeSerial(T& _v, const char* s, const json& j) {
 	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
   }
-  static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
-  enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
-  constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value;
-  constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value;
-  constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value;
   static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
 #ifdef _MSC_VER
   inline const char* GetRealType(const char* _);//get key's type char
@@ -240,8 +240,7 @@ inline const char* orm::GetRealType(const char* s, const char* c) {
 #define OFFSET_N1(o,N,...) EXP(OFFSET_##N(o,__VA_ARGS__))
 #define OFFSET_N(o,N,...) OFFSET_N1(o,N,__VA_ARGS__)
 #endif
-#define REGIST_STATIC(o,...)\
- template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__);\
+#define REGIST_STATIC(o,...) template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__);\
  template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)] = { OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
@@ -262,7 +261,8 @@ static const char* orm::getAkTs(const char* _) {
 }
 //after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)\
- static int o##p_(){std::string s;if constexpr(pgsqL){s="select count(*) from pg_class where relname = '";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
+ static int o##p_(){std::string s("DROP TABLE IF EXISTS '");if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p"';");D.conn()(s);}\
+if constexpr(pgsqL){s="select count(*) from pg_class where relname = '";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
 if(D.conn()(s).template r__<int>()!=0){return 0;}}s="CREATE TABLE IF NOT EXISTS "; s+=toSqlCase(#o"_")+toSqlCase(#p" "); s.push_back('(');\
 s+=pgsqL?"\n\""#o"_"#o_k"\" ":"\n`"#o"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
 s+=" NOT NULL,\n"; s+=pgsqL?"\""#p"_"#p_k"\" ":"`"#p"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\
@@ -392,12 +392,8 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
 	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
 	template<> bool orm::Table<o>::_created = true;
-#define CONSTRUCT(o,...)ATTRS(o, __VA_ARGS__)\
-        REGIST_STATIC(o, __VA_ARGS__)\
-        REGISTER_TABLE(o)\
-    template <> inline constexpr auto orm::Tuple<o>() {\
-      return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
-    }
+#define CONSTRUCT(o,...) ATTRS(o, __VA_ARGS__) REGIST_STATIC(o, __VA_ARGS__) REGISTER_TABLE(o)\
+template <> inline constexpr auto orm::Tuple<o>(){return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));}
 
 #define PTR_2(k,t,v)      _tc[k] = t; _def[k] = v;
 #define PTR_4(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
@@ -442,7 +438,10 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define RGB_MAGENTA  "\033[35m"
 #define RGB_AZURE    "\033[36m"
 #define RGB_NULL 	 "\033[0m"
-#define REGIST(o,...)\
+#define FASTEST_DEV(o, j) const char* o##_Json=j;
+#define DEV_CHAR(o) static int o##_J_(){std::vector<o> v=json::parse(o##_Json).get<std::vector<o>>();o::Q()->InsertArr(&v);return 1;}
+#define RUN_DEV(o) template<> void orm::Table<o>::Dev(){FastestDev?o##_J_():0;}
+#define REGIST(o,...)DEV_CHAR(o)RUN_DEV(o)\
 template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};\
 template<> const char* orm::Table<o>::_def[NUM_ARGS(__VA_ARGS__)]={};\
 template<> int orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
@@ -452,9 +451,9 @@ try {if(strLen(#o)>31){throw std::runtime_error("\033[1;34m["#o"]\033[31;4m The 
 throw std::runtime_error("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m");}\
 else{ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m");} }}\
 } catch (const std::exception& e) { std::cerr << e.what();return 0; }unsigned int i = HARDWARE_ASYNCHRONOUS;\
-while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };return 1;} template<> int orm::Table<o>::_r=orm::Table<o>::Init();\
+while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };if(FastestDev){orm::Table<o>::_dropTable();} return 1;}\
+template<> int orm::Table<o>::_r=orm::Table<o>::Init();\
 template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
-
 #define FIELD_1(k)      static const text<63> $##k;
 #define FIELD_2(k,...)  static const text<63> $##k; EXP(FIELD_1(__VA_ARGS__))
 #define FIELD_3(k,...)  static const text<63> $##k; EXP(FIELD_2(__VA_ARGS__))
@@ -489,8 +488,7 @@ template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
 #define FIELD_32(k,...) static const text<63> $##k; EXP(FIELD_31(__VA_ARGS__))
 #define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
-#define FIELD(...)\
-        FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
+#define FIELD(...) FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 //select * FROM <T> => select (`T`.`$`,)...
 #define IOS_1(o,a,k)      IOS_(o,a,k)
 #define IOS_2(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))

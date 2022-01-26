@@ -558,7 +558,7 @@ namespace li {
 	  char* val = PQgetvalue(current_result_, 0, i);
 	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		if (val == nullptr) {
-		  t.tm_year = -1900; t.tm_mon = -1; t.tm_mday = 0; t.tm_hour = 0; t.tm_min = 0; t.tm_sec = 0;
+		  t.tm_year = -1900; t.tm_mon = -1;
 		} else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; }
 	  } else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
 		t = val == nullptr ? (int8_t)0 : ntohs(*((uint16_t*)val));
@@ -614,7 +614,7 @@ namespace li {
 		char* val = PQgetvalue(current_result_, row_i_, i);
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		  if (val == nullptr) {
-			t.tm_year = -1900; t.tm_mon = -1; t.tm_mday = 0; t.tm_hour = 0; t.tm_min = 0; t.tm_sec = 0;
+			t.tm_year = -1900; t.tm_mon = -1;
 		  } else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; }
 		} else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
 		  t = val == nullptr ? (int8_t)0 : ntohs(*((uint16_t*)val));

@@ -45,7 +45,7 @@ namespace orm {
 	using ptr = typename std::shared_ptr<T>; static Sql<T>* __[];
 	using arr = typename std::vector<typename std::shared_ptr<T>>;
 	Table& operator=(const Table&) = default; static int Init();//Initalization Table
-	Table(); ~Table() {} Table(const Table&) = default;
+	Table(); ~Table() {} Table(const Table&) = default; static void Dev();//Dev Mode, need orm::FastestDev = true
 	template<typename ... Args> static ptr create(Args&& ... args);
 	template<typename... U> void set(U... t) {
 	  int8_t idex = -1; Exp{ ($et(++idex, &t), 0)... }; return;/*This code will never arrive && detect types*/ *this = T(t...);
@@ -55,7 +55,7 @@ namespace orm {
 	_: if (++_idex > HARDWARE_CORE) _idex = 0; Sql<T>* q = __[_idex];
 	  if (q->___) { q->___ = false; return q; } std::this_thread::yield(); goto _;
 	};
-	//<T> serialized as JSON without std::vector
+	//<T> serialized as JSON with std::vector, includes empty std::vector
 	json get() { return json(*dynamic_cast<T*>(this)); }
 	//-------------------------------------ActiveRecord-------------------------------------
 	//Insert the object (Returns the inserted ID)
@@ -265,11 +265,11 @@ namespace orm {
 	  if constexpr (pgsqL) {
 		std::string str_("select count(*) from pg_class where relname = '"); str_ += _name.c_str() + 1; str_.pop_back(); str_ += "';";
 		if (DbQuery(str_).template r__<int>() == 0) {
-		  DbQuery(_create).flush_results(); return 1;
+		  DbQuery(_create).flush_results(); Dev(); return 1;
 		}// else { DbQuery(_drop); DbQuery(_create).flush_results(); }
 	  } else {
 		try {
-		  DbQuery(_create).flush_results(); return 1;
+		  DbQuery(_create).flush_results(); Dev(); return 1;
 		} catch (std::runtime_error e) {
 		  std::cerr << "\033[1;4;31mWarning:\033[0m could not create the \033[1;34m[" << _name
 			<< "]\033[0m table.\nBecause: \033[4;33m" << e.what() << "\033[0m\n"; return 0;
@@ -306,7 +306,7 @@ namespace orm {
 		s += "\":"; s << t;
 	  } s.push_back(',');
 	  }); s[s.size() - 1] = '}'; return s;
-  }//Filter empty std::vectors
+  }//Filter empty std::vector
   template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
 	std::string s; s << dynamic_cast<T*>(c); return o << s;
   };//Compile into most optimized machine code
