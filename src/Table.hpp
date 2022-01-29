@@ -33,6 +33,7 @@ namespace orm {
 	template <typename U> friend typename std::enable_if<li::is_vector<U>::value, void>::type FuckJSON(const U& u, const char* s, json& j);
 	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//<T> serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, Table<U>* c);
+	template <typename U> friend std::ostream& operator<<(std::ostream& o, Table<U>& c);
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U> c);//vector<T> serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U> c);
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U>* c);//vector<T>* serialized as string
@@ -309,6 +310,9 @@ namespace orm {
   }//Filter empty std::vector
   template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>* c) {
 	std::string s; s << dynamic_cast<T*>(c); return o << s;
+  };
+  template <typename T> std::ostream& operator<<(std::ostream& o, Table<T>& c) {
+	std::string s; s << dynamic_cast<T*>(&c); return o << s;
   };//Compile into most optimized machine code
   template <typename T> std::string& operator<<(std::string& s, std::vector<T> c) {
 	s.push_back('['); size_t l = c.size(); if (l > 0) { s << &c[0];
