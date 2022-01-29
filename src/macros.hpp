@@ -30,8 +30,8 @@ namespace orm {
   using Expand = int[];
 #define Exp (void)orm::Expand
   template <typename T, typename Fn, std::size_t... I>
-  inline constexpr void ForEachTuple(T&& tuple, Fn&& fn, std::index_sequence<I...>) {
-	Exp{ ((void)fn(std::get<I>(std::forward<T>(tuple))), 0)... };
+  inline constexpr void ForEachTuple(T& tuple, Fn&& fn, std::index_sequence<I...>) {
+	Exp{ ((void)fn(std::get<I>(tuple)), 0)... };
   }
   template <typename T>
   inline constexpr auto Tuple() { return std::make_tuple(); }
