@@ -489,8 +489,7 @@ template <> inline constexpr auto orm::Tuple<o>(){return std::make_tuple(STARS(o
 #define RGB_MAGENTA  "\033[35m"
 #define RGB_AZURE    "\033[36m"
 #define RGB_NULL 	 "\033[0m"
-#define FASTEST_DEV(o, j) const char* o##_Json=j;
-#define DEV_CHAR(o) static int o##_J_(){std::vector<o> v=json::parse(o##_Json).get<std::vector<o>>();o::Q()->InsertArr(&v);return 1;}
+#define DEV_CHAR(o) static int o##_J_(){std::vector<o> v={o(),o(),o()};o::Q()->InsertArr(&v);return 1;}
 #define RUN_DEV(o) template<> void orm::Table<o>::Dev(){FastestDev?o##_J_():0;}
 #define REGIST(o,...)DEV_CHAR(o)RUN_DEV(o)\
 template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};\

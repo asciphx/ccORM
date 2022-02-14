@@ -13,8 +13,6 @@ Struct(Tab) {
   FIELD(id, ok, name, date)
 };
 CONSTRUCT(Tab, id, ok, name, date, types)
-const char* Tab_Json = R"([{"id":1,"name":"FuckJson","date":"2021-12-23 13:34:43"},
-{"id":2,"name":"EasyMock","date":"2022-01-01 23:14:41"},{"id":3,"name":"LazyTest"}])";//Testing mock data
 PROTO(Tab, id, ok, name, date)
 REGIST(Tab,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
@@ -31,8 +29,6 @@ Struct(Type) {
   FIELD(id, language, bigBlob)
 };
 CONSTRUCT(Type, id, language, bigBlob, tabs)
-const char* Type_Json = R"([{"id":1,"language":"c++"},{"id":2,"language":"js"},
-{"id":3,"language":"rust"}])";//Turn the JSON format string into an array object for testing(Named by `<Table>_Json`)
 PROTO(Type, id, language, bigBlob)
 REGIST(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
