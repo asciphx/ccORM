@@ -24,18 +24,18 @@ extern "C" {
   static int find1CharPosASC(const char* c, const char d) {
 	for (int l = strLen(c), i = 0; i < l; ++i) { if (c[i] == d)return i; }return -1;
   }
-  //other not safe
-  static char* subStr(const char* c, int i, int e) {
+  //If not safe, it is agreed not to use static. Also means that delete or free is required
+  char* subStr(const char* c, int i, int e) {
 	if (e < i || i < 0)return (char*)0;
 	char* w = (char*)malloc(sizeof(char) * (e - i + 1)); int p = 0; while (i < e)w[p++] = c[i++]; w[p] = 0; return w;
   }
-  static char* joinS2CInInt(const char* c, int i, const char* s) {
+  char* joinS2CInInt(const char* c, int i, const char* s) {
 	int j = strLen(s), l = strLen(c), p = 0, n = 0, m = 0;
 	char* w = (char*)malloc(sizeof(char) * (l + j));
 	--i; while (p < i)w[p++] = c[n++]; while (m < j)w[p++] = s[m++];
 	while (n < l) { w[p++] = c[n++]; } w[p] = '\0'; return w;
   }
-  static char* to8Str(unsigned long long i) {
+  char* to8Str(unsigned long long i) {
 	int z = 2; for (unsigned long long a = i; a > 0x7f; a -= 0x7f, a /= 0x100, ++z);
 	unsigned long long b, t = i / 0x100; b = i - t * 0x100 - 32;
 	char* w = (char*)malloc(sizeof(char) * z); w[--z] = '\0';
@@ -45,13 +45,13 @@ extern "C" {
 	w[--z] = RES_ASCII[b]; if (z > 0) { t -= 32; w[0] = RES_ASCII[t]; }
 	return w;
   }
-  static char* to4Str(int i) {
+  char* to4Str(int i) {
 	int t = i / 0x100, b = i - t * 0x100 - 32, z = i > 0x7f7f7f ? 5 : i > 0x7f7f ? 4 : i > 0x7f ? 3 : 2;
 	char* w = (char*)malloc(sizeof(char) * (z)); w[--z] = '\0';
 	while (t > 0x7f) { w[--z] = RES_ASCII[b]; i = t; t = i / 0x100; b = i - t * 0x100 - 32; }
 	w[--z] = RES_ASCII[b]; if (z > 0) { t -= 32; w[0] = RES_ASCII[t]; } return w;
   }
-  static int hack_4str(const char* oid) {
+  int hack_4str(const char* oid) {
 	int t = 0, i = strLen(oid), j, pow = 1;
 	while (i-- > 0) {
 	  char* chr = subStr(oid, i, i + 1); j = 0;

@@ -96,7 +96,7 @@ namespace orm {
 	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
 		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
 	  }
-	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &condition](auto& t) {
+	  ForEachField(dynamic_cast<T*>(this), [&i, &os](auto& t) {
 		if (++i && !(T::_tc[i] & TC::AUTO_INCREMENT)) {
 		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
 			if constexpr (pgsqL) {

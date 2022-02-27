@@ -56,7 +56,7 @@ namespace orm {
 	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; j[s] = os.str();
   }
   template <class T>
-  static inline typename std::enable_if<is_text<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+  static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckJSON(const T& _v, const char* s, json& j) {
 	j[s] = _v.c_str();
   }
   template <class T>
@@ -142,8 +142,8 @@ namespace orm {
 	}
   }
   template <class T>
-  static inline typename std::enable_if<is_text<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
-	try { _v = j.at(s).get<std::string>(); } catch (const std::exception&) {}
+  static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckOop(T& _v, const char* s, const json& j) {
+	try { _v = j.at(s); } catch (const std::exception&) {}
   }
   template <class T>
   static inline typename std::enable_if<li::is_vector<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
