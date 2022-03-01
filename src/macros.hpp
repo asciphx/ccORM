@@ -63,14 +63,12 @@ namespace orm {
   static typename std::enable_if<li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
 	using TYPE = li::vector_pack_t<T>; size_t l = _v.size(); if (l) {
 	  if constexpr (std::is_same<TYPE, std::string>::value || std::is_same<TYPE, tm>::value || is_text<TYPE>::value) {
-		std::string s; s.reserve(0x1f); s.push_back('[');
-		s.push_back('\"'); if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"');
-		for (size_t i = 1; i < l; ++i) {
-		  s.push_back(','); s.push_back('\"');
+		std::string s; s.reserve(0x1f); s.push_back('['); s.push_back('\"');
+		if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[0]; } else { s << _v[0]; } s.push_back('\"');
+		for (size_t i = 1; i < l; ++i) { s.push_back(','); s.push_back('\"');
 		  if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"');
 		} s.push_back(']'); j[c] = json::parse(s);
-	  } else if constexpr (std::is_fundamental<TYPE>::value) {
-		std::string s; s.push_back('['); s += std::to_string(_v[i]);
+	  } else if constexpr (std::is_fundamental<TYPE>::value) { std::string s; s.push_back('['); s += std::to_string(_v[0]);
 		for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s);
 	  } else {
 		constexpr auto $ = Tuple<TYPE>(); std::string s; s.reserve(0x3f); s.push_back('[');
