@@ -152,4 +152,14 @@ std::ostream& operator<<(std::ostream& os, const tm& _v) {
   os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
 	<< _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os;
 }
+std::string& operator<<(std::string& s, const tm& _v) {
+  std::ostringstream os;
+#ifdef _WIN32
+  os << std::setfill('0') << std::setw(4) << _v.tm_year + 1900;
+#else
+  int y = _v.tm_year / 100; os << std::setfill('0') << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
+#endif
+  os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
+	<< _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; s = os.str(); return s;
+}
 #endif

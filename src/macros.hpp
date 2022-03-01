@@ -61,35 +61,47 @@ namespace orm {
   }
   template <class T>
   static typename std::enable_if<li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
-	size_t l = _v.size(); if (l) {
-	  constexpr auto $ = Tuple<li::vector_pack_t<T>>(); std::string s; s.reserve(0x3f); s.push_back('[');
-	  for (size_t i = 0; i < l; ++i) {
-		auto* t = &_v[i]; s.push_back('{'); int8_t k = -1;
-		ForEachTuple($, [t, &k, &s](auto& _) {
-		  if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
-			s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
+	using TYPE = li::vector_pack_t<T>; size_t l = _v.size(); if (l) {
+	  if constexpr (std::is_same<TYPE, std::string>::value || std::is_same<TYPE, tm>::value || is_text<TYPE>::value) {
+		std::string s; s.reserve(0x1f); s.push_back('[');
+		s.push_back('\"'); if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"');
+		for (size_t i = 1; i < l; ++i) {
+		  s.push_back(','); s.push_back('\"');
+		  if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"');
+		} s.push_back(']'); j[c] = json::parse(s);
+	  } else if constexpr (std::is_fundamental<TYPE>::value) {
+		std::string s; s.push_back('['); s += std::to_string(_v[i]);
+		for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s);
+	  } else {
+		constexpr auto $ = Tuple<TYPE>(); std::string s; s.reserve(0x3f); s.push_back('[');
+		for (size_t i = 0; i < l; ++i) {
+		  auto* t = &_v[i]; s.push_back('{'); int8_t k = -1;
+		  ForEachTuple($, [t, &k, &s](auto& _) {
+			if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
 #ifdef _WIN32
-			os << std::setw(4) << time->tm_year + 1900;
+			  os << std::setw(4) << time->tm_year + 1900;
 #else
-			int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
+			  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
 #endif
-			os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
-			  << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
-		  } else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
-			s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false";
-		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
-			s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_);
-		  } else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
-			s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\"";
-		  } else if constexpr (li::is_vector<std::remove_reference_t<decltype(t->*_)>>::value) {
-			s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_);
-		  } else if constexpr (is_ptr<std::remove_reference_t<decltype(t->*_)>>::value) {
-			s.push_back('"'); s += t->$[++k]; s += "\":"; s << *t->*_;
-		  } else {
-			s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
-		  } s.push_back(',');
-		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); s[s.size() - 1] = '}'; s.push_back(',');
-	  } s[s.size() - 1] = ']'; j[c] = json::parse(s);
+			  os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
+				<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
+			} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false";
+			} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_);
+			} else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\"";
+			} else if constexpr (li::is_vector<std::remove_reference_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_);
+			} else if constexpr (is_ptr<std::remove_reference_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << *t->*_;
+			} else {
+			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
+			} s.push_back(',');
+			}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); s[s.size() - 1] = '}'; s.push_back(',');
+		} s[s.size() - 1] = ']'; j[c] = json::parse(s);
+	  }
 	}
   }
   template<typename T>
@@ -147,7 +159,7 @@ namespace orm {
   }
   template <class T>
   static inline typename std::enable_if<li::is_vector<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
-	try { for (auto& t : j.at(s))_v.push_back(t.get<li::vector_pack_t<T>>()); } catch (const std::exception&) {}
+	using TYPE = li::vector_pack_t<T>; try { for (auto& t : j.at(s))_v.push_back(t.get<TYPE>()); } catch (const std::exception&) {}
   }
   template<typename T>
   inline typename std::enable_if<!is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
