@@ -71,6 +71,22 @@ extern "C" {
   static inline constexpr unsigned long long hackAllStr(const char* s) {
 	unsigned long long r = 0; for (unsigned short i = 0xffff; s[++i]; r *= 0x1f, r += s[i]); return r;
   }
+  //The following void can only be used for MySQL or certain types(in the "ccORM.hh" file)
+  inline short atos_(char* c) {
+	short r = 0; if (*c == '-') { while (*++c) r = r * 10 - *c + 0x30; } else { while (*c) r = r * 10 + *c++ - 0x30; } return r;
+  }
+  inline int atoi_(char* c) {
+	int r = 0; if (*c == '-') { while (*++c) r = r * 10 - *c + 0x30; } else { while (*c) r = r * 10 + *c++ - 0x30; } return r;
+  }
+  inline long long atol_(char* c) {
+	long long r = 0; if (*c == '-') { while (*++c) r = r * 10 - *c + 0x30; } else { while (*c) r = r * 10 + *c++ - 0x30; } return r;
+  }
+  inline long long aton_(char* c) {
+	long long r = 0; while (*++c) r = r * 10 - *c + 0x30; return r;
+  }//negative
+  inline unsigned long long atou_(char* c) {
+	unsigned long long r = 0; while (*c) r = r * 10 + *c++ - 0x30; return r;
+  }
 #ifdef __cplusplus
 }  /* extern "C" */
 constexpr unsigned long long operator""_l(const char* s, size_t /*len*/) {

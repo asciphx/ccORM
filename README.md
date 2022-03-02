@@ -1,4 +1,4 @@
-﻿# ccORM[version 1.3]
+﻿# ccORM[version 1.4]
 > ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
 > 🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is compile time static reflection. As the name suggests, it is already an optimized machine code.
 
@@ -21,6 +21,8 @@
 - [x] Automatic table creation, global initialization, non intrusive
 - [x] Add build macro for intermediate table `M_TABLE`
 - [x] New the fastest developer mode, and the table will be rebuilt every time (note that it can only be used in the development environment!)
+- [x] Loose boolean type deserialization, including but not limited to true, false, and 0, 1
+- [x] Serialization and deserialization support loop nesting and loop dependency, as well as pointer structures
 ## Coming soon
 One to many query, many to many query, index column establishment, and cache query...
 
@@ -73,24 +75,24 @@ void test() {
   Tab::ptr t = Tab::create(1, true, "Date change", now(), vector<Type>{ Type{ 1,"typescript" } });
   t->Update();//update
   t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
-  *t = json::parse(u8R"({"id":4,"ok":false,"name":"Flawless masterpiece","date":"2021-09-08 01:04:30",
-"lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
-  t->lang[1].language = "golang"; cout << t << '\n';
+  *t = json::parse(R"({"id":4,"ok":false,"name":"Flawless masterpiece","date":"2021-09-08 01:04:30","types":
+[{"id":1,"language":"c++"},{"id":2,"tabs":[{"id":1,"name":"wtf!","ok":1}]},{"id":3,"language":"rust"}]})").get<Tab>();
+  t->lang[1].language = "golang"; cout << t << '\n';//Loose boolean type deserialization, adding 0,1 support
   t->Insert();//insert, the return value is long long type
-  cout << Tab::Q()->$()->GetArr();
+  cout << Tab::Q()->GetArr();
   t->Delete();//delete
-  *t = Tab::Q()->$()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
 }
 int main() {
   clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->$()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->$()->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->where(Tab::$id == 1)->GetOne();
   }//Multithreading test
   printf("<%d>", i);
   while (run) { this_thread::yield(); }

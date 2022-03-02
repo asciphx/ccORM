@@ -21,7 +21,7 @@ namespace orm {
 	};
 	//[select all] U.`<$>` AS U_<$>,... FROM <T> T
 	template<typename... K> inline TLinker<T, U>* $() {
-	  f(_, U::$[1]); for (uint8_t i = 2; i < U::_size && U::_[i][0] != 'S'; ++i) { f(_, U::$[i]); } _ & " FROM "; _ += T::_name; _& T::_alias; return this;
+	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_size && U::_[i][0] != 'S'; ++i) { f(_, U::$[i]); } _ & " FROM "; _ += T::_name; _& T::_alias; return this;
 	};
 	//[select K] U.`<$>` -> U.`<$>` AS U_<$> FROM <T> T
 	template<typename... K> inline TLinker<T, U>* $(K&&...k) {

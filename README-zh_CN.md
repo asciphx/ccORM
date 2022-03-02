@@ -1,4 +1,4 @@
-﻿# ccORM[版本 1.3]
+﻿# ccORM[版本 1.4]
 > ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
 > 🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是编译期的静态反射。
 
@@ -21,6 +21,8 @@
 - [x] 自动创建表，全局初始化，非侵入式
 - [x] 增加中间表的构建宏`M_TABLE`
 - [x] 新增最快开发者模式，每次都会全部重新建表（注意只能在开发环境下用！）
+- [x] 宽松的布尔类型反序列化，包含但不仅限于true、false，还有0，1;
+- [x] 序列化以及反序列化支持循环嵌套以及循环依赖还有指针结构体
 
 ## 即将推出
 一对多查询，多对多查询，索引列建立，以及缓存查询等
@@ -74,24 +76,24 @@ void test() {
   Tab::ptr t = Tab::create(1, true, "日期更变", now(), vector<Type>{ Type{ 1,"typescript" } });
   t->Update();//更新
   t->set(5, false, "yield", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
-  *t = json::parse(R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30",
-"lang":[{"id":1,"language":"c++"},{"id":2,"language":"js"},{"id":3,"language":"rust"}]})").get<Tab>();
-  t->lang[1].language = "golang"; cout << t << '\n';
+  *t = json::parse(R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30","types":
+[{"id":1,"language":"c++"},{"id":2,"tabs":[{"id":1,"name":"wtf!","ok":1}]},{"id":3,"language":"rust"}]})").get<Tab>();
+  t->lang[1].language = "golang"; cout << t << '\n';//宽松布尔类型反序列化，加入0,1的支持
   t->Insert();//插入,返回值是long long类型
-  cout << Tab::Q()->$()->GetArr();
+  cout << Tab::Q()->GetArr();
   t->Delete();//删除
-  *t = Tab::Q()->$()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
 }
 int main() {
   clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->$()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->$()->where(Tab::$id == 1)->GetOne();
+	Tab::Q()->where(Tab::$id == 1)->GetOne();
   }//多线程测试
   printf("<%d>", i);
   while (run) { this_thread::yield(); }

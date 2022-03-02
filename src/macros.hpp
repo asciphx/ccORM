@@ -161,7 +161,13 @@ namespace orm {
   }
   template<typename T>
   inline typename std::enable_if<!is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
-	try { j.at(s).get_to(_v); } catch (const std::exception&) {}
+	try {
+	  if (j.contains(s)) {
+		if constexpr (std::is_same_v<bool, T>) {
+		  _v = j.at(s).get<short>() == 0 ? false : true;
+		} else { j.at(s).get_to(_v); }
+	  }
+	} catch (const std::exception&) {}
   }
   template <class T>
   inline typename std::enable_if<is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T _v, const char* s, const json& j) {}

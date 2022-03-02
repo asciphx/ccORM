@@ -554,64 +554,8 @@ namespace li {
 	  }
 	}
 	ForEachField(j, [&nfields, &i, this](auto& t) {
-	if (++i < nfields) {
-	  char* val = PQgetvalue(current_result_, 0, i);
-	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		if (val == nullptr) {
-		  t.tm_year = -1900; t.tm_mon = -1;
-		} else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; }
-	  } else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? (int8_t)0 : ntohs(*((uint16_t*)val));
-	  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0.0 : ntohd(*((uint64_t*)val));
-	  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0.0F : ntohf(*((uint32_t*)val));
-	  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		t = val[0] == 1 ? true : false;
-	  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-	  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0 : ntohl(*((uint32_t*)val));
-	  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));
-	  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-	  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-	  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0U : ntohl(*((uint32_t*)val));
-	  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? 0ULL : be64toh(*((uint64_t*)val));
-	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
-		|| is_text<std::remove_reference_t<decltype(t)>>::value) {
-		t = val == nullptr ? "" : val;
-	  }
-	}
-	  });
-  }
-  template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
-	int nfields; int8_t i;
-	if (!current_result_ || row_i_ == current_result_nrows_) {
-	  if (current_result_) {
-		PQclear(current_result_); current_result_ = nullptr;
-	  }
-	  current_result_ = wait_for_next_result();
-	  if (!current_result_) return;
-	  row_i_ = 0;
-	  current_result_nrows_ = PQntuples(current_result_);
-	  if (current_result_nrows_ == 0) {
-		PQclear(current_result_); current_result_ = nullptr; return;
-	  }
-	  nfields = PQnfields(current_result_);
-	  for (int field_i = 0; field_i < nfields; ++field_i) {
-		strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
-	  }
-	}
-	for (T j; row_i_ < current_result_nrows_; ++row_i_) {
-	  i = -1;
-	  ForEachField(&j, [&nfields, &i, this](auto& t) {
 	  if (++i < nfields) {
-		char* val = PQgetvalue(current_result_, row_i_, i);
+		char* val = PQgetvalue(current_result_, 0, i);
 		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
 		  if (val == nullptr) {
 			t.tm_year = -1900; t.tm_mon = -1;
@@ -643,6 +587,62 @@ namespace li {
 		  t = val == nullptr ? "" : val;
 		}
 	  }
+	  });
+  }
+  template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
+	int nfields; int8_t i;
+	if (!current_result_ || row_i_ == current_result_nrows_) {
+	  if (current_result_) {
+		PQclear(current_result_); current_result_ = nullptr;
+	  }
+	  current_result_ = wait_for_next_result();
+	  if (!current_result_) return;
+	  row_i_ = 0;
+	  current_result_nrows_ = PQntuples(current_result_);
+	  if (current_result_nrows_ == 0) {
+		PQclear(current_result_); current_result_ = nullptr; return;
+	  }
+	  nfields = PQnfields(current_result_);
+	  for (int field_i = 0; field_i < nfields; ++field_i) {
+		strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
+	  }
+	}
+	for (T j; row_i_ < current_result_nrows_; ++row_i_) {
+	  i = -1;
+	  ForEachField(&j, [&nfields, &i, this](auto& t) {
+		if (++i < nfields) {
+		  char* val = PQgetvalue(current_result_, row_i_, i);
+		  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+			if (val == nullptr) {
+			  t.tm_year = -1900; t.tm_mon = -1;
+			} else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; }
+		  } else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? (int8_t)0 : ntohs(*((uint16_t*)val));
+		  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0.0 : ntohd(*((uint64_t*)val));
+		  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0.0F : ntohf(*((uint32_t*)val));
+		  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+			t = val[0] == 1 ? true : false;
+		  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
+		  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0 : ntohl(*((uint32_t*)val));
+		  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));
+		  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
+		  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
+		  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0U : ntohl(*((uint32_t*)val));
+		  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? 0ULL : be64toh(*((uint64_t*)val));
+		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
+			|| is_text<std::remove_reference_t<decltype(t)>>::value) {
+			t = val == nullptr ? "" : val;
+		  }
+		}
 		}); output->push_back(j);
 	}
   }
@@ -1503,8 +1503,8 @@ namespace li {
     return ret; }
 	MYSQL_ROW mysql_fetch_row(int& connection_status, MYSQL_RES* res) { return ::mysql_fetch_row(res); }
 	int mysql_free_result(int& connection_status, MYSQL_RES* res) { ::mysql_free_result(res); return 0; }
-	MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_fetch_row)
-	  MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_real_query)
+	//MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_fetch_row)
+	MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_real_query)
 	  MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_free_result)
 	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_execute)
 	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_reset)
@@ -1929,17 +1929,14 @@ namespace li {
 	  case enum_field_types::MYSQL_TYPE_FLOAT:
 		j[proto_name_[i]] = boost::lexical_cast<float>(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_TINY:
-		if (current_row_lengths_[i] == 1) {
-		  j[proto_name_[i]] = boost::lexical_cast<bool>(current_row_[i]);
-		} else {
-		  j[proto_name_[i]] = boost::lexical_cast<short>(current_row_[i]);
-		} break;
+		j[proto_name_[i]] = atos_(current_row_[i]); break;
+	  case enum_field_types::MYSQL_TYPE_LONG:
 	  case enum_field_types::MYSQL_TYPE_INT24:
-		j[proto_name_[i]] = boost::lexical_cast<int>(current_row_[i]); break;
+		j[proto_name_[i]] = atol_(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_SHORT:
-		j[proto_name_[i]] = boost::lexical_cast<short>(current_row_[i]); break;
+		j[proto_name_[i]] = atoi_(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_LONGLONG:
-		j[proto_name_[i]] = boost::lexical_cast<long long>(current_row_[i]); break;
+		j[proto_name_[i]] = ((const char*)current_row_)[0] == (char)'-' ? aton_(current_row_[i]) : atou_(current_row_[i]); break;
 	  case enum_field_types::MYSQL_TYPE_STRING:
 	  case enum_field_types::MYSQL_TYPE_VAR_STRING:
 	  case enum_field_types::MYSQL_TYPE_LONG_BLOB:

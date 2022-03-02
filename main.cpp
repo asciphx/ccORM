@@ -9,8 +9,8 @@ void test() {
   t->Update();//更新
   t->set(5, false, "更变", now(), vector<Type>{ Type{ 1,"python" }, Type{ 2,"ruby" } }); cout << t << '\n';
   *t = json::parse(R"({"id":4,"ok":false,"name":"完美杰作","date":"2021-09-08 01:04:30","types":
-[{"id":1,"language":"c++"},{"id":2,"language":"js","tabs":[{"id":1,"name":"wtf!"}]},{"id":3,"language":"rust"}]})").get<Tab>();
-  t->types[1].language = "go programing"; t->types[1].tabs[0].name = "Megatron"; cout << t << '\n';
+[{"id":1,"language":"c++"},{"id":2,"tabs":[{"id":1,"name":"wtf!","ok":1}]},{"id":3,"language":"rust"}]})").get<Tab>();
+  t->types[1].language = "go programing"; t->types[1].tabs[0].name = "Megatron"; cout << t << '\n';//宽松的布尔类型反序列化
   //cout << "编号为" << t->Insert() << "的id已经插入\n";//插入，将会有一个新增的id返回
   //t->Delete();//删除
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "编号为" << ty.Insert() << "的id已经插入\n";
