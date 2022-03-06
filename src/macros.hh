@@ -150,7 +150,7 @@ namespace orm {
   }
   template <class T>
   static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckOop(T& _v, const char* s, const json& j) {
-	try { _v = j.at(s); } catch (const std::exception&) {}
+	try { _v = j.at(s).get<std::string>(); } catch (const std::exception&) {}
   }
   template <class T>
   static inline typename std::enable_if<li::is_vector<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {

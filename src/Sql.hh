@@ -58,7 +58,7 @@ namespace orm {
 		if constexpr (std::is_same<decltype(li::ExT(_)), T>::value) {
 		  T* o = dynamic_cast<T*>(&t); ++z; using Z = std::remove_reference_t<decltype(o->*_)>;
 		  if constexpr (li::is_vector<Z>::value) {
-			std::vector<li::vector_pack<Z>::type> v_t = o->*_;
+			std::vector<li::vector_pack_t<Z>> v_t = o->*_;
 			std::cout << T::$[z] << ":vector<" << typeid(li::vector_pack_t<Z>).name() << ">, ";
 		  } else if constexpr (li::is_ptr<Z>::value) {
 			std::cout << T::$[z] << ":*" << typeid(li::ptr_pack_t<Z>).name() << ", ";
