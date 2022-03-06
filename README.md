@@ -1,4 +1,4 @@
-﻿# ccORM[version 1.4]
+﻿# ccORM[version 1.5]
 > ccORM is the best ORM object relational mapping underlying library, which adopts the most philosophical, classic and minimalist design, low code and modular development, and friendly user experience.
 > 🚀 Support Linux and Windows Platforms(Mac platform does not adapt string type detection temporarily), performance surpasses RTTI and protobuf and is compile time static reflection. As the name suggests, it is already an optimized machine code.
 
@@ -23,8 +23,10 @@
 - [x] New the fastest developer mode, and the table will be rebuilt every time (note that it can only be used in the development environment!)
 - [x] Loose boolean type deserialization, including but not limited to true, false, and 0, 1
 - [x] Serialization and deserialization support loop nesting and loop dependency, as well as pointer structures
+- [x] Supports one-to-one query, which can be as simple, elegant and convenient as JavaScript
+
 ## Coming soon
-One to many query, many to many query, index column establishment, and cache query...
+Many to many queries, index columns, unique keys, and cache queries....
 
 ## Model layer
 ```c++

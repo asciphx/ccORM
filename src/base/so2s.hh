@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <sstream>
-#include "std_s.hpp"
+#include "std_s.hh"
 #pragma warning(disable:4834)
 //String type detection system
 namespace orm {

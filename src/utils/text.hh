@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <iostream>
 #include <iosfwd>
-#include "./str.h"//If it is utf8, please set three times the length
+#include "./str.hh"//If it is utf8, please set three times the length
 template<unsigned short I = 255>//Max [65535(char),21845(utf8)], Min 1, default 255.
 class text {//It is similar to a dynamic std::string_view with a fixed maximum length
   unsigned short l = I; char* _ = new char[I + 1];
@@ -126,16 +126,16 @@ inline typename std::enable_if<std::is_fundamental<T>::value, const std::string>
 template<unsigned short I, typename T>
 text<I * 2> operator!=(const text<I>& o, const T& v) {
   text<I * 2> x(o); x += '<'; x += '>';
-  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
-	x += '\''; x += textify(v); x += '\'';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
+	x += '\''; x += textify(v); x += '\'';//If text is the right value, use .c_str()
   } else {
-	x += textify(v);
+	x += textify(v);//If text is used as the field name instead of the right value
   } x += (char)0; return x;
 }
 template<unsigned short I, typename T>
 text<I * 2> operator==(const text<I>& o, const T& v) {
   text<I * 2> x(o); x += '=';
-  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
 	x += '\''; x += textify(v); x += '\'';
   } else {
 	x += textify(v);
@@ -144,7 +144,7 @@ text<I * 2> operator==(const text<I>& o, const T& v) {
 template<unsigned short I, typename T>
 text<I * 2> operator<(const text<I>& o, const T& v) {
   text<I * 2> x(o); x += '<';
-  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
 	x += '\''; x += textify(v); x += '\'';
   } else {
 	x += textify(v);
@@ -153,7 +153,7 @@ text<I * 2> operator<(const text<I>& o, const T& v) {
 template<unsigned short I, typename T>
 text<I * 2> operator<=(const text<I>& o, const T& v) {
   text<I * 2> x(o); x += '<'; x += '=';
-  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
 	x += '\''; x += textify(v); x += '\'';
   } else {
 	x += textify(v);
@@ -162,7 +162,7 @@ text<I * 2> operator<=(const text<I>& o, const T& v) {
 template<unsigned short I, typename T>
 text<I * 2> operator>=(const text<I>& o, const T& v) {
   text<I * 2> x(o); x += '>'; x += '=';
-  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
 	x += '\''; x += textify(v); x += '\'';
   } else {
 	x += textify(v);
@@ -171,7 +171,7 @@ text<I * 2> operator>=(const text<I>& o, const T& v) {
 template<unsigned short I, typename T>
 text<I * 2> operator>(const text<I>& o, const T& v) {
   text<I * 2> x(o); x += '>';
-  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || is_text<T>::value) {
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
 	x += '\''; x += textify(v); x += '\'';
   } else {
 	x += textify(v);

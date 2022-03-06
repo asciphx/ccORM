@@ -15,35 +15,29 @@
 #include <cassert>
 #include <cstdarg>
 #include <stdexcept>
-#include "json.hpp"
+#include "json.hh"
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
+  //If you have not changed the table structure, it is recommended to set it to false. This will be faster
+  //If you just change the table structure, set it to true, and the table will be recreated in development mode
   constexpr bool FastestDev = true;//FastestDev Mode. Each time, the table will be deleted and then recreated
-  enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
-  constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value;
-  constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value;
-  constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value;
-  static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
-  template <class T> struct is_ptr : std::false_type {};
-  template <class T> struct is_ptr<T*> : std::true_type {};
-  template <class T> struct is_ptr<const T*> : std::true_type {};
   using Expand = int[];
 #define Exp (void)orm::Expand
   template <typename T, typename Fn, std::size_t... I>
   inline constexpr void ForEachTuple(T& tuple, Fn&& fn, std::index_sequence<I...>) {
 	Exp{ ((void)fn(std::get<I>(tuple)), 0)... };
   }
-  template <typename T>
-  inline constexpr auto Tuple() { return std::make_tuple(); }
   template <typename T, typename Fn>
   inline constexpr void ForEachField(T* value, Fn&& fn) {
-	constexpr const auto tuplE = Tuple<T>();
+	constexpr const auto tuplE = li::Tuple<T>();
 	ForEachTuple(tuplE, [value, &fn](auto field) { fn(value->*(field)); },
 	  std::make_index_sequence<std::tuple_size<decltype(tuplE)>::value>{});
   }
-  template<typename T> struct ptr_pack {};
-  template<typename T> struct ptr_pack<T*> { using type = T; };
-  template<typename T> using ptr_pack_t = typename ptr_pack<T>::type;
+  static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
+  enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
+  constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value;
+  constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value;
+  constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value;
   //Serialization into JSON
   inline void FuckJSON(const tm& _v, const char* s, json& j) {
 	std::ostringstream os; os << std::setfill('0');
@@ -65,17 +59,20 @@ namespace orm {
 	  if constexpr (std::is_same<TYPE, std::string>::value || std::is_same<TYPE, tm>::value || is_text<TYPE>::value) {
 		std::string s; s.reserve(0x1f); s.push_back('['); s.push_back('\"');
 		if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[0]; } else { s << _v[0]; } s.push_back('\"');
-		for (size_t i = 1; i < l; ++i) { s.push_back(','); s.push_back('\"');
+		for (size_t i = 1; i < l; ++i) {
+		  s.push_back(','); s.push_back('\"');
 		  if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"');
 		} s.push_back(']'); j[c] = json::parse(s);
-	  } else if constexpr (std::is_fundamental<TYPE>::value) { std::string s; s.push_back('['); s += std::to_string(_v[0]);
+	  } else if constexpr (std::is_fundamental<TYPE>::value) {
+		std::string s; s.push_back('['); s += std::to_string(_v[0]);
 		for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s);
 	  } else {
-		constexpr auto $ = Tuple<TYPE>(); std::string s; s.reserve(0x3f); s.push_back('[');
+		constexpr auto $ = li::Tuple<TYPE>(); std::string s; s.reserve(0x3f); s.push_back('[');
 		for (size_t i = 0; i < l; ++i) {
 		  auto* t = &_v[i]; s.push_back('{'); int8_t k = -1;
 		  ForEachTuple($, [t, &k, &s](auto& _) {
-			if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
+			using Y = std::remove_reference_t<decltype(t->*_)>;
+			if constexpr (std::is_same<const tm, Y>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
 #ifdef _WIN32
 			  os << std::setw(4) << time->tm_year + 1900;
@@ -86,13 +83,13 @@ namespace orm {
 				<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
 			} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false";
-			} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
+			} else if constexpr (std::is_fundamental<Y>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_);
-			} else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
+			} else if constexpr (std::is_same<const std::string, Y>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\"";
-			} else if constexpr (li::is_vector<std::remove_reference_t<decltype(t->*_)>>::value) {
+			} else if constexpr (li::is_vector<Y>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_);
-			} else if constexpr (is_ptr<std::remove_reference_t<decltype(t->*_)>>::value) {
+			} else if constexpr (li::is_ptr<Y>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << *t->*_;
 			} else {
 			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
@@ -103,19 +100,19 @@ namespace orm {
 	}
   }
   template<typename T>
-  inline typename std::enable_if<!is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+  inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
 	j[s] = _v;
   }
   template <class T>
-  static typename std::enable_if<is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
+  static typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
 	if (_v == nullptr) {
 	  j[c] = nullptr;
 	} else {
-	  constexpr auto $ = Tuple<ptr_pack_t<T>>(); auto* t = _v; std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1;
+	  constexpr auto $ = li::Tuple<li::ptr_pack_t<T>>(); auto* t = _v; std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1;
 	  ForEachTuple($, [t, &k, &s](auto& _) {
-		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t->*_)>>::value) {
-		  s.push_back('"'); s += t->$[++k];
-		  s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
+		using Y = std::remove_reference_t<decltype(t->*_)>;
+		if constexpr (std::is_same<tm, Y>::value) {
+		  s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
 #ifdef _WIN32
 		  os << std::setw(4) << time->tm_year + 1900;
 #else
@@ -125,15 +122,15 @@ namespace orm {
 			<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); s.push_back(',');
 		} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
 		  s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; s.push_back(',');
-		} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
+		} else if constexpr (std::is_fundamental<Y>::value) {
 		  s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); s.push_back(',');
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
+		} else if constexpr (std::is_same<std::string, Y>::value) {
 		  s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; s.push_back(',');
-		} else if constexpr (li::is_vector<std::remove_reference_t<decltype(t->*_)>>::value) {
+		} else if constexpr (li::is_vector<Y>::value) {
 		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(',');
-		} else if constexpr (is_text<std::remove_reference_t<decltype(t->*_)>>::value) {
+		} else if constexpr (is_text<Y>::value) {
 		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; s.push_back(',');
-		} else if constexpr (is_ptr<std::remove_reference_t<decltype(t->*_)>>::value) {
+		} else if constexpr (li::is_ptr<Y>::value) {
 		  s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; s.push_back(',');
 		} else {
 		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(',');
@@ -160,7 +157,7 @@ namespace orm {
 	using TYPE = li::vector_pack_t<T>; try { for (auto& t : j.at(s))_v.push_back(t.get<TYPE>()); } catch (const std::exception&) {}
   }
   template<typename T>
-  inline typename std::enable_if<!is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
+  inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
 	try {
 	  if (j.contains(s)) {
 		if constexpr (std::is_same_v<bool, T>) {
@@ -170,7 +167,7 @@ namespace orm {
 	} catch (const std::exception&) {}
   }
   template <class T>
-  inline typename std::enable_if<is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T _v, const char* s, const json& j) {}
+  inline typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T _v, const char* s, const json& j) {}
   static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
 #ifdef _MSC_VER
   inline const char* GetRealType(const char* _);//get key's type char
@@ -182,7 +179,7 @@ namespace orm {
 #define EXP(O) O
 #ifdef _MSC_VER
 inline const char* orm::GetRealType(const char* s) {
-  if (s[11] == 118) { return "S"; } if (s[0] == 117) { return s + 7; } return s;
+  if (s[11] == 118 || s[strLen(s) - 1] == '*') { return "S"; } if (s[0] == 117) { return s + 7; } return s;
 }
 #define Inject(U, T) orm::GetRealType(typeid(U::T).name())
 #define TO_CHAR "\""
@@ -305,7 +302,8 @@ inline const char* orm::GetRealType(const char* s, const char* c) {
 #define OFFSET_N1(o,N,...) EXP(OFFSET_##N(o,__VA_ARGS__))
 #define OFFSET_N(o,N,...) OFFSET_N1(o,N,__VA_ARGS__)
 #endif
-#define REGIST_STATIC(o,...) template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__);\
+#define REGIST_STATIC(o,...)\
+ template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__);\
  template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)] = { OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
  template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
@@ -329,8 +327,8 @@ static const char* orm::getAkTs(const char* _) {
 if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}return 1;}static int _o##p_d=o##p_d();
 //after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)\
-static int o##p_(){std::string s;if constexpr(pgsqL){s="select count(*) from pg_class where relname = '";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
-if(D.conn()(s).template r__<int>()!=0){return 0;}}s="CREATE TABLE IF NOT EXISTS "; s+=toSqlCase(#o"_")+toSqlCase(#p" "); s.push_back('(');\
+ static int o##p_(){std::string s;bool b=false;if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
+if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=toSqlCase(#o"_")+toSqlCase(#p" "); s.push_back('(');\
 s+=pgsqL?"\n\""#o"_"#o_k"\" ":"\n`"#o"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
 s+=" NOT NULL,\n"; s+=pgsqL?"\""#p"_"#p_k"\" ":"`"#p"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\
 s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"#o"_"#p" PRIMARY KEY(\""#o"_"#o_k"\",\""#p"_"#p_k"\")":\
@@ -338,7 +336,7 @@ s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"#o"_"#p" PRIMARY KEY(\""#o"_"#o_k"\",\""#p"
 s+=pgsqL?#o"_"#o_k" FOREIGN KEY(\""#o"_"#o_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#o_k"\")":#o"_"#o_k" FOREIGN KEY(`"\
 #o"_"#o_k"`) REFERENCES `"+toSqlCase(#o)+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";\
 s+=pgsqL?#p"_"#p_k" FOREIGN KEY(\""#p"_"#p_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#p_k"\")":#p"_"#p_k" FOREIGN KEY(`"\
-#p"_"#p_k"`) REFERENCES `"+toSqlCase(#p)+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);";D.conn()(s);printf(s.c_str());\
+#p"_"#p_k"`) REFERENCES `"+toSqlCase(#p)+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);\n";if(!b)D.conn()(s);printf(s.c_str());\
 return 0;} static int _##o##p=o##p_();
 
 #define COL_1(o,k)      orm::FuckJSON(o.k,#k,j);
@@ -459,8 +457,12 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
 	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
 	template<> bool orm::Table<o>::_created = true;
-#define CONSTRUCT(o,...) ATTRS(o, __VA_ARGS__) REGIST_STATIC(o, __VA_ARGS__) REGISTER_TABLE(o)\
-template <> inline constexpr auto orm::Tuple<o>(){return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));}
+#define CONSTRUCT(o,...)ATTRS(o, __VA_ARGS__)\
+        REGIST_STATIC(o, __VA_ARGS__)\
+        REGISTER_TABLE(o)\
+    template <> inline constexpr auto li::Tuple<o>() {\
+      return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
+    }
 
 #define PTR_2(k,t,v)      _tc[k] = t; _def[k] = v;
 #define PTR_4(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
@@ -505,9 +507,8 @@ template <> inline constexpr auto orm::Tuple<o>(){return std::make_tuple(STARS(o
 #define RGB_MAGENTA  "\033[35m"
 #define RGB_AZURE    "\033[36m"
 #define RGB_NULL 	 "\033[0m"
-#define DEV_CHAR(o) static int o##_J_(){std::vector<o> v={o(),o(),o()};o::Q()->InsertArr(&v);return 1;}
-#define RUN_DEV(o) template<> void orm::Table<o>::Dev(){FastestDev?o##_J_():0;}
-#define REGIST(o,...)DEV_CHAR(o)RUN_DEV(o)\
+
+#define REGIST(o,...)\
 template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};\
 template<> const char* orm::Table<o>::_def[NUM_ARGS(__VA_ARGS__)]={};\
 template<> int orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
@@ -517,9 +518,10 @@ try {if(strLen(#o)>31){throw std::runtime_error("\033[1;34m["#o"]\033[31;4m The 
 throw std::runtime_error("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m");}\
 else{ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m");} }}\
 } catch (const std::exception& e) { std::cerr << e.what();return 0; }unsigned int i = HARDWARE_ASYNCHRONOUS;\
-while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };if(FastestDev){orm::Table<o>::_dropTable();} return 1;}\
-template<> int orm::Table<o>::_r=orm::Table<o>::Init();\
-template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
+while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };if constexpr(FastestDev){orm::Table<o>::_dropTable();}return 1;}\
+template<> void orm::Table<o>::Dev(){if constexpr(FastestDev){std::vector<o> v={o(),o(),o()};o::Q()->InsertArr(&v);}}\
+template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
+
 #define FIELD_1(k)      static const text<63> $##k;
 #define FIELD_2(k,...)  static const text<63> $##k; EXP(FIELD_1(__VA_ARGS__))
 #define FIELD_3(k,...)  static const text<63> $##k; EXP(FIELD_2(__VA_ARGS__))
@@ -554,7 +556,8 @@ template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
 #define FIELD_32(k,...) static const text<63> $##k; EXP(FIELD_31(__VA_ARGS__))
 #define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
-#define FIELD(...) FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
+#define FIELD(...)\
+        FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 //select * FROM <T> => select (`T`.`$`,)...
 #define IOS_1(o,a,k)      IOS_(o,a,k)
 #define IOS_2(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
@@ -625,13 +628,10 @@ template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
 #define PRO_32(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_31(t,__VA_ARGS__))
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
-//Build field statements and serialized as json without std::vector at compile time.
 #define PROTO(o,...)\
 PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
-constexpr static const char* o##_ios__() {\
-if constexpr (pgsqL) { return "SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);}\
-else {return "SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);} }\
-template<> const char* orm::Table<o>::_ios=o##_ios__();
+template<> const char* orm::Table<o>::_ios=pgsqL?\
+"SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__):"SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);
 
 #define STR_1(k,i)  k[i]
 #define STR_2(k,i)  k[i], STR_1(k,i+1)

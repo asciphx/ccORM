@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <sstream>
-#include "std_s.hpp"
+#include "std_s.hh"
 //String type setting system(Not used at the moment)
 template<typename T>
 constexpr typename std::enable_if<std::is_same<T, const char*>::value, std::string>::type str_or_type(const T t) {

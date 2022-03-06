@@ -1,4 +1,5 @@
 #pragma once
+/* ccORM https://github.com/asciphx/ccORM Copyright (c) 2021-2022 Asciphx */
 #define MaxSyncConnections 32   //---- MaxSync Connections ----
 #define MaxProtoNum 32          //------- Max Proto Num -------
 #define MaxProtoLength 32       //-- Max ProtoName Length +1 --
@@ -22,7 +23,7 @@
 #include <mysql/mysql.h>
 #include <libpq-fe.h>
 #include <sqlite3.h>
-#include "./utils/text.hpp"
+#include "./utils/text.hh"
 #define EXPECT_THROW(STM)\
 try {STM;std::cerr << "This must have thrown an exception: " << #STM << std::endl; } catch (...) {}
 #define EXPECT_EQUAL(A, B)\
@@ -30,7 +31,8 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #define EXPECT(A)\
   if (!(A)) { std::cerr << #A << " (== " << (A) << ") must be true" << std::endl; }
 #define ASSERT(x,m) if(!x)std::cerr<<#m
-#include "json.hpp"
+#define JSON_NOEXCEPTION
+#include "json.hh"
 #include <chrono>
 #include <atomic>
 #include <stdarg.h>
@@ -143,6 +145,7 @@ static char* UnicodeToUtf8(const char* str) {
 }
 #endif
 namespace li {
+  template <typename T> inline constexpr auto Tuple() { return std::make_tuple(); }
   template<typename C> struct tuple_idex {};
   template<template<typename ...T> class C, typename ...T>
   struct tuple_idex<C<T...>> { template<size_t i> using type = typename std::tuple_element<i, std::tuple<T...> >::type; };
@@ -152,6 +155,15 @@ namespace li {
   template<typename C> struct vector_pack {};
   template<template<typename, typename> class C, typename A, typename B> struct vector_pack<C<A, B>> { using type = A; };
   template<typename T> using vector_pack_t = typename vector_pack<T>::type;
+  template <class T> struct is_ptr : std::false_type {};
+  template <class T> struct is_ptr<T*> : std::true_type {};
+  template <class T> struct is_ptr<const T*> : std::true_type {};
+  template<typename T> struct ptr_pack {};
+  template<typename T> struct ptr_pack<T*> { using type = T; };
+  template<typename T> using ptr_pack_t = typename ptr_pack<T>::type;
+  template<typename T, typename P> constexpr const P ExP(P T::* const) {}
+  template<typename T, typename P> constexpr const P T::* ExP(P) {}
+  template<typename T, typename K> constexpr T ExT(K T::* const) { return T(); }
   template <typename T> struct is_tuple_after_decay : std::false_type {};
   template <typename... T> struct is_tuple_after_decay<std::tuple<T...>> : std::true_type {};
   template <typename T> struct is_tuple : is_tuple_after_decay<std::decay_t<T>> {};
@@ -332,7 +344,7 @@ namespace li {
   }
 }
 template <typename... T> std::ostream& operator<<(std::ostream& os, std::tuple<T...> t) {
-  bool one = true; os << "TUPLE<"; li::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
+  bool one = true; os << "TUPLE<"; tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
 	if (one) os << v, one = false; else os << "," << v; }); os << ">"; return os;
 }
 namespace li {
@@ -428,7 +440,10 @@ namespace li {
 	~pgsql_result() { if (current_result_) PQclear(current_result_); }
 	template <typename T> bool read(T&& t1);
 	template <typename T> unsigned int readJson(T* t1);
+	template <typename Y, typename T> inline void readPg(int8_t& i, T& t);
 	template <typename T> void readOne(T* j);
+	template <typename T, typename U> void readO2O(T* t, U* u);
+	template <typename T, typename U> void readO2O(std::vector<T>* v1, std::vector<U>* v2);
 	template <typename T> void readArr(std::vector<T>* output);
 	long long int last_insert_id();
 	void flush_results();
@@ -540,109 +555,110 @@ namespace li {
 	else if (field_type == INT2OID)
 	  out = ntohs(*((uint16_t*)val));
   }
+  template <typename Y, typename T> inline void pgsql_result::readPg(int8_t& i, T& t) {
+	char* val = PQgetvalue(current_result_, 0, i);
+	if constexpr (std::is_same<tm, Y>::value) {
+	  if (val == nullptr) {
+		t.tm_year = -1900; t.tm_mon = -1;
+	  } else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; }
+	} else if constexpr (std::is_same<int8_t, Y>::value) {
+	  t = val == nullptr ? (int8_t)0 : ntohs(*((uint16_t*)val));
+	} else if constexpr (std::is_same<double, Y>::value) {
+	  t = val == nullptr ? 0.0 : ntohd(*((uint64_t*)val));
+	} else if constexpr (std::is_same<float, Y>::value) {
+	  t = val == nullptr ? 0.0F : ntohf(*((uint32_t*)val));
+	} else if constexpr (std::is_same<bool, Y>::value) {
+	  t = val[0] == 1 ? true : false;
+	} else if constexpr (std::is_same<short, Y>::value) {
+	  t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
+	} else if constexpr (std::is_same<int, Y>::value) {
+	  t = val == nullptr ? 0 : ntohl(*((uint32_t*)val));
+	} else if constexpr (std::is_same<long long, Y>::value) {
+	  t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));
+	} else if constexpr (std::is_same<uint8_t, Y>::value) {
+	  t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
+	} else if constexpr (std::is_same<uint16_t, Y>::value) {
+	  t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
+	} else if constexpr (std::is_same<uint32_t, Y>::value) {
+	  t = val == nullptr ? 0U : ntohl(*((uint32_t*)val));
+	} else if constexpr (std::is_same<uint64_t, Y>::value) {
+	  t = val == nullptr ? 0ULL : be64toh(*((uint64_t*)val));
+	} else if constexpr (std::is_same<std::string, Y>::value || is_text<Y>::value) {
+	  t = val == nullptr ? "" : val;
+	}
+  }
   template <typename T> void pgsql_result::readOne(T* j) {
-	int nfields; int8_t i = -1;
+	int8_t i = -1;
 	if (!current_result_) {
-	  if (current_result_) {
-		PQclear(current_result_); current_result_ = nullptr;
-	  }
+	  if (current_result_) { PQclear(current_result_); current_result_ = nullptr; }
 	  current_result_ = wait_for_next_result();
 	  if (!current_result_) return;
-	  nfields = PQnfields(current_result_);
-	  for (int field_i = 0; field_i < nfields; ++field_i) {
-		strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
-	  }
 	}
-	ForEachField(j, [&nfields, &i, this](auto& t) {
-	  if (++i < nfields) {
-		char* val = PQgetvalue(current_result_, 0, i);
-		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  if (val == nullptr) {
-			t.tm_year = -1900; t.tm_mon = -1;
-		  } else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; }
-		} else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? (int8_t)0 : ntohs(*((uint16_t*)val));
-		} else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0.0 : ntohd(*((uint64_t*)val));
-		} else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0.0F : ntohf(*((uint32_t*)val));
-		} else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val[0] == 1 ? true : false;
-		} else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-		} else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0 : ntohl(*((uint32_t*)val));
-		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));
-		} else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-		} else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-		} else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0U : ntohl(*((uint32_t*)val));
-		} else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? 0ULL : be64toh(*((uint64_t*)val));
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
-		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
-		  t = val == nullptr ? "" : val;
-		}
-	  }
+	ForEachField(j, [&i, this](auto& t) {
+	  using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readPg<Y>(++i, t); }
 	  });
   }
-  template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
-	int nfields; int8_t i;
+  template <typename T, typename U> void pgsql_result::readO2O(T* t, U* u) {
+	if (!current_result_) {
+	  if (current_result_) { PQclear(current_result_); current_result_ = nullptr; }
+	  current_result_ = wait_for_next_result(); if (!current_result_) return;
+	}
+	int8_t y = -1, z = -1; constexpr const auto $ = Tuple<T>();
+	ForEachTuple($, [t, u, &y, &z, this](auto& _) {
+	  using Y = std::remove_reference_t<decltype(t->*_)>;
+	  if constexpr (is_ptr<Y>::value) {
+		ForEachField(u, [&z, &y, this](auto& v) {
+		  using Z = std::remove_reference_t<decltype(v)>;
+		  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readPg<Z>(++y, v); }
+		  }); t->*_ = u;
+	  } else if constexpr (!is_vector<Y>::value) { readPg<Y>(++y, t->*_); }
+	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+  }
+  template <typename T, typename U> void pgsql_result::readO2O(std::vector<T>* v1, std::vector<U>* v2) {
 	if (!current_result_ || row_i_ == current_result_nrows_) {
-	  if (current_result_) {
-		PQclear(current_result_); current_result_ = nullptr;
-	  }
+	  if (current_result_) { PQclear(current_result_); current_result_ = nullptr; }
 	  current_result_ = wait_for_next_result();
 	  if (!current_result_) return;
-	  row_i_ = 0;
-	  current_result_nrows_ = PQntuples(current_result_);
+	  row_i_ = 0; current_result_nrows_ = PQntuples(current_result_);
 	  if (current_result_nrows_ == 0) {
 		PQclear(current_result_); current_result_ = nullptr; return;
 	  }
-	  nfields = PQnfields(current_result_);
-	  for (int field_i = 0; field_i < nfields; ++field_i) {
-		strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
+	} T t; U u; int8_t x = -1, y, z; v2->clear(); constexpr const auto $ = Tuple<T>();
+	for (; row_i_ < current_result_nrows_; ++row_i_) {
+	  y = z = -1, ++x; v2->push_back(u); v1->push_back(t);
+	  ForEachTuple($, [&t, v1, v2, &x, &y, &z, this](auto& _) {
+		using Y = std::remove_reference_t<decltype(t.*_)>;
+		if constexpr (is_ptr<Y>::value) {
+		  ForEachField(&v2->at(x), [&z, &y, this](auto& v) {
+			using Z = std::remove_reference_t<decltype(v)>;
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readPg<Z>(++y, v); }
+			});
+		} else if constexpr (!is_vector<Y>::value) { readPg<Y>(++y, v1->at(x).*_); }
+		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+	}
+	short l = v1->size(); if (l > 0) {
+	  for (short i = 0; i < l; ++i) {
+		ForEachTuple($, [&t, &i, v1, v2](auto& _) {
+		  if constexpr (is_ptr<std::remove_reference_t<decltype(t.*_)>>::value) { v1->at(i).*_ = &v2->at(i); }
+		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+	  }
+	}
+  }
+  template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
+	int8_t i;
+	if (!current_result_ || row_i_ == current_result_nrows_) {
+	  if (current_result_) { PQclear(current_result_); current_result_ = nullptr; }
+	  current_result_ = wait_for_next_result();
+	  if (!current_result_) return;
+	  row_i_ = 0; current_result_nrows_ = PQntuples(current_result_);
+	  if (current_result_nrows_ == 0) {
+		PQclear(current_result_); current_result_ = nullptr; return;
 	  }
 	}
 	for (T j; row_i_ < current_result_nrows_; ++row_i_) {
 	  i = -1;
-	  ForEachField(&j, [&nfields, &i, this](auto& t) {
-		if (++i < nfields) {
-		  char* val = PQgetvalue(current_result_, row_i_, i);
-		  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-			if (val == nullptr) {
-			  t.tm_year = -1900; t.tm_mon = -1;
-			} else { time_t v = be64toh(*((uint64_t*)val)) / 1000000; v -= 115200; t = *std::localtime(&v); t.tm_year += 30; }
-		  } else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? (int8_t)0 : ntohs(*((uint16_t*)val));
-		  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0.0 : ntohd(*((uint64_t*)val));
-		  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0.0F : ntohf(*((uint32_t*)val));
-		  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			t = val[0] == 1 ? true : false;
-		  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-		  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0 : ntohl(*((uint32_t*)val));
-		  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0LL : be64toh(*((uint64_t*)val));
-		  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-		  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0 : ntohs(*((uint16_t*)val));
-		  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0U : ntohl(*((uint32_t*)val));
-		  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? 0ULL : be64toh(*((uint64_t*)val));
-		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
-			|| is_text<std::remove_reference_t<decltype(t)>>::value) {
-			t = val == nullptr ? "" : val;
-		  }
-		}
+	  ForEachField(&j, [&i, this](auto& t) {
+		using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readPg<Y>(++i, t); }
 		}); output->push_back(j);
 	}
   }
@@ -721,7 +737,7 @@ namespace li {
 	if (nfields != std::tuple_size_v<std::decay_t<T>>)
 	  throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
 		"field and the outputs.");
-	li::tuple_map(std::forward<T>(output), [&](auto& m) {
+	tuple_map(std::forward<T>(output), [&](auto& m) {
 	  fetch_value(m, i, proto_type_[i]);
 	  ++i;
 	  });
@@ -848,30 +864,30 @@ namespace li {
 	template <typename T> void r__(std::optional<T>& o);
 
 	template <typename F> void map(F f);
-	json JSON(uint8_t size, size_t page);
-	json JSON();
-	template <typename T> T findOne();
-	template <typename T> std::vector<T> findArray();
+	inline json JSON(uint8_t size, size_t page);
+	inline json JSON();
+	template <typename T> inline T findOne();
+	template <typename T, typename U> inline T findOne(U* u);
+	template <typename T, typename U> inline std::vector<T> findArray(std::vector<U>* u);
+	template <typename T> inline std::vector<T> findArray();
   };
-  template <typename B> json sql_result<B>::JSON(uint8_t size, size_t page) {
-	json t; auto result = impl_.readJson(&t);
-	return json{ {"count",result},{"page",page},{"size",size},{ "list",t } };
+  template <typename B> inline json sql_result<B>::JSON(uint8_t size, size_t page) {
+	json t; auto result = impl_.readJson(&t); return json{ {"count",result},{"page",page},{"size",size},{ "list",t } };
   }
-  template <typename B> json sql_result<B>::JSON() {
-	json t; impl_.readJson(&t); return t;
-  }
+  template <typename B> inline json sql_result<B>::JSON() { json t; impl_.readJson(&t); return t; }
   template <typename B>
-  template <typename O> O sql_result<B>::findOne() {
-	O t; impl_.readOne(&t); return t;
-  }
+  template <typename O> inline O sql_result<B>::findOne() { O t; impl_.readOne(&t); return t; }
   template <typename B>
-  template <typename O> std::vector<O> sql_result<B>::findArray() {
-	std::vector<O> ts; impl_.readArr(&ts); return ts;
-  }
+  template <typename O, typename U> inline O sql_result<B>::findOne(U* u) { O t; impl_.readO2O(&t, u); return t; }
+  template <typename B>
+  template <typename O, typename U>
+  inline std::vector<O> sql_result<B>::findArray(std::vector<U>* u) { std::vector<O> t; impl_.readO2O(&t, u); return t; }
+  template <typename B>
+  template <typename O> inline std::vector<O> sql_result<B>::findArray() { std::vector<O> ts; impl_.readArr(&ts); return ts; }
   template <typename B>
   template <typename T1, typename... T>
   bool sql_result<B>::r__(T1&& t1, T&... tail) {
-	if constexpr (li::is_tuple<std::decay_t<T1>>::value) {
+	if constexpr (is_tuple<std::decay_t<T1>>::value) {
 	  static_assert(sizeof...(T) == 0);
 	  return impl_.read(std::forward<T1>(t1));
 	} else
@@ -943,83 +959,86 @@ namespace li {
 	int last_step_ret_; uint32_t rowcount_ = 0;
 	inline void flush_results() { sqlite3_reset(stmt_); }
 
+	template <typename Y, typename T> inline void readSqlite(int8_t& i, T& t) {
+	  if constexpr (std::is_same<tm, Y>::value) {
+		int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, i) != 0) {
+		  sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
+		} t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
+	  } else if constexpr (std::is_same<int8_t, Y>::value) {
+		t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0;
+	  } else if constexpr (std::is_same<double, Y>::value) {
+		t = sqlite3_column_double(stmt_, i);
+	  } else if constexpr (std::is_same<float, Y>::value) {
+		t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, i)) : 0.0F;
+	  } else if constexpr (std::is_same<bool, Y>::value) {
+		t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, i)) : false;
+	  } else if constexpr (std::is_same<short, Y>::value) {
+		t = sqlite3_column_int64(stmt_, i);
+	  } else if constexpr (std::is_same<int, Y>::value) {
+		t = sqlite3_column_int64(stmt_, i);
+	  } else if constexpr (std::is_same<long long, Y>::value) {
+		t = sqlite3_column_int64(stmt_, i);
+	  } else if constexpr (std::is_same<uint8_t, Y>::value) {
+		t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0;
+	  } else if constexpr (std::is_same<uint16_t, Y>::value) {
+		t = sqlite3_column_int64(stmt_, i);
+	  } else if constexpr (std::is_same<uint32_t, Y>::value) {
+		t = sqlite3_column_int64(stmt_, i);
+	  } else if constexpr (std::is_same<uint64_t, Y>::value) {
+		t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<uint64_t>((const char*)sqlite3_column_text(stmt_, i)) : 0;
+	  } else if constexpr (std::is_same<std::string, Y>::value || is_text<Y>::value) {
+		t = sqlite3_column_bytes(stmt_, i) ? (const char*)sqlite3_column_text(stmt_, i) : "";
+	  }
+	}
 	template <typename T> void readOne(T* j) {
-	  int8_t ncols = sqlite3_column_count(stmt_), i; _: i = -1;
-	  ForEachField(j, [&ncols, &i, this](auto& t) {
-		if (++i < ncols) {
-		  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-			int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, i) != 0) {
-			  sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
-			} t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
-		  } else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0;
-		  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_double(stmt_, i);
-		  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, i)) : 0.0F;
-		  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, i)) : false;
-		  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0;
-		  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<uint64_t>((const char*)sqlite3_column_text(stmt_, i)) : 0;
-		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
-			|| is_text<std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? (const char*)sqlite3_column_text(stmt_, i) : "";
-		  }
-		}
+	  int8_t i = -1;
+	  ForEachField(j, [&i, this](auto& t) {
+		using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readSqlite<Y>(++i, t); }
 		});
 	}
-	template <typename T> void readArr(std::vector<T>* output) {
-	  if (last_step_ret_ != SQLITE_ROW) return;
-	  T j; int8_t ncols = sqlite3_column_count(stmt_), i; _: i = -1;
-	  ForEachField(&j, [&ncols, &i, this](auto& t) {
-		if (++i < ncols) {
-		  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-			int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, i) != 0) {
-			  sscanf((const char*)sqlite3_column_text(stmt_, i), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
-			} t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
-		  } else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0;
-		  } else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_double(stmt_, i);
-		  } else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, i)) : 0.0F;
-		  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, i)) : false;
-		  } else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<short>((const char*)sqlite3_column_text(stmt_, i)) : (int8_t)0;
-		  } else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_int64(stmt_, i);
-		  } else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? boost::lexical_cast<uint64_t>((const char*)sqlite3_column_text(stmt_, i)) : 0;
-		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
-			|| is_text<std::remove_reference_t<decltype(t)>>::value) {
-			t = sqlite3_column_bytes(stmt_, i) ? (const char*)sqlite3_column_text(stmt_, i) : "";
-		  }
+	template <typename T, typename U> void readO2O(T* t, U* u) {
+	  int8_t y = -1, z = -1; constexpr const auto $ = Tuple<T>();
+	  ForEachTuple($, [t, u, &y, &z, this](auto& _) {
+		using Y = std::remove_reference_t<decltype(t->*_)>;
+		if constexpr (is_ptr<Y>::value) {
+		  ForEachField(u, [&z, &y, this](auto& v) {
+			using Z = std::remove_reference_t<decltype(v)>;
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readSqlite<Z>(++y, v); }
+			}); t->*_ = u;
+		} else if constexpr (!is_vector<Y>::value) { readSqlite<Y>(++y, t->*_); }
+		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+	}
+	template <typename T, typename U> void readO2O(std::vector<T>* v1, std::vector<U>* v2) {
+	  if (last_step_ret_ != SQLITE_ROW) return; T t; U u; int8_t x = -1, y, z; v2->clear();
+	  constexpr const auto $ = Tuple<T>(); _: y = z = -1, ++x; v2->push_back(u); v1->push_back(t);
+	  ForEachTuple($, [&t, v1, v2, &x, &y, &z, this](auto& _) {
+		using Y = std::remove_reference_t<decltype(t.*_)>;
+		if constexpr (is_ptr<Y>::value) {
+		  ForEachField(&v2->at(x), [&z, &y, this](auto& v) {
+			using Z = std::remove_reference_t<decltype(v)>;
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readSqlite<Z>(++y, v); }
+			});
+		} else if constexpr (!is_vector<Y>::value) { readSqlite<Y>(++y, v1->at(x).*_); }
+		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+	  last_step_ret_ = sqlite3_step(stmt_); if (last_step_ret_ == SQLITE_ROW) { goto _; }
+	  short l = v1->size(); if (l > 0) {
+		for (short i = 0; i < l; ++i) {
+		  ForEachTuple($, [&t, &i, v1, v2](auto& _) {
+			if constexpr (is_ptr<std::remove_reference_t<decltype(t.*_)>>::value) { v1->at(i).*_ = &v2->at(i); }
+			}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
 		}
+	  }
+	}
+	//Many to Many
+	template <typename T> void readM2M() {
+	  //int8_t x = -1, y = -1, z = -1; constexpr auto $ = Tuple<T>();
+	}
+	template <typename T> void readArr(std::vector<T>* output) {
+	  if (last_step_ret_ != SQLITE_ROW) return; T j; int8_t i; _: i = -1;
+	  ForEachField(&j, [&i, this](auto& t) {
+		using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readSqlite<Y>(++i, t); }
 		});
-	  last_step_ret_ = sqlite3_step(stmt_);
-	  output->push_back(j);
-	  if (last_step_ret_ == SQLITE_ROW) { goto _; }
+	  last_step_ret_ = sqlite3_step(stmt_); output->push_back(j); if (last_step_ret_ == SQLITE_ROW) { goto _; }
 	}
 	template <typename T> uint32_t readJson(T* output) {
 	  T j; int ncols = sqlite3_column_count(stmt_), i = 0; _:++rowcount_;
@@ -1058,7 +1077,7 @@ namespace li {
 		this->read_column(i, v, sqlite3_column_type(stmt_, i));
 		++i;
 	  };
-	  ::li::tuple_map(std::forward<T>(output), read_elt);
+	  tuple_map(std::forward<T>(output), read_elt);
 	  return true;
 	}
 	inline long long int last_insert_id() { return sqlite3_last_insert_rowid(db_); }
@@ -1102,7 +1121,7 @@ namespace li {
 	  sqlite3_reset(stmt_);
 	  sqlite3_clear_bindings(stmt_);
 	  int i = 1;
-	  li::tuple_map(std::forward_as_tuple(args...), [&](auto& m) {
+	  tuple_map(std::forward_as_tuple(args...), [&](auto& m) {
 		int err;
 		if ((err = this->bind(stmt_, i, m)) != SQLITE_OK)
 		  throw std::runtime_error(std::string("Sqlite error during binding: ") + sqlite3_errmsg(db_));
@@ -1503,7 +1522,6 @@ namespace li {
     return ret; }
 	MYSQL_ROW mysql_fetch_row(int& connection_status, MYSQL_RES* res) { return ::mysql_fetch_row(res); }
 	int mysql_free_result(int& connection_status, MYSQL_RES* res) { ::mysql_free_result(res); return 0; }
-	//MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_fetch_row)
 	MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_real_query)
 	  MYSQL_BLOCKING_WRAPPER(mysql_error, mysql_free_result)
 	  MYSQL_BLOCKING_WRAPPER(mysql_stmt_error, mysql_stmt_execute)
@@ -1583,7 +1601,7 @@ namespace li {
   template <typename A> mysql_bind_data<1> mysql_bind_output(mysql_statement_data& data, A& o) {
 	if (data.num_fields_ != 1)
 	  throw std::runtime_error("mysql_statement error: The number of column in the result set "
-		"shoud be 1. Use std::tuple or li::sio to fetch several columns or "
+		"shoud be 1. Use std::tuple or sio to fetch several columns or "
 		"modify the request so that it returns a set of 1 column.");
 	mysql_bind_data<1> bind_data; mysql_bind_output(bind_data.bind[0], &bind_data.real_lengths[0], o);
 	return bind_data;
@@ -1806,7 +1824,9 @@ namespace li {
 	template <typename T> unsigned int readJson(T* output);
 	template <typename T> void readOne(T* obj);
 	template <typename T> void readArr(std::vector<T>* objs);
-
+	template <typename T, typename U> void readO2O(T* t, U* u);
+	template <typename T, typename U> void readO2O(std::vector<T>* v1, std::vector<U>* v2);
+	template <typename Y, typename T> inline void readMySQL(int8_t& i, T& t);
 	long long int affected_rows();
 
 	unsigned long long last_insert_id();
@@ -1822,89 +1842,86 @@ namespace li {
 	}
 	current_row_lengths_ = mysql_fetch_lengths(result_);
   }
+  template <typename B> template <typename Y, typename T> inline void mysql_result<B>::readMySQL(int8_t& i, T& t) {
+	if constexpr (std::is_same<tm, Y>::value) {
+	  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (current_row_lengths_[i] != 0) {
+		sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
+	  } t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
+	} else if constexpr (std::is_same<int8_t, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? (int8_t)0 : boost::lexical_cast<short>(current_row_[i]);
+	} else if constexpr (std::is_same<double, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? 0.0 : boost::lexical_cast<double>(current_row_[i]);
+	} else if constexpr (std::is_same<float, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? 0.0F : boost::lexical_cast<float>(current_row_[i]);
+	} else if constexpr (std::is_same<bool, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? false : boost::lexical_cast<bool>(current_row_[i]);
+	} else if constexpr (std::is_same<short, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<short>(current_row_[i]);
+	} else if constexpr (std::is_same<int, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<int>(current_row_[i]);
+	} else if constexpr (std::is_same<long long, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? 0LL : boost::lexical_cast<long long>(current_row_[i]);
+	} else if constexpr (std::is_same<uint8_t, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? (uint8_t)0 : boost::lexical_cast<short>(current_row_[i]);
+	} else if constexpr (std::is_same<uint16_t, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint16_t>(current_row_[i]);
+	} else if constexpr (std::is_same<uint32_t, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint32_t>(current_row_[i]);
+	} else if constexpr (std::is_same<uint64_t, Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint64_t>(current_row_[i]);
+	} else if constexpr (std::is_same<std::string, Y>::value || is_text<Y>::value) {
+	  t = current_row_lengths_[i] == 0 ? "" : current_row_[i];
+	}
+
+  }
   template <typename B> template <typename T> void mysql_result<B>::readOne(T* j) {
-	next_row(); if (end_of_result_) return;
-	MYSQL_FIELD* field; int8_t i = 0;
-	for (; i < current_row_num_fields_; ++i) {
-	  field = mysql_fetch_field(result_);
-	  strcpy(proto_name_[i], field->name);
-	} i = -1;
+	next_row(); if (end_of_result_) return; int8_t i = -1;
 	ForEachField(j, [&i, this](auto& t) {
-	  if (++i < current_row_num_fields_) {
-		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (current_row_lengths_[i] != 0) {
-			sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
-		  } t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
-		} else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? (int8_t)0 : boost::lexical_cast<short>(current_row_[i]);
-		} else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0.0 : boost::lexical_cast<double>(current_row_[i]);
-		} else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0.0F : boost::lexical_cast<float>(current_row_[i]);
-		} else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? false : boost::lexical_cast<bool>(current_row_[i]);
-		} else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<short>(current_row_[i]);
-		} else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<int>(current_row_[i]);
-		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0LL : boost::lexical_cast<long long>(current_row_[i]);
-		} else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? (uint8_t)0 : boost::lexical_cast<short>(current_row_[i]);
-		} else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint16_t>(current_row_[i]);
-		} else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint32_t>(current_row_[i]);
-		} else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint64_t>(current_row_[i]);
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
-		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? "" : current_row_[i];
-		}
-	  }
+	  using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readMySQL<Y>(++i, t); }
 	  });
   }
-  template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>* output) {
-	next_row(); if (end_of_result_) return; T j;
-	MYSQL_FIELD* field; int8_t i = 0;
-	for (; i < current_row_num_fields_; ++i) {
-	  field = mysql_fetch_field(result_);
-	  strcpy(proto_name_[i], field->name);
+
+  template <typename B> template <typename T, typename U> void mysql_result<B>::readO2O(T* t, U* u) {
+	next_row(); if (end_of_result_) return;
+	int8_t y = -1, z = -1; constexpr const auto $ = Tuple<T>();
+	ForEachTuple($, [t, u, &y, &z, this](auto& _) {
+	  using Y = std::remove_reference_t<decltype(t->*_)>;
+	  if constexpr (is_ptr<Y>::value) {
+		ForEachField(u, [&z, &y, this](auto& v) {
+		  using Z = std::remove_reference_t<decltype(v)>;
+		  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readMySQL<Z>(++y, v); }
+		  }); t->*_ = u;
+	  } else if constexpr (!is_vector<Y>::value) { readMySQL<Y>(++y, t->*_); }
+	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+  }
+  template <typename B> template <typename T, typename U> void mysql_result<B>::readO2O(std::vector<T>* v1, std::vector<U>* v2) {
+	next_row(); if (end_of_result_) return; T t; U u; int8_t x = -1, y, z; v2->clear();
+	constexpr const auto $ = Tuple<T>(); _: y = z = -1, ++x; v2->push_back(u); v1->push_back(t);
+	ForEachTuple($, [&t, v1, v2, &x, &y, &z, this](auto& _) {
+	  using Y = std::remove_reference_t<decltype(t.*_)>;
+	  if constexpr (is_ptr<Y>::value) {
+		ForEachField(&v2->at(x), [&z, &y, this](auto& v) {
+		  using Z = std::remove_reference_t<decltype(v)>;
+		  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readMySQL<Z>(++y, v); }
+		  });
+	  } else if constexpr (!is_vector<Y>::value) { readMySQL<Y>(++y, v1->at(x).*_); }
+	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+	if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
+	  ++current_result_nrows_; goto _;
 	}
+	short l = v1->size(); if (l > 0) {
+	  for (short i = 0; i < l; ++i) {
+		ForEachTuple($, [&t, &i, v1, v2](auto& _) {
+		  if constexpr (is_ptr<std::remove_reference_t<decltype(t.*_)>>::value) { v1->at(i).*_ = &v2->at(i); }
+		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+	  }
+	}
+  }
+  template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>* output) {
+	next_row(); if (end_of_result_) return; T j; int8_t i = -1;
   _: i = -1;
 	ForEachField(&j, [&i, this](auto& t) {
-	  if (++i < current_row_num_fields_) {
-		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
-		  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (current_row_lengths_[i] != 0) {
-			sscanf((const char*)current_row_[i], RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
-		  } t.tm_year = year - 1900; t.tm_mon = month - 1; t.tm_mday = day; t.tm_hour = hour; t.tm_min = min; t.tm_sec = sec;
-		} else if constexpr (std::is_same<int8_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? (int8_t)0 : boost::lexical_cast<short>(current_row_[i]);
-		} else if constexpr (std::is_same<double, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0.0 : boost::lexical_cast<double>(current_row_[i]);
-		} else if constexpr (std::is_same<float, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0.0F : boost::lexical_cast<float>(current_row_[i]);
-		} else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? false : boost::lexical_cast<bool>(current_row_[i]);
-		} else if constexpr (std::is_same<short, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<short>(current_row_[i]);
-		} else if constexpr (std::is_same<int, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<int>(current_row_[i]);
-		} else if constexpr (std::is_same<long long, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0LL : boost::lexical_cast<long long>(current_row_[i]);
-		} else if constexpr (std::is_same<uint8_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? (uint8_t)0 : boost::lexical_cast<short>(current_row_[i]);
-		} else if constexpr (std::is_same<uint16_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint16_t>(current_row_[i]);
-		} else if constexpr (std::is_same<uint32_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint32_t>(current_row_[i]);
-		} else if constexpr (std::is_same<uint64_t, std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? 0 : boost::lexical_cast<uint64_t>(current_row_[i]);
-		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value
-		  || is_text<std::remove_reference_t<decltype(t)>>::value) {
-		  t = current_row_lengths_[i] == 0 ? "" : current_row_[i];
-		}
-	  }
+	  using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readMySQL<Y>(++i, t); }
 	  });
 	output->push_back(j);
 	if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
@@ -1962,7 +1979,7 @@ namespace li {
 		std::to_string(current_row_num_fields_) +
 		") does not match the size of the tuple (" +
 		std::to_string(std::tuple_size_v<std::decay_t<T>>) + ")");
-	li::tuple_map(std::forward<T>(output), [&](auto& v) {
+	tuple_map(std::forward<T>(output), [&](auto& v) {
 	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(std::string_view(current_row_[i], current_row_lengths_[i]));
 	  ++i;
 	  });
@@ -1980,7 +1997,7 @@ namespace li {
 	typedef mysql_tag db_tag;
 	inline mysql_connection(const mysql_connection&) = delete;
 	inline mysql_connection& operator=(const mysql_connection&) = delete;
-	inline mysql_connection(B mysql_wrapper, std::shared_ptr<li::mysql_connection_data>& data);
+	inline mysql_connection(B mysql_wrapper, std::shared_ptr<mysql_connection_data>& data);
 	long long int last_insert_rowid();
 	sql_result<mysql_result<B>> operator()(const std::string& rq);
 	mysql_statement<B> query(const std::string& rq);
@@ -1993,7 +2010,7 @@ namespace li {
 }
 namespace li {
   template <typename B>
-  inline mysql_connection<B>::mysql_connection(B mysql_wrapper, std::shared_ptr<li::mysql_connection_data>& data)
+  inline mysql_connection<B>::mysql_connection(B mysql_wrapper, std::shared_ptr<mysql_connection_data>& data)
 	: mysql_wrapper_(mysql_wrapper), data_(data) {}
   template <typename B> long long int mysql_connection<B>::last_insert_rowid() {
 	return mysql_insert_id(data_->connection_);
@@ -2153,8 +2170,8 @@ namespace li {
 	}
   };
 
-  typedef sql_database<mysql, 100> Mysql;
-  typedef sql_database<pgsql, 100> Pgsql;
+  typedef sql_database<mysql> Mysql;
+  typedef sql_database<pgsql, 3000> Pgsql;
 #define D_mysql() li::Mysql("127.0.0.1","test","root","",3306,"utf8")
 #define D_pgsql() li::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
   //SQLite is not suitable for multi-threaded environments

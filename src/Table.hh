@@ -1,8 +1,8 @@
 #pragma once
-#include "./Sql.hpp"
-#include "./base/Initalization.hpp"
-#include "./base/s2o.hpp"
-#include "./base/so2s.hpp"
+#include "./Sql.hh"
+#include "./base/Initalization.hh"
+#include "./base/s2o.hh"
+#include "./base/so2s.hh"
 #define Struct(T) struct T : orm::Table<T>/*multiple inheritance from std::enable_shared_from_this<T> => needed for
 struct A: virtual_shared<A> {}; struct B: virtual_shared<B> {}; struct Z: A, B { };*/
 namespace orm {
@@ -31,6 +31,8 @@ namespace orm {
 	  } else *reinterpret_cast<U*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
 	}
 	template <typename U> friend typename std::enable_if<li::is_vector<U>::value, void>::type FuckJSON(const U& u, const char* s, json& j);
+	template <typename U> friend typename std::enable_if<li::is_ptr<U>::value &&
+	  !std::is_fundamental<U>::value, void>::type FuckJSON(const U& u, const char* c, json& j);
 	template <typename U> friend std::string& operator<<(std::string& s, Table<U>* c);//<T> serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, Table<U>* c);
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, Table<U>& c);
@@ -38,7 +40,6 @@ namespace orm {
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U> c);
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U>* c);//vector<T>* serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U>* c);
-
   public:
 #ifndef _WIN32
 	const static char* _def[]; static unsigned char _tc[];
@@ -59,20 +60,22 @@ namespace orm {
 	//<T> serialized as JSON with std::vector, includes empty std::vector
 	json get() { return json(*dynamic_cast<T*>(this)); }
 	//-------------------------------------ActiveRecord-------------------------------------
+
 	//Insert the object (Returns the inserted ID)
 	auto Insert() {
 	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
+		using Y = std::remove_reference_t<decltype(t)>;
 		if (!(_tc[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
-		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+		  if constexpr (std::is_same<bool, Y>::value) {
 			if constexpr (pgsqL) { ov << (t ? "true" : "false") << ','; } else { ov << t << ','; } os << T::$[i] << ',';
-		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (std::is_fundamental<Y>::value) {
 			if (*((char*)&t)) { ov << t << ','; os << T::$[i] << ','; }
-		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (std::is_same<tm, Y>::value) {
 			if (*((char*)&t)) { ov << '\'' << t << "',"; os << T::$[i] << ','; }
-		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (std::is_same<std::string, Y>::value) {
 			if (*((char*)&t)) { ov << '\'' << toQuotes(t.c_str()) << "',"; os << T::$[i] << ','; }
-		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (is_text<Y>::value) {
 			if (*((char*)&t)) { ov << '\'' << toQuotes(t.c_str()) << "',"; os << T::$[i] << ','; }
 		  }
 		}
@@ -80,35 +83,39 @@ namespace orm {
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str();
 	  if constexpr (pgsqL) { os << " RETURNING " << T::$[0] << ";"; } else { os << ";"; }
 	  li::sql_result<decltype(D)::db_rs>&& rs = D.conn()(os.str());
-	  if (T::_tc[0] & TC::AUTO_INCREMENT) { return rs.last_insert_id(); } else if constexpr (mysqL) { return 0ULL; } else { return 0LL; }
+	  if (T::_tc[0] & TC::AUTO_INCREMENT) {
+		return rs.last_insert_id();
+	  } else if constexpr (mysqL) { return 0ULL; } else { return 0LL; }
 	}
 	//Update the object (The default condition is the value of the frist key)
 	void Update() {
 	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
 	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
-	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Tuple<T>());
-	  if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(li::Tuple<T>());
+	  using Y = std::remove_reference_t<decltype(t)>;
+	  if constexpr (std::is_fundamental<Y>::value) {
 		condition += std::to_string(t);
-	  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<tm, Y>::value) {
 		condition.push_back('\''); condition << t; condition.push_back('\'');
-	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<std::string, Y>::value) {
 		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
-	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (is_text<Y>::value) {
 		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
 	  }
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os](auto& t) {
+		using Z = std::remove_reference_t<decltype(t)>;
 		if (++i && !(T::_tc[i] & TC::AUTO_INCREMENT)) {
-		  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+		  if constexpr (std::is_same<bool, Z>::value) {
 			if constexpr (pgsqL) {
 			  os << T::$[i] << '=' << (t ? "true" : "false") << ',';
 			} else { os << T::$[i] << '=' << t << ','; }
-		  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (std::is_fundamental<Z>::value) {
 			os << T::$[i] << '=' << t << ',';
-		  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (std::is_same<tm, Z>::value) {
 			os << T::$[i] << '=' << '\'' << t << "',";
-		  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (std::is_same<std::string, Z>::value) {
 			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
-		  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+		  } else if constexpr (is_text<Z>::value) {
 			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
 		  }
 		}
@@ -119,16 +126,17 @@ namespace orm {
 	//Delete the object based on this object's frist key
 	void Delete() {
 	  std::ostringstream os; os << "DELETE FROM " << _name << " WHERE " << $[0] << '=';
-	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(Tuple<T>());
-	  if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(li::Tuple<T>());
+	  using Y = std::remove_reference_t<decltype(t)>;
+	  if constexpr (std::is_same<bool, Y>::value) {
 		if constexpr (pgsqL) { os << (t ? "true" : "false"); } else { os << t; }
-	  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_fundamental<Y>::value) {
 		os << t;
-	  } else if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<tm, Y>::value) {
 		os << '\'' << t << '\'';
-	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<std::string, Y>::value) {
 		os << '\'' << toQuotes(t.c_str()) << '\'';
-	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (is_text<Y>::value) {
 		os << '\'' << toQuotes(t.c_str()) << '\'';
 	  } os << ";";
 	  D.conn()(os.str());
@@ -137,7 +145,7 @@ namespace orm {
 	  if (_created) {
 		_created = false; try {
 		  for (uint8_t i = 0; i < _size; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
-			if (_[i][0] == 'S') { continue; }
+			if (_[i][0] == 0x53 || _[i][0] == 0x50) { continue; }
 			if (_tc[i] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
 			  switch (hack8Str(_[i])) {
 			  case "signed char"_l: case 'a': case "short"_l: case 's': case 'int': case 'i': case "__int64"_l: case 'x':
@@ -258,7 +266,7 @@ namespace orm {
 			  case 'y': goto _;
 			  }
 			}
-		  } _create += "\n);";
+		  } _create += "\n);\n";
 		} catch (const std::exception& e) { std::cerr << e.what(); return 0; }
 	  }
 	  auto DbQuery = D.conn();
@@ -282,11 +290,13 @@ namespace orm {
   template<typename T> Table<T>::Table() {}
   template<typename T> template<typename ... Args>
   typename Table<T>::ptr Table<T>::create(Args&& ... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
+
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
 	s.push_back('{'); int8_t i = -1;
 	ForEachField(dynamic_cast<T*>(c), [&i, c, &s](auto& t) {
-	  if constexpr (!li::is_vector<std::remove_reference_t<decltype(t)>>::value) { s.push_back('"'); s += c->$[++i]; }
-	  if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t)>>::value) {
+	  using Y = std::remove_reference_t<decltype(t)>;
+	  if constexpr (!li::is_vector<Y>::value) { s.push_back('"'); s += c->$[++i]; }
+	  if constexpr (std::is_same<tm, Y>::value) {
 		s += "\":\""; std::ostringstream os; const tm* time = &t; os << std::setfill('0');
 #ifdef _WIN32
 		os << std::setw(4) << time->tm_year + 1900;
@@ -295,16 +305,20 @@ namespace orm {
 #endif
 		os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
 		  << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
-	  } else if constexpr (std::is_same<bool, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<bool, Y>::value) {
 		s += "\":", s += t == true ? "true" : "false";
-	  } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_fundamental<Y>::value) {
 		s += "\":" + std::to_string(t);
-	  } else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (std::is_same<std::string, Y>::value) {
 		s += "\":\"" + t + "\"";
-	  } else if constexpr (li::is_vector<std::remove_reference_t<decltype(t)>>::value) {
+	  } else if constexpr (li::is_vector<Y>::value) {
 		size_t l = t.size(); if (l) { s.push_back('"'); s += c->$[++i]; s += "\":"; s << &t; } else { s.pop_back(); }
-	  } else {
+	  } else if constexpr (li::is_ptr<Y>::value) {
+		s += "\":"; t == nullptr ? s += "null" : s << t;
+	  } else if constexpr (is_text<std::remove_reference_t<decltype(t)>>::value) {
 		s += "\":"; s << t;
+	  } else {
+		s += "\":"; s << &t;
 	  } s.push_back(',');
 	  }); s[s.size() - 1] = '}'; return s;
   }//Filter empty std::vector
@@ -315,23 +329,27 @@ namespace orm {
 	std::string s; s << dynamic_cast<T*>(&c); return o << s;
   };//Compile into most optimized machine code
   template <typename T> std::string& operator<<(std::string& s, std::vector<T> c) {
-	s.push_back('['); size_t l = c.size(); if (l > 0) { s << &c[0];
-	for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c[i]; }
+	s.push_back('['); size_t l = c.size(); if (l > 0) {
+	  s << &c[0];
+	  for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c[i]; }
 	} s.push_back(']'); return s;
   }
   template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T> c) {
-	o << '['; size_t l = c.size(); if (l > 0) { o << &c[0];
-	for (size_t i = 1; i < l; ++i) { o << ',' << &c[i]; }
+	o << '['; size_t l = c.size(); if (l > 0) {
+	  o << &c[0];
+	  for (size_t i = 1; i < l; ++i) { o << ',' << &c[i]; }
 	} o << ']'; return o;
   }
   template <typename T> std::string& operator<<(std::string& s, std::vector<T>* c) {
-	s.push_back('['); size_t l = c->size(); if (l > 0) { s << &c->at(0);
-	for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c->at(i); }
+	s.push_back('['); size_t l = c->size(); if (l > 0) {
+	  s << &c->at(0);
+	  for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c->at(i); }
 	} s.push_back(']'); return s;
   }
   template <typename T> std::ostream& operator<<(std::ostream& o, std::vector<T>* c) {
-	o << '['; size_t l = c->size(); if (l > 0) { o << &c->at(0);
-	for (size_t i = 1; i < l; ++i) { o << ',' << &c->at(i); }
+	o << '['; size_t l = c->size(); if (l > 0) {
+	  o << &c->at(0);
+	  for (size_t i = 1; i < l; ++i) { o << ',' << &c->at(i); }
 	} o << ']'; return o;
   }
 }
