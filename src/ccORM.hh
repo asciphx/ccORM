@@ -2199,5 +2199,5 @@ namespace li {
 #define D_mysql() li::Mysql(li::C.my_host,li::C.my_data,li::C.my_user,li::C.my_pwds,li::C.my_port,"utf8")
 #define D_pgsql() li::Pgsql(li::C.pg_host,li::C.pg_data,li::C.pg_user,li::C.pg_pwds,li::C.pg_port,"utf8")
   //SQLite is not suitable for multi-threaded environments
-#define D_sqlite(path) li::Sqlite(Unsafe?"dev."##path:path)
+#define D_sqlite(path) li::Sqlite(Unsafe?"dev." path:path)
 }
