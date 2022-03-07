@@ -45,7 +45,7 @@ include_directories( ${Boost_INCLUDE_DIR} ${MYSQL_INCLUDE_DIR} ${SQLite3_INCLUDE
 add_executable(ccORM main.cpp)
 target_link_libraries( ccORM ${LIBS})
 add_executable(one-to-one o2o.cc)
-target_link_libraries( o2o ${LIBS})
+target_link_libraries( one-to-one ${LIBS})
 add_custom_command(OUTPUT any.db
 	COMMAND ${CMAKE_COMMAND} -E
 copy ${PROJECT_SOURCE_DIR}/any.db ${CMAKE_CURRENT_BINARY_DIR}/any.db
