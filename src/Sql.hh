@@ -7,7 +7,7 @@
 namespace orm {
   enum class Sort { ASC, DESC }; static const char* SORT[2] = { "", " DESC" };
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
-  template<class T, class U>//Table Linker. Default INNER JOIN. Perfect programming! Follow the principle of minimum code.
+  template<class T, class U>//Table Linker(Default INNER JOIN) Perfect programming! Follow the principle of minimum code.
   struct TLinker {
 	TLinker(TLinker const&) = delete; TLinker& operator=(TLinker&&) = delete;
 	TLinker(TLinker&&) = default; TLinker& operator=(TLinker const&) = delete;
@@ -45,7 +45,7 @@ namespace orm {
 	  _ += " LIMIT "; _ += std::to_string(size_); _ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);
 	  return D.conn()(_).template findArray<T>(vu);
 	};
-	//Not finish. Implementing many-to-many
+	//Implementing many-to-many
 	inline void leftJoin() {
 	  //_ += " LEFT JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str();
 	  //_ += " LIMIT "; _ += std::to_string(size_); _ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);

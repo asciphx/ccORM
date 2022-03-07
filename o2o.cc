@@ -12,8 +12,10 @@ Struct(Tab) {
   uint32_t id;
   bool ok;
   text<15> name;
-  tm date = now();
-  Type* types = nullptr;
+  tm date;
+  Type* types;
+  Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), Type * e = nullptr) :
+	id(a), ok(b), name(c), date(d), types(e) {}
   FIELD(id, ok, name, date)
 };
 CONSTRUCT(Tab, id, ok, name, date, types)
@@ -28,7 +30,9 @@ Struct(Type) {
   uint8_t id;
   text<10> language;
   double bigBlob;
-  Tab* tabs = nullptr;
+  Tab* tabs;
+  Type(uint8_t a = 0, const char* b = "", double c = 0, Tab* d = nullptr) :
+	id(a), language(b), bigBlob(c), tabs(d) {}
   FIELD(id, language, bigBlob)
 };
 CONSTRUCT(Type, id, language, bigBlob, tabs)
@@ -37,12 +41,11 @@ REGIST(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
   TC::DEFAULT, "c/c++",
   TC::EMPTY, "");
-M_TABLE(Type, id, Tab, id)
+//M_TABLE(Type, id, Tab, id)//Actually,there is no need for an intermediate table in one-to-one
 //one-to-one has been completed. In particular, one-to-one is actually a combination of two tables
 int main(int argc, char* argv[]) { //For example, if on() has multiple conditions, up to three conditions. eg : two conditions
   //cout << ((Tab::$id == Type::$id) && (Type::$bigBlob == Tab::$name)) << '\n';//(`Tab`.`id`=`Type`.`id` AND `Type`.`bigBlob`=`Tab`.`name`)
-  //cout << (Tab::$id == Type::$id.c_str()) << '\n';//`Tab`.`id`='`Type`.`id`', This is used in the where clause
-  Type u; Tab t = TLinker<Tab, Type>(Tab::$id == Type::$id).where(Tab::$id == 2).GetOne(&u); cout << t << '\n';//Returns a one query of a one-to-one combined table
-  vector<Type> vu; vector<Tab> vt = TLinker<Tab, Type>().GetArr(&vu); cout << vt << '\n';//Returns a paged query of a one-to-one combined table
+  Type u; Tab t = TLinker<Tab, Type>(Tab::$id == Type::$id).where(Tab::$id == 2).GetOne(&u); cout << t << '\n';
+  vector<Type> vu; vector<Tab> vt = TLinker<Tab, Type>().GetArr(&vu); cout << vt << '\n';
   return 0;
 }

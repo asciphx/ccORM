@@ -13,7 +13,6 @@
 - [x] the function of automatically Ping the database at an interval, so that the database does not sleep and is always in the state of wake-up and recovery
 - [x] add, delete, modify and query based on OOP. The insertion function also returns the new ID
 - [x] surpassing RTTI and protobuf, it is the fastest and most violent idea similar to "dynamic type C++"
-- [x] you can nest structs with structs, so as to realize one-to-one or one to many, or self nesting, etc
 - [x] Provide DataMapper and ActiveRecord for curd
 - [x] with compile time type detection
 - [x] the VARCHAR data type is text<>
