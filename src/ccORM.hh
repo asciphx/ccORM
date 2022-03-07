@@ -33,6 +33,7 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
 #define ASSERT(x,m) if(!x)std::cerr<<#m
 #define JSON_NOEXCEPTION
 #include "json.hh"
+using json = nlohmann::json;
 #include <chrono>
 #include <atomic>
 #include <stdarg.h>
@@ -2169,12 +2170,34 @@ namespace li {
 	  return impl.scoped_connection(sptr);
 	}
   };
-
   typedef sql_database<mysql> Mysql;
   typedef sql_database<pgsql, 3000> Pgsql;
-#define D_mysql() li::Mysql("127.0.0.1","test","root","",3306,"utf8")
-#define D_pgsql() li::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
+  //FastestDev Mode. Each time, the table will be deleted and then recreated
+#ifndef FastestDev
+#define FastestDev 1
+#endif
+  //If the configuration is not secure, you will connect to the development environment instead of the formal environment
+#ifndef IsDevMode
+#define IsDevMode 1
+#endif//cmake -dFastestDev 0 -dIsDevMode 0 -> This will be the configuration of the formal environment
+#define Unsafe FastestDev || IsDevMode
+  //The configuration isn't safe ? development : environment online
+  struct sql_config {
+	const char* my_host = Unsafe ? "127.0.0.1" : "cd.tencentcdb.com";
+	const char* my_data = Unsafe ? "test" : "Database";
+	const char* my_user = Unsafe ? "root" : "User";
+	const char* my_pwds = Unsafe ? "" : "Password";
+	const short my_port = Unsafe ? 3306 : 10025;
+
+	const char* pg_host = Unsafe ? "127.0.0.1" : "cd.tencentcdb.com";
+	const char* pg_data = Unsafe ? "test" : "Database";
+	const char* pg_user = Unsafe ? "Asciphx" : "User";
+	const char* pg_pwds = Unsafe ? "" : "Password";
+	const short pg_port = Unsafe ? 5432 : 10052;
+  } C;
+  //On the right above is the configuration in the environment online. Please modify it consciously
+#define D_mysql() li::Mysql(li::C.my_host,li::C.my_data,li::C.my_user,li::C.my_pwds,li::C.my_port,"utf8")
+#define D_pgsql() li::Pgsql(li::C.pg_host,li::C.pg_data,li::C.pg_user,li::C.pg_pwds,li::C.pg_port,"utf8")
   //SQLite is not suitable for multi-threaded environments
-#define D_sqlite(path) li::Sqlite(path)
-  auto COMPILE_USE = D_mysql();//Note that this line is for compilation.
+#define D_sqlite(path) li::Sqlite(Unsafe?"dev."##path:path)
 }

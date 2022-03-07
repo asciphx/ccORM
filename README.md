@@ -116,6 +116,15 @@ cd build
 cmake ..
 cmake --build .
 ```
+If the switch changes, perform the required switch options, eg:
+```
+cmake -DFastestDev=OFF -DIsDevMode=OFF --build ./
+cmake -DFastestDev=ON -DIsDevMode=ON --build ./
+```
+then
+```
+cmake --build .
+```
 ...or then add it where you need to connect to the library
 target_link_libraries(main ${MYSQL_LIBRARY})
 perhaps

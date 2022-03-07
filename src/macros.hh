@@ -18,9 +18,6 @@
 #include "json.hh"
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
-  //If you have not changed the table structure, it is recommended to set it to false. This will be faster
-  //If you just change the table structure, set it to true, and the table will be recreated in development mode
-  constexpr bool FastestDev = true;//FastestDev Mode. Each time, the table will be deleted and then recreated
   using Expand = int[];
 #define Exp (void)orm::Expand
   template <typename T, typename Fn, std::size_t... I>

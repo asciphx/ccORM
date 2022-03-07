@@ -116,10 +116,19 @@ cd build
 cmake ..
 cmake --build .
 ```
+如果开关变动，请执行需要的开关选项
+```
+cmake -DFastestDev=OFF -DIsDevMode=OFF --build ./
+cmake -DFastestDev=ON -DIsDevMode=ON --build ./
+```
+然后
+```
+cmake --build ./
+```
 或者下面的方式，这只是示例，注意：请自行修改`build_linux.sh`文件.通过`sh ./build_linux.sh`编译
 ```
 g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
--pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 
+-pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC
 ```
 # 支持的编译器（最低版本）:
     - Linux: G++ 9.2, Clang++ 9.0
