@@ -69,20 +69,33 @@ namespace orm {
 		using Y = std::remove_reference_t<decltype(t)>;
 		if (!(_tc[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		  if constexpr (std::is_same<bool, Y>::value) {
-			if constexpr (pgsqL) { ov << (t ? "true" : "false") << ','; } else { ov << t << ','; } os << T::$[i] << ',';
+			if constexpr (pgsqL) {
+			  ov << (t ? "true" : "false") << ','; os << '"' << T::$[i] << "\",";
+			} else { ov << t << ','; os << T::$[i] << ','; }
 		  } else if constexpr (std::is_fundamental<Y>::value) {
-			if (*((char*)&t)) { ov << t << ','; os << T::$[i] << ','; }
+			if (*((char*)&t)) {
+			  ov << t << ','; if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
+			}
 		  } else if constexpr (std::is_same<tm, Y>::value) {
-			if (*((char*)&t)) { ov << '\'' << t << "',"; os << T::$[i] << ','; }
+			if (*((char*)&t)) {
+			  ov << '\'' << t << "',";
+			  if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
+			}
 		  } else if constexpr (std::is_same<std::string, Y>::value) {
-			if (*((char*)&t)) { ov << '\'' << toQuotes(t.c_str()) << "',"; os << T::$[i] << ','; }
+			if (*((char*)&t)) {
+			  ov << '\'' << toQuotes(t.c_str()) << "',";
+			  if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
+			}
 		  } else if constexpr (is_text<Y>::value) {
-			if (*((char*)&t)) { ov << '\'' << toQuotes(t.c_str()) << "',"; os << T::$[i] << ','; }
+			if (*((char*)&t)) {
+			  ov << '\'' << toQuotes(t.c_str()) << "',";
+			  if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
+			}
 		  }
 		}
 		});
 	  os.seekp(-1, os.cur); os << ')'; ov.seekp(-1, ov.cur); ov << ")"; os << ' ' << ov.str();
-	  if constexpr (pgsqL) { os << " RETURNING " << T::$[0] << ";"; } else { os << ";"; }
+	  if constexpr (pgsqL) { os << " RETURNING \"" << T::$[0] << "\";"; } else { os << ";"; }
 	  li::sql_result<decltype(D)::db_rs>&& rs = D.conn()(os.str());
 	  if (T::_tc[0] & TC::AUTO_INCREMENT) {
 		return rs.last_insert_id();
@@ -91,37 +104,37 @@ namespace orm {
 	//Update the object (The default condition is the value of the frist key)
 	void Update() {
 	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
-	  std::string condition(" WHERE "); condition += $[0]; condition.push_back('=');
+	  std::string cd(" WHERE "); cd += $[0]; cd.push_back('=');
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(li::Tuple<T>());
 	  using Y = std::remove_reference_t<decltype(t)>;
 	  if constexpr (std::is_fundamental<Y>::value) {
-		condition += std::to_string(t);
+		cd += std::to_string(t);
 	  } else if constexpr (std::is_same<tm, Y>::value) {
-		condition.push_back('\''); condition << t; condition.push_back('\'');
+		cd.push_back('\''); cd << t; cd.push_back('\'');
 	  } else if constexpr (std::is_same<std::string, Y>::value) {
-		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
+		cd.push_back('\''); cd += toQuotes(t.c_str()); cd.push_back('\'');
 	  } else if constexpr (is_text<Y>::value) {
-		condition.push_back('\''); condition += toQuotes(t.c_str()); condition.push_back('\'');
+		cd.push_back('\''); cd += toQuotes(t.c_str()); cd.push_back('\'');
 	  }
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os](auto& t) {
 		using Z = std::remove_reference_t<decltype(t)>;
 		if (++i && !(T::_tc[i] & TC::AUTO_INCREMENT)) {
 		  if constexpr (std::is_same<bool, Z>::value) {
 			if constexpr (pgsqL) {
-			  os << T::$[i] << '=' << (t ? "true" : "false") << ',';
+			  os << '"' << T::$[i] << "\"=" << (t ? "true" : "false") << ',';
 			} else { os << T::$[i] << '=' << t << ','; }
 		  } else if constexpr (std::is_fundamental<Z>::value) {
-			os << T::$[i] << '=' << t << ',';
+			if constexpr (pgsqL) { os << '"' << T::$[i] << '"'; } else { os << T::$[i]; } os << '=' << t << ',';
 		  } else if constexpr (std::is_same<tm, Z>::value) {
-			os << T::$[i] << '=' << '\'' << t << "',";
+			if constexpr (pgsqL) { os << '"' << T::$[i] << '"'; } else { os << T::$[i]; } os << '=' << '\'' << t << "',";
 		  } else if constexpr (std::is_same<std::string, Z>::value) {
-			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
+			if constexpr (pgsqL) { os << '"' << T::$[i] << '"'; } else { os << T::$[i]; } os << '=' << '\'' << toQuotes(t.c_str()) << "',";
 		  } else if constexpr (is_text<Z>::value) {
-			os << T::$[i] << '=' << '\'' << toQuotes(t.c_str()) << "',";
+			if constexpr (pgsqL) { os << '"' << T::$[i] << '"'; } else { os << T::$[i]; } os << '=' << '\'' << toQuotes(t.c_str()) << "',";
 		  }
 		}
 		});
-	  os.seekp(-1, os.cur); os << condition << ";";//std::cout<<os.str();
+	  os.seekp(-1, os.cur); os << cd << ";";//std::cout<<os.str();
 	  D.conn()(os.str());
 	}
 	//Delete the object based on this object's frist key

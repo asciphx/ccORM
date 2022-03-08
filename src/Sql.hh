@@ -38,6 +38,7 @@ namespace orm {
 	inline TLinker<T, U>& orderBy(const text<0x3f>& col, const Sort& ord = Sort::ASC) {
 	  __ += col.c_str(); __ += SORT[static_cast<char>(ord)]; __.push_back(','); return *this;
 	};
+	//The properties of the first parameter passed in will be changed
 	inline T GetOne(U* u, const Sort& ord = Sort::ASC) {
 	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str(); if (w_[0]) _ += w_;
 	  _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
@@ -45,6 +46,7 @@ namespace orm {
 	  } else { __.push_back(96); __ += T::$[0]; __.push_back(96); } _ += __; _ += SORT[static_cast<char>(ord)];
 	  _ += " LIMIT 1"; return D.conn()(_).template findOne<T>(u);
 	};
+	//If the first parameter passed in contains a value, it will be cleared.
 	inline std::vector<T> GetArr(std::vector<U>* vu, const Sort& ord = Sort::ASC) {
 	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str(); if (w_[0]) _ += w_;
 	  _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
@@ -103,7 +105,8 @@ namespace orm {
 	os.push_back(','); os += U::_alias + 1; os.push_back('.'); if constexpr (pgsqL) {
 	  os.push_back('"'); os += c; os.push_back('"');
 	} else { os.push_back('`'); os += c; os.push_back('`'); } os += U::_as_alia; os += c;
-  }; //Naming beginning with an uppercase letter means that the object returned is not "*this"
+  };
+  //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> struct Sql {
 	friend class Table<T>;
 	Sql<T>() : _(T::_ios) { _.reserve(0x1ff); __.reserve(0x5f); _ += " FROM "; _ += T::_name; _ += T::_alias; }
@@ -119,6 +122,7 @@ namespace orm {
 	std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
 	inline decltype(D)::connection_type DB();
+	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::arr& t);
 	static void InsertArr(std::vector<T>* t);
   private: uint8_t size_{ 10 }; size_t page_{ 1 }; std::string _, __; bool ___{ true };
@@ -149,9 +153,13 @@ namespace orm {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size; ++i) {
 #ifdef _WIN32
-	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53) os << T::$[i] << ',';
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53) {
+		if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
+	  }
 #else
-	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53 && T::_[i][0] != 0x50) os << T::$[i] << ',';
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53 && T::_[i][0] != 0x50) {
+		if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
+	  }
 #endif
 	} os.seekp(-1, os.cur);
 	for (auto o : *input.get()) {
@@ -179,9 +187,13 @@ namespace orm {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size; ++i) {
 #ifdef _WIN32
-	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53) os << T::$[i] << ',';
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53) {
+		if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
+	  }
 #else
-	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53 && T::_[i][0] != 0x50) os << T::$[i] << ',';
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53 && T::_[i][0] != 0x50) {
+		if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
+	  }
 #endif
 	} os.seekp(-1, os.cur);
 	for (auto o : *input) {
