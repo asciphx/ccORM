@@ -119,6 +119,7 @@ cmake --build .
 If the switch changes, perform the required switch options, eg:
 ```
 cmake -DFastestDev=OFF -DIsDevMode=OFF --build ./
+cmake -DFastestDev=ON -DIsDevMode=OFF --build ./
 cmake -DFastestDev=ON -DIsDevMode=ON --build ./
 ```
 then

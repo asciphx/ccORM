@@ -15,12 +15,20 @@ namespace orm {
 	//max to three conditions -> eg:(Tab::$id == Type::$id) && (Type::name == Tab::$name) && (Type::age == Tab::age)
 	template<unsigned short I>
 	TLinker<T, U>(const text<I>& v_) : _(T::_ios), ___(v_), w_("") {
+#ifdef _WIN32
+	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_size && U::_[i][0] != 0x53; ++i) { f(_, U::$[i]); }
+#else
 	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_size && U::_[i][0] != 0x53 && U::_[i][0] != 0x50; ++i) { f(_, U::$[i]); }
+#endif
 	  _ += " FROM "; _ += T::_name; _ += T::_alias;
 	}
 	//Default on() conditions -> Associate the primary key of two tables => `Tab`.`id`=`Type`.`id`
 	TLinker<T, U>() : _(T::_ios), w_("") {
+#ifdef _WIN32
+	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_size && U::_[i][0] != 0x53; ++i) { f(_, U::$[i]); }
+#else
 	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_size && U::_[i][0] != 0x53 && U::_[i][0] != 0x50; ++i) { f(_, U::$[i]); }
+#endif
 	  _ += " FROM "; _ += T::_name; _ += T::_alias; std::string s; F<T>(s, T::$[0]); s += " = "; F<U>(s, U::$[0]); ___ = s;
 	}
 	inline TLinker<T, U>& size(uint8_t size) { size_ = size; return *this; }
@@ -31,7 +39,7 @@ namespace orm {
 	  __ += col.c_str(); __ += SORT[static_cast<char>(ord)]; __.push_back(','); return *this;
 	};
 	inline T GetOne(U* u, const Sort& ord = Sort::ASC) {
-	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str(); if(w_[0]) _ += w_;
+	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str(); if (w_[0]) _ += w_;
 	  _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
 		__.push_back(34); __ += T::$[0]; __.push_back(34);
 	  } else { __.push_back(96); __ += T::$[0]; __.push_back(96); } _ += __; _ += SORT[static_cast<char>(ord)];
@@ -80,47 +88,37 @@ namespace orm {
 	  return json{ "Only stars, flowers and applause can satisfy my arrogance and greatness" };
 	};
   private: uint8_t size_{ 10 }; size_t page_{ 1 }; std::string _, __, w_; text<0x188> ___;
-		 template<typename V> inline void F(const char* c);//_ += `V`.`id`
-		 template<typename V> inline void F(std::string& os, const char* c);//&os += `V`.`id`
-		 inline void f(std::string& os, const char* c);//_ += `U`.`id` AS U_id
+		 template<typename V> inline void F(std::string& os, const std::string_view& c);//&os += `V`.`id`
+		 inline void f(std::string& os, const std::string_view& c);//_ += `U`.`id` AS U_id
   };
   template<class T, class U>
   template<typename V>
-  inline void TLinker<T, U>::F(const char* c) {
-	_ += V::_alias + 1; _.push_back('.'); if constexpr (pgsqL) {
-	  _.push_back('"'); _ += c; _.push_back('"');
-	} else { _.push_back('`'); _ += c; _.push_back('`'); }
-  }
-  template<class T, class U>
-  template<typename V>
-  inline void TLinker<T, U>::F(std::string& os, const char* c) {
+  inline void TLinker<T, U>::F(std::string& os, const std::string_view& c) {
 	os += V::_alias + 1; os.push_back('.'); if constexpr (pgsqL) {
 	  os.push_back('"'); os += c; os.push_back('"');
 	} else { os.push_back('`'); os += c; os.push_back('`'); }
   }
   template<class T, class U>
-  inline void TLinker<T, U>::f(std::string& os, const char* c) {
+  inline void TLinker<T, U>::f(std::string& os, const std::string_view& c) {
 	os.push_back(','); os += U::_alias + 1; os.push_back('.'); if constexpr (pgsqL) {
 	  os.push_back('"'); os += c; os.push_back('"');
 	} else { os.push_back('`'); os += c; os.push_back('`'); } os += U::_as_alia; os += c;
-  };
-  //Naming beginning with an uppercase letter means that the object returned is not "*this"
+  }; //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> struct Sql {
 	friend class Table<T>;
 	Sql<T>() : _(T::_ios) { _.reserve(0x1ff); __.reserve(0x5f); _ += " FROM "; _ += T::_name; _ += T::_alias; }
 	~Sql<T>() {}
-	inline Sql<T>* size(uint8_t size);
-	inline Sql<T>* page(size_t page);
+	inline Sql<T>& size(uint8_t size);
+	inline Sql<T>& page(size_t page);
 	//Cannot be the first field(Because PgSQL does not sort the primary key)
-	inline Sql<T>* orderBy(const text<0x3f>& col, const Sort& ord = Sort::ASC);
+	inline Sql<T>& orderBy(const text<0x3f>& col, const Sort& ord = Sort::ASC);
 	//select <T.`$`>,... from <T> T WHERE <T.`$`=?> ORDER BY T.`$1` LIMIT 10 OFFSET 0;
 	template<unsigned short I>
-	inline Sql<T>* where(const text<I>& str);
+	inline Sql<T>& where(const text<I>& str);
 	//Default ASC for the first field
 	std::vector<T> GetArr(const Sort& ord = Sort::ASC);
 	inline T GetOne();
 	inline decltype(D)::connection_type DB();
-	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::arr& t);
 	static void InsertArr(std::vector<T>* t);
   private: uint8_t size_{ 10 }; size_t page_{ 1 }; std::string _, __; bool ___{ true };
@@ -128,13 +126,13 @@ namespace orm {
 		   _ = T::_ios; _ += " FROM "; _ += T::_name; _ += T::_alias; size_ = 10; __[0] = 0; page_ = 1; ___ = true;
 		 }
   };
-  template<typename T> Sql<T>* Sql<T>::size(uint8_t size) { size_ = size; return this; }
-  template<typename T> Sql<T>* Sql<T>::page(size_t page) { page_ = page; return this; }
-  template<typename T> Sql<T>* Sql<T>::orderBy(const text<0x3f>& col, const Sort& ord) {
-	__ += col.c_str(); __ += SORT[static_cast<char>(ord)]; __.push_back(','); return this;
+  template<typename T> Sql<T>& Sql<T>::size(uint8_t size) { size_ = size; return *this; }
+  template<typename T> Sql<T>& Sql<T>::page(size_t page) { page_ = page; return *this; }
+  template<typename T> Sql<T>& Sql<T>::orderBy(const text<0x3f>& col, const Sort& ord) {
+	__ += col.c_str(); __ += SORT[static_cast<char>(ord)]; __.push_back(','); return *this;
   }
   template<typename T>
-  template<unsigned short I> Sql<T>* Sql<T>::where(const text<I>& v_) { _ += " WHERE "; _ += v_.c_str(); return this; }
+  template<unsigned short I> Sql<T>& Sql<T>::where(const text<I>& v_) { _ += " WHERE "; _ += v_.c_str(); return *this; }
   template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept(false) {
 	std::string sql(_); sql += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
 	  __.push_back(34); __ += T::$[0]; __.push_back(34);
@@ -150,7 +148,11 @@ namespace orm {
   template<typename T> void Sql<T>::InsertArr(typename T::arr& input) {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size; ++i) {
-	  if (T::_[i][0] != 0x53 && !(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x50) os << T::$[i] << ',';
+#ifdef _WIN32
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53) os << T::$[i] << ',';
+#else
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53 && T::_[i][0] != 0x50) os << T::$[i] << ',';
+#endif
 	} os.seekp(-1, os.cur);
 	for (auto o : *input.get()) {
 	  i = -1; ov << '(';
@@ -176,7 +178,11 @@ namespace orm {
   template<typename T> void Sql<T>::InsertArr(std::vector<T>* input) {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
 	for (; i < T::_size; ++i) {
-	  if (T::_[i][0] != 0x53 && !(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x50) os << T::$[i] << ',';
+#ifdef _WIN32
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53) os << T::$[i] << ',';
+#else
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && T::_[i][0] != 0x53 && T::_[i][0] != 0x50) os << T::$[i] << ',';
+#endif
 	} os.seekp(-1, os.cur);
 	for (auto o : *input) {
 	  i = -1; ov << '(';

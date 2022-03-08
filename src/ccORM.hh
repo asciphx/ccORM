@@ -608,10 +608,12 @@ namespace li {
 	ForEachTuple($, [t, u, &y, &z, this](auto& _) {
 	  using Y = std::remove_reference_t<decltype(t->*_)>;
 	  if constexpr (is_ptr<Y>::value) {
-		ForEachField(u, [&z, &y, this](auto& v) {
-		  using Z = std::remove_reference_t<decltype(v)>;
-		  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readPg<Z>(++y, v); }
-		  }); t->*_ = u;
+		if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
+		  ForEachField(u, [&z, &y, this](auto& v) {
+			using Z = std::remove_reference_t<decltype(v)>;
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readPg<Z>(++y, v); }
+			}); t->*_ = u;
+		}
 	  } else if constexpr (!is_vector<Y>::value) { readPg<Y>(++y, t->*_); }
 	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
   }
@@ -624,25 +626,26 @@ namespace li {
 	  if (current_result_nrows_ == 0) {
 		PQclear(current_result_); current_result_ = nullptr; return;
 	  }
-	} T t; U u; int8_t x = -1, y, z; v2->clear(); constexpr const auto $ = Tuple<T>();
+	} T t; U u; int8_t x = -1, y, z; constexpr const auto $ = Tuple<T>();
 	for (; row_i_ < current_result_nrows_; ++row_i_) {
-	  y = z = -1, ++x; v2->push_back(u); v1->push_back(t);
-	  ForEachTuple($, [&t, v1, v2, &x, &y, &z, this](auto& _) {
+	  y = z = -1, ++x;
+	  ForEachTuple($, [&t, &u, &x, &y, &z, this](auto& _) {
 		using Y = std::remove_reference_t<decltype(t.*_)>;
 		if constexpr (is_ptr<Y>::value) {
-		  ForEachField(&v2->at(x), [&z, &y, this](auto& v) {
-			using Z = std::remove_reference_t<decltype(v)>;
-			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readPg<Z>(++y, v); }
-			});
-		} else if constexpr (!is_vector<Y>::value) { readPg<Y>(++y, v1->at(x).*_); }
-		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+		  if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
+			ForEachField(&u, [&z, &y, this](auto& v) {
+			  using Z = std::remove_reference_t<decltype(v)>;
+			  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readPg<Z>(++y, v); }
+			  });
+		  }
+		} else if constexpr (!is_vector<Y>::value) { readPg<Y>(++y, t.*_); }
+		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); v2->push_back(u); v1->push_back(t);
 	}
-	short l = v1->size(); if (l > 0) {
-	  for (short i = 0; i < l; ++i) {
-		ForEachTuple($, [&t, &i, v1, v2](auto& _) {
-		  if constexpr (is_ptr<std::remove_reference_t<decltype(t.*_)>>::value) { v1->at(i).*_ = &v2->at(i); }
-		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	  }
+	short l = v1->size(); for (short i = 0; i < l; ++i) {
+	  ForEachTuple($, [&t, &i, v1, v2](auto& _) {
+		using X = std::remove_reference_t<decltype(t.*_)>;
+		if constexpr (is_ptr<X>::value) { if constexpr (std::is_same_v<ptr_pack_t<X>, U>) v1->at(i).*_ = &v2->at(i); }
+		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
 	}
   }
   template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
@@ -871,6 +874,7 @@ namespace li {
 	template <typename T, typename U> inline T findOne(U* u);
 	template <typename T, typename U> inline std::vector<T> findArray(std::vector<U>* u);
 	template <typename T> inline std::vector<T> findArray();
+	template <typename T> inline std::vector<T> findMany();
   };
   template <typename B> inline json sql_result<B>::JSON(uint8_t size, size_t page) {
 	json t; auto result = impl_.readJson(&t); return json{ {"count",result},{"page",page},{"size",size},{ "list",t } };
@@ -885,6 +889,8 @@ namespace li {
   inline std::vector<O> sql_result<B>::findArray(std::vector<U>* u) { std::vector<O> t; impl_.readO2O(&t, u); return t; }
   template <typename B>
   template <typename O> inline std::vector<O> sql_result<B>::findArray() { std::vector<O> ts; impl_.readArr(&ts); return ts; }
+  template <typename B>
+  template <typename O> inline std::vector<O> sql_result<B>::findMany() { std::vector<O> ts; impl_.readM2M(&ts); return ts; }
   template <typename B>
   template <typename T1, typename... T>
   bool sql_result<B>::r__(T1&& t1, T&... tail) {
@@ -1002,37 +1008,52 @@ namespace li {
 	  ForEachTuple($, [t, u, &y, &z, this](auto& _) {
 		using Y = std::remove_reference_t<decltype(t->*_)>;
 		if constexpr (is_ptr<Y>::value) {
-		  ForEachField(u, [&z, &y, this](auto& v) {
-			using Z = std::remove_reference_t<decltype(v)>;
-			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readSqlite<Z>(++y, v); }
-			}); t->*_ = u;
+		  if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
+			ForEachField(u, [&z, &y, this](auto& v) {
+			  using Z = std::remove_reference_t<decltype(v)>;
+			  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readSqlite<Z>(++y, v); }
+			  }); t->*_ = u;
+		  }
 		} else if constexpr (!is_vector<Y>::value) { readSqlite<Y>(++y, t->*_); }
 		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
 	}
 	template <typename T, typename U> void readO2O(std::vector<T>* v1, std::vector<U>* v2) {
-	  if (last_step_ret_ != SQLITE_ROW) return; T t; U u; int8_t x = -1, y, z; v2->clear();
-	  constexpr const auto $ = Tuple<T>(); _: y = z = -1, ++x; v2->push_back(u); v1->push_back(t);
-	  ForEachTuple($, [&t, v1, v2, &x, &y, &z, this](auto& _) {
+	  if (last_step_ret_ != SQLITE_ROW) return; T t; U u; int8_t x = -1, y, z;
+	  constexpr const auto $ = Tuple<T>(); _: y = z = -1, ++x;
+	  ForEachTuple($, [&t, &u, &x, &y, &z, this](auto& _) {
 		using Y = std::remove_reference_t<decltype(t.*_)>;
 		if constexpr (is_ptr<Y>::value) {
-		  ForEachField(&v2->at(x), [&z, &y, this](auto& v) {
-			using Z = std::remove_reference_t<decltype(v)>;
-			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readSqlite<Z>(++y, v); }
-			});
-		} else if constexpr (!is_vector<Y>::value) { readSqlite<Y>(++y, v1->at(x).*_); }
+		  if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
+			ForEachField(&u, [&z, &y, this](auto& v) {
+			  using Z = std::remove_reference_t<decltype(v)>;
+			  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readSqlite<Z>(++y, v); }
+			  });
+		  }
+		} else if constexpr (!is_vector<Y>::value) { readSqlite<Y>(++y, t.*_); }
 		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	  last_step_ret_ = sqlite3_step(stmt_); if (last_step_ret_ == SQLITE_ROW) { goto _; }
-	  short l = v1->size(); if (l > 0) {
-		for (short i = 0; i < l; ++i) {
-		  ForEachTuple($, [&t, &i, v1, v2](auto& _) {
-			if constexpr (is_ptr<std::remove_reference_t<decltype(t.*_)>>::value) { v1->at(i).*_ = &v2->at(i); }
-			}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-		}
+	  v2->push_back(u); v1->push_back(t); last_step_ret_ = sqlite3_step(stmt_);
+	  if (last_step_ret_ == SQLITE_ROW) { goto _; } short l = v1->size();
+	  for (short i = 0; i < l; ++i) {
+		ForEachTuple($, [&t, &i, v1, v2](auto& _) {
+		  using X = std::remove_reference_t<decltype(t.*_)>;
+		  if constexpr (is_ptr<X>::value) { if constexpr (std::is_same_v<ptr_pack_t<X>, U>) v1->at(i).*_ = &v2->at(i); }
+		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
 	  }
 	}
 	//Many to Many
-	template <typename T> void readM2M() {
-	  //int8_t x = -1, y = -1, z = -1; constexpr auto $ = Tuple<T>();
+	template <typename T> void readM2M(std::vector<T>* vt) {
+	  if (last_step_ret_ != SQLITE_ROW) return; constexpr auto $ = Tuple<T>();
+	  int8_t i, z, y; T t; char* c; _: i = z = y = -1;
+	  /*if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
+	  if (rowcount_ > 0 && strcmp(c, (const char*)sqlite3_column_text(stmt_, 0))) {
+		i += T::_size;
+		auto& v = dynamic_cast<T*>(&t)->*std::get<T::_size - 1>(li::Tuple<T>());
+		using Y = std::remove_reference_t<decltype(v)>;
+		if constexpr (is_vector<Y>::value) {
+		}
+	  }
+	  c = (const char*)sqlite3_column_text(stmt_, 0); ++rowcount_;*/
+	  last_step_ret_ = sqlite3_step(stmt_); vt->push_back(t); if (last_step_ret_ == SQLITE_ROW) { goto _; }
 	}
 	template <typename T> void readArr(std::vector<T>* output) {
 	  if (last_step_ret_ != SQLITE_ROW) return; T j; int8_t i; _: i = -1;
@@ -1881,45 +1902,47 @@ namespace li {
 	  using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readMySQL<Y>(++i, t); }
 	  });
   }
-
   template <typename B> template <typename T, typename U> void mysql_result<B>::readO2O(T* t, U* u) {
 	next_row(); if (end_of_result_) return;
 	int8_t y = -1, z = -1; constexpr const auto $ = Tuple<T>();
 	ForEachTuple($, [t, u, &y, &z, this](auto& _) {
 	  using Y = std::remove_reference_t<decltype(t->*_)>;
 	  if constexpr (is_ptr<Y>::value) {
-		ForEachField(u, [&z, &y, this](auto& v) {
-		  using Z = std::remove_reference_t<decltype(v)>;
-		  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readMySQL<Z>(++y, v); }
-		  }); t->*_ = u;
+		if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
+		  ForEachField(u, [&z, &y, this](auto& v) {
+			using Z = std::remove_reference_t<decltype(v)>;
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readMySQL<Z>(++y, v); }
+			}); t->*_ = u;
+		}
 	  } else if constexpr (!is_vector<Y>::value) { readMySQL<Y>(++y, t->*_); }
 	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
   }
   template <typename B> template <typename T, typename U> void mysql_result<B>::readO2O(std::vector<T>* v1, std::vector<U>* v2) {
-	next_row(); if (end_of_result_) return; T t; U u; int8_t x = -1, y, z; v2->clear();
-	constexpr const auto $ = Tuple<T>(); _: y = z = -1, ++x; v2->push_back(u); v1->push_back(t);
-	ForEachTuple($, [&t, v1, v2, &x, &y, &z, this](auto& _) {
+	next_row(); if (end_of_result_) return; T t; U u; int8_t x = -1, y, z;
+	constexpr const auto $ = Tuple<T>(); _: y = z = -1, ++x;
+	ForEachTuple($, [&t, &u, &x, &y, &z, this](auto& _) {
 	  using Y = std::remove_reference_t<decltype(t.*_)>;
 	  if constexpr (is_ptr<Y>::value) {
-		ForEachField(&v2->at(x), [&z, &y, this](auto& v) {
-		  using Z = std::remove_reference_t<decltype(v)>;
-		  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readMySQL<Z>(++y, v); }
-		  });
-	  } else if constexpr (!is_vector<Y>::value) { readMySQL<Y>(++y, v1->at(x).*_); }
-	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
-	  ++current_result_nrows_; goto _;
-	}
-	short l = v1->size(); if (l > 0) {
-	  for (short i = 0; i < l; ++i) {
+		if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
+		  ForEachField(&u, [&z, &y, this](auto& v) {
+			using Z = std::remove_reference_t<decltype(v)>;
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readMySQL<Z>(++y, v); }
+			});
+		}
+	  } else if constexpr (!is_vector<Y>::value) { readMySQL<Y>(++y, t.*_); }
+	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); v2->push_back(u); v1->push_back(t);
+	  if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
+		++current_result_nrows_; goto _;
+	  }
+	  short l = v1->size(); for (short i = 0; i < l; ++i) {
 		ForEachTuple($, [&t, &i, v1, v2](auto& _) {
-		  if constexpr (is_ptr<std::remove_reference_t<decltype(t.*_)>>::value) { v1->at(i).*_ = &v2->at(i); }
+		  using X = std::remove_reference_t<decltype(t.*_)>;
+		  if constexpr (is_ptr<X>::value) { if constexpr (std::is_same_v<ptr_pack_t<X>, U>) v1->at(i).*_ = &v2->at(i); }
 		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
 	  }
-	}
   }
   template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>* output) {
-	next_row(); if (end_of_result_) return; T j; int8_t i = -1;
+	next_row(); if (end_of_result_) return; T j; int8_t i = 0;
   _: i = -1;
 	ForEachField(&j, [&i, this](auto& t) {
 	  using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readMySQL<Y>(++i, t); }
@@ -2179,7 +2202,7 @@ namespace li {
   //If the configuration is not secure, you will connect to the development environment instead of the formal environment
 #ifndef IsDevMode
 #define IsDevMode 1
-#endif//cmake -dFastestDev 0 -dIsDevMode 0 -> This will be the configuration of the formal environment
+#endif
 #define Unsafe FastestDev || IsDevMode
   //The configuration isn't safe ? development : environment online
   struct sql_config {

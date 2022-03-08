@@ -2,7 +2,7 @@
 static int RES_INIT = orm::InitializationOrm();
 using namespace std; using namespace orm;
 struct Tab; //It's best to define each structure at the front, so that there is no need to consider the order later
-struct Type; D_M_TABLE(Type, Tab)//Delete the intermediate table before deleting the original table(Only FastestDev)
+struct Type; D_M_TABLE(Type, Tab);//Delete the intermediate table before deleting the original table(Only FastestDev)
 Struct(Tab) {
   uint32_t id;
   bool ok;

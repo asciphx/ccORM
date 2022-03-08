@@ -15,7 +15,7 @@ void test() {
   //cout << "The number with ID " << t->Insert() << " has been inserted\n";//After insertion, a new ID will be returned
   //t->Delete();//delete
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "The number with ID " << ty.Insert() << " has been inserted\n";
-  cout << Tab::Q()->orderBy(Tab::$date)->GetArr(Sort::DESC) << '\n';
+  cout << Tab::Q().orderBy(Tab::$date).GetArr(Sort::DESC) << '\n';
   cout << TLinker<Tab, Type>().GetJson();//Test combination, joint table debugging
 }
 int main(int argc, char* argv[]) {
@@ -23,12 +23,12 @@ int main(int argc, char* argv[]) {
   Timer t; bool run = true;//Marks the running state of the second thread
   t.setTimeout([&run] {
 	int i = 0; for (; i < 9999; ++i) {
-	  Tab::Q()->where(Tab::$id == 2)->GetOne();
+	  Tab::Q().where(Tab::$id == 2).GetOne();
 	} printf("<%d>", i);
 	run = false;//Represents the end of the secondary thread
 	}, 6);
   int i = 0; for (; i < 9998; ++i) {
-	Tab::Q()->where(Tab::$id == 1)->GetOne();
+	Tab::Q().where(Tab::$id == 1).GetOne();
   }//Multithreading test, here is the first thread, that is, the main thread
   printf("<%d>", i);
   while (run) { this_thread::yield(); }//If run is true, the program is prevented from ending prematurely

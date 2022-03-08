@@ -157,9 +157,7 @@ namespace orm {
   inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
 	try {
 	  if (j.contains(s)) {
-		if constexpr (std::is_same_v<bool, T>) {
-		  _v = j.at(s).get<short>() == 0 ? false : true;
-		} else { j.at(s).get_to(_v); }
+		if constexpr (std::is_same_v<bool, T>) { _v = j.at(s).get<short>() == 0 ? false : true; } else { j.at(s).get_to(_v); }
 	  }
 	} catch (const std::exception&) {}
   }
@@ -173,10 +171,15 @@ namespace orm {
 #endif
 }
 #if 1
+#ifndef _WIN32
+#define _IS_WIN 0
+#else
+#define _IS_WIN 1
+#endif
 #define EXP(O) O
 #ifdef _MSC_VER
 inline const char* orm::GetRealType(const char* s) {
-  if (s[11] == 118 || s[strLen(s) - 1] == '*') { return "S"; } if (s[0] == 117) { return s + 7; } return s;
+  if (s[0] == 117) { return s + 7; } if (s[11] == 118 || s[strLen(s) - 1] == '*') { return "S"; } return s;
 }
 #define Inject(U, T) orm::GetRealType(typeid(U::T).name())
 #define TO_CHAR "\""
@@ -196,38 +199,38 @@ inline const char* orm::GetRealType(const char* s, const char* c) {
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
 #endif
-#define PROTO_1(k)      #k
-#define PROTO_2(k,...)  #k, EXP(PROTO_1(__VA_ARGS__))
-#define PROTO_3(k,...)  #k, EXP(PROTO_2(__VA_ARGS__))
-#define PROTO_4(k,...)  #k, EXP(PROTO_3(__VA_ARGS__))
-#define PROTO_5(k,...)  #k, EXP(PROTO_4(__VA_ARGS__))
-#define PROTO_6(k,...)  #k, EXP(PROTO_5(__VA_ARGS__))
-#define PROTO_7(k,...)  #k, EXP(PROTO_6(__VA_ARGS__))
-#define PROTO_8(k,...)  #k, EXP(PROTO_7(__VA_ARGS__))
-#define PROTO_9(k,...)  #k, EXP(PROTO_8(__VA_ARGS__))
-#define PROTO_10(k,...) #k, EXP(PROTO_9(__VA_ARGS__))
-#define PROTO_11(k,...) #k, EXP(PROTO_10(__VA_ARGS__))
-#define PROTO_12(k,...) #k, EXP(PROTO_11(__VA_ARGS__))
-#define PROTO_13(k,...) #k, EXP(PROTO_12(__VA_ARGS__))
-#define PROTO_14(k,...) #k, EXP(PROTO_13(__VA_ARGS__))
-#define PROTO_15(k,...) #k, EXP(PROTO_14(__VA_ARGS__))
-#define PROTO_16(k,...) #k, EXP(PROTO_15(__VA_ARGS__))
-#define PROTO_17(k,...) #k, EXP(PROTO_16(__VA_ARGS__))
-#define PROTO_18(k,...) #k, EXP(PROTO_17(__VA_ARGS__))
-#define PROTO_19(k,...) #k, EXP(PROTO_18(__VA_ARGS__))
-#define PROTO_20(k,...) #k, EXP(PROTO_19(__VA_ARGS__))
-#define PROTO_21(k,...) #k, EXP(PROTO_20(__VA_ARGS__))
-#define PROTO_22(k,...) #k, EXP(PROTO_21(__VA_ARGS__))
-#define PROTO_23(k,...) #k, EXP(PROTO_22(__VA_ARGS__))
-#define PROTO_24(k,...) #k, EXP(PROTO_23(__VA_ARGS__))
-#define PROTO_25(k,...) #k, EXP(PROTO_24(__VA_ARGS__))
-#define PROTO_26(k,...) #k, EXP(PROTO_25(__VA_ARGS__))
-#define PROTO_27(k,...) #k, EXP(PROTO_26(__VA_ARGS__))
-#define PROTO_28(k,...) #k, EXP(PROTO_27(__VA_ARGS__))
-#define PROTO_29(k,...) #k, EXP(PROTO_28(__VA_ARGS__))
-#define PROTO_30(k,...) #k, EXP(PROTO_29(__VA_ARGS__))
-#define PROTO_31(k,...) #k, EXP(PROTO_30(__VA_ARGS__))
-#define PROTO_32(k,...) #k, EXP(PROTO_31(__VA_ARGS__))
+#define PROTO_1(k)      std::string_view(#k, sizeof(#k)-1)
+#define PROTO_2(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_1(__VA_ARGS__))
+#define PROTO_3(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_2(__VA_ARGS__))
+#define PROTO_4(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_3(__VA_ARGS__))
+#define PROTO_5(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_4(__VA_ARGS__))
+#define PROTO_6(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_5(__VA_ARGS__))
+#define PROTO_7(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_6(__VA_ARGS__))
+#define PROTO_8(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_7(__VA_ARGS__))
+#define PROTO_9(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_8(__VA_ARGS__))
+#define PROTO_10(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_9(__VA_ARGS__))
+#define PROTO_11(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_10(__VA_ARGS__))
+#define PROTO_12(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_11(__VA_ARGS__))
+#define PROTO_13(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_12(__VA_ARGS__))
+#define PROTO_14(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_13(__VA_ARGS__))
+#define PROTO_15(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_14(__VA_ARGS__))
+#define PROTO_16(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_15(__VA_ARGS__))
+#define PROTO_17(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_16(__VA_ARGS__))
+#define PROTO_18(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_17(__VA_ARGS__))
+#define PROTO_19(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_18(__VA_ARGS__))
+#define PROTO_20(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_19(__VA_ARGS__))
+#define PROTO_21(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_20(__VA_ARGS__))
+#define PROTO_22(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_21(__VA_ARGS__))
+#define PROTO_23(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_22(__VA_ARGS__))
+#define PROTO_24(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_23(__VA_ARGS__))
+#define PROTO_25(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_24(__VA_ARGS__))
+#define PROTO_26(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_25(__VA_ARGS__))
+#define PROTO_27(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_26(__VA_ARGS__))
+#define PROTO_28(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_27(__VA_ARGS__))
+#define PROTO_29(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_28(__VA_ARGS__))
+#define PROTO_30(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_29(__VA_ARGS__))
+#define PROTO_31(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_30(__VA_ARGS__))
+#define PROTO_32(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_31(__VA_ARGS__))
 #define PROTO_N1(N,...) EXP(PROTO_##N(__VA_ARGS__))
 #define PROTO_N(N,...) PROTO_N1(N,__VA_ARGS__)
 #define TYPE_1(o,k)      Inject(o, k)
@@ -302,8 +305,8 @@ inline const char* orm::GetRealType(const char* s, const char* c) {
 #define REGIST_STATIC(o,...)\
  template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__);\
  template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)] = { OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
- template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
- template<> const char* orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
+ template<> const std::string_view orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
+ template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
 
 static const char* orm::getAkTs(const char* _) {
   switch (hack8Str(_)) {
@@ -319,6 +322,7 @@ static const char* orm::getAkTs(const char* _) {
   default: return "[TYPE] MUST BE <NUMBER>!";
   }
 }
+#define VIEW_CHAR(k) std::string_view(k, sizeof(k)-1)
 //In the fastest development mode, the intermediate table will be deleted first(Only in fatest DevMode)
 #define D_M_TABLE(o, p)static int o##p_d(){std::string s("DROP TABLE IF EXISTS ");\
 if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}return 1;}static int _o##p_d=o##p_d();
@@ -454,9 +458,10 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
 	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
 	template<> bool orm::Table<o>::_created = true;
-#define CONSTRUCT(o,...)ATTRS(o, __VA_ARGS__)\
+#define CONSTRUCT(o,...)\
         REGIST_STATIC(o, __VA_ARGS__)\
-        REGISTER_TABLE(o)\
+		ATTRS(o, __VA_ARGS__)\
+		REGISTER_TABLE(o)\
     template <> inline constexpr auto li::Tuple<o>() {\
       return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
     }
@@ -516,7 +521,7 @@ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m primary key must be in the 
 else{ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m");} }}\
 } catch (const std::exception& e) { std::cerr << e.what();return 0; }unsigned int i = HARDWARE_ASYNCHRONOUS;\
 while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };if constexpr(FastestDev){orm::Table<o>::_dropTable();}return 1;}\
-template<> void orm::Table<o>::Dev(){if constexpr(FastestDev){std::vector<o> v={o(),o(),o()};o::Q()->InsertArr(&v);}}\
+template<> void orm::Table<o>::Dev(){if constexpr(FastestDev){std::vector<o> v={o(),o(),o()};o::Q().InsertArr(&v);}}\
 template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
 
 #define FIELD_1(k)      static const text<63> $##k;
@@ -627,8 +632,9 @@ template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Tabl
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
 #define PROTO(o,...)\
 PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
-template<> const char* orm::Table<o>::_ios=pgsqL?\
-"SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__):"SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__);
+template<> const std::string_view orm::Table<o>::_ios=pgsqL?\
+VIEW_CHAR("SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)):\
+VIEW_CHAR("SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));
 
 #define STR_1(k,i)  k[i]
 #define STR_2(k,i)  k[i], STR_1(k,i+1)

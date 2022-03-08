@@ -119,6 +119,7 @@ cmake --build .
 如果开关变动，请执行需要的开关选项
 ```
 cmake -DFastestDev=OFF -DIsDevMode=OFF --build ./
+cmake -DFastestDev=ON -DIsDevMode=OFF --build ./
 cmake -DFastestDev=ON -DIsDevMode=ON --build ./
 ```
 然后

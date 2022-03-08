@@ -12,9 +12,10 @@ namespace orm {
 	  return std::dynamic_pointer_cast<T>(std::enable_shared_from_this<enable_virtual>::shared_from_this());
 	}
   };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
-  template<typename T> class Table : public virtual_shared<T> { /*Store (T.<k>,)... *//*Store <k> name[]*//*Store alias*//*AS [alias]_<k>*/
-	static const std::string _name, _drop, _lower; static const uint8_t _size; const static char* _ios, * $[], * _alias, * _as_alia;//^
+  template<typename T> class Table : public virtual_shared<T> { /*-----------------------Store alias*//*AS [alias]_<k>*/
+	static const std::string _name, _drop, _lower; static const uint8_t _size; const static char* _alias, * _as_alia;//^
 	static bool _created; static unsigned char _idex; static std::string _create; static const size_t _o$[];/*Store offset[]*/
+	static const std::string_view $[], _ios;/*Store <k> name[]*//*Store (T.<k>,)... *//*lower name*/
 #ifdef _WIN32
 	friend typename T; const static char* _def[];/*Store default values[]*/static unsigned char _tc[];/*Store key type[]*/
 #endif
@@ -53,9 +54,9 @@ namespace orm {
 	  int8_t idex = -1; Exp{ ($et(++idex, &t), 0)... }; return;/*This code will never arrive && detect types*/ *this = T(t...);
 	}
 	//Query builder
-	static Sql<T>* Q() {
+	static Sql<T>& Q() {
 	_: if (++_idex > HARDWARE_CORE) _idex = 0; Sql<T>* q = __[_idex];
-	  if (q->___) { q->___ = false; return q; } std::this_thread::yield(); goto _;
+	  if (q->___) { q->___ = false; return *q; } std::this_thread::yield(); goto _;
 	};
 	//<T> serialized as JSON with std::vector, includes empty std::vector
 	json get() { return json(*dynamic_cast<T*>(this)); }
@@ -145,7 +146,7 @@ namespace orm {
 	  if (_created) {
 		_created = false; try {
 		  for (uint8_t i = 0; i < _size; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
-			if (_[i][0] == 0x53 || _[i][0] == 0x50) { continue; }
+			if constexpr (_IS_WIN) { if (_[i][0] == 0x53) { continue; } } else { if (_[i][0] == 0x53 || _[i][0] == 0x50) { continue; } }
 			if (_tc[i] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
 			  switch (hack8Str(_[i])) {
 			  case "signed char"_l: case 'a': case "short"_l: case 's': case 'int': case 'i': case "__int64"_l: case 'x':
