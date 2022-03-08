@@ -80,20 +80,20 @@ void test() {
 [{"id":1,"language":"c++"},{"id":2,"tabs":[{"id":1,"name":"wtf!","ok":1}]},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';//宽松布尔类型反序列化，加入0,1的支持
   t->Insert();//插入,返回值是long long类型
-  cout << Tab::Q()->GetArr();
+  cout << Tab::Q().GetArr();
   t->Delete();//删除
-  *t = Tab::Q()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q().where(Tab::$id == 1).GetOne(); cout << t << '\n';
 }
 int main() {
   clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q().where(Tab::$id == 2).GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->where(Tab::$id == 1)->GetOne();
+	Tab::Q().where(Tab::$id == 1).GetOne();
   }//多线程测试
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
@@ -119,17 +119,18 @@ cmake --build .
 如果开关变动，请执行需要的开关选项
 ```
 cmake -DFastestDev=OFF -DIsDevMode=OFF --build ./
-cmake -DFastestDev=ON -DIsDevMode=OFF --build ./
+cmake -DFastestDev=OFF -DIsDevMode=ON --build ./
 cmake -DFastestDev=ON -DIsDevMode=ON --build ./
 ```
 然后
 ```
 cmake --build ./
 ```
-或者下面的方式，这只是示例，注意：请自行修改`build_linux.sh`文件.通过`sh ./build_linux.sh`编译
+或者下面的方式对应上面开关选项，这只是示例，注意：请自行修改`build_linux.sh`文件.通过`sh ./build_linux.sh`编译
 ```
-g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
--pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC
+g++ -DFastestDev=0  -DIsDevMode=0 ...线上环境，不会重新建表
+g++ -DFastestDev=0  -DIsDevMode=1 ...不重新建表(未改变表结构可用)，开发环境
+g++ -DFastestDev=1  -DIsDevMode=1 ...每次会重新建表，开发环境
 ```
 # 支持的编译器（最低版本）:
     - Linux: G++ 9.2, Clang++ 9.0

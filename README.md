@@ -80,20 +80,20 @@ void test() {
 [{"id":1,"language":"c++"},{"id":2,"tabs":[{"id":1,"name":"wtf!","ok":1}]},{"id":3,"language":"rust"}]})").get<Tab>();
   t->lang[1].language = "golang"; cout << t << '\n';//Loose boolean type deserialization, adding 0,1 support
   t->Insert();//insert, the return value is long long type
-  cout << Tab::Q()->GetArr();
+  cout << Tab::Q().GetArr();
   t->Delete();//delete
-  *t = Tab::Q()->where(Tab::$id == 1)->GetOne(); cout << t << '\n';
+  *t = Tab::Q().where(Tab::$id == 1).GetOne(); cout << t << '\n';
 }
 int main() {
   clock_t start = clock(); test();
   Timer t; bool run = true;
   t.setTimeout([&run] {
 	int i = 0; for (; i < 99999; ++i) {
-	Tab::Q()->where(Tab::$id == 2)->GetOne(); } printf("<%d>", i);
+	Tab::Q().where(Tab::$id == 2).GetOne(); } printf("<%d>", i);
 	run = false;
 	}, 6);
   int i = 0; for (; i < 98888; ++i) {
-	Tab::Q()->where(Tab::$id == 1)->GetOne();
+	Tab::Q().where(Tab::$id == 1).GetOne();
   }//Multithreading test
   printf("<%d>", i);
   while (run) { this_thread::yield(); }
@@ -119,20 +119,19 @@ cmake --build .
 If the switch changes, perform the required switch options, eg:
 ```
 cmake -DFastestDev=OFF -DIsDevMode=OFF --build ./
-cmake -DFastestDev=ON -DIsDevMode=OFF --build ./
+cmake -DFastestDev=OFF -DIsDevMode=ON --build ./
 cmake -DFastestDev=ON -DIsDevMode=ON --build ./
 ```
 then
 ```
 cmake --build .
 ```
-...or then add it where you need to connect to the library
-target_link_libraries(main ${MYSQL_LIBRARY})
-perhaps
-This is just an example. Note: please modify the `build_linux.sh` file .Through `sh ./build_linux.sh` compilation
+Or the following method corresponds to the above switch options. This is just an example.
+Note: please modify 'build' yourself_ linux. SH ` file Pass ` sh/ build_ linux. SH ` compile
 ```
-g++ -std=c++17 *.cc -o main -I./src -ldl -Wstack-protector -fstack-protector-all
--pthread -ggdb -lmariadb -lmariadbclient -Wwrite-strings -lssl -lcrypto -lz -fPIC 
+g++ -DFastestDev=0 -DIsDevMode=0 ... In the online environment, the table will not be rebuilt
+g++ -DFastestDev=0 -DIsDevMode=1 ... Do not re create the table (the table structure is not changed and can be used), and the development environment
+g++ -DFastestDev=1 -DIsDevMode=1 ... Each time, the table will be rebuilt to develop the environment
 ```
 # Supported compilers(minimum version):
     - Linux: G++ 9.2, Clang++ 9.0
