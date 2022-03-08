@@ -103,8 +103,10 @@ namespace orm {
 	}
 	//Update the object (The default condition is the value of the frist key)
 	void Update() {
-	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET ";
-	  std::string cd(" WHERE "); cd += $[0]; cd.push_back('=');
+	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET "; std::string cd(" WHERE ");
+	  if constexpr(pgsqL) {
+		cd.push_back('"'); cd += $[0]; cd.push_back('"'); cd.push_back('=');
+	  } else { cd += $[0]; cd.push_back('='); }
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(li::Tuple<T>());
 	  using Y = std::remove_reference_t<decltype(t)>;
 	  if constexpr (std::is_fundamental<Y>::value) {
@@ -139,7 +141,10 @@ namespace orm {
 	}
 	//Delete the object based on this object's frist key
 	void Delete() {
-	  std::ostringstream os; os << "DELETE FROM " << _name << " WHERE " << $[0] << '=';
+	  std::ostringstream os; os << "DELETE FROM " << _name;
+	  if constexpr (pgsqL) {
+		os << " WHERE \"" << $[0] << "\"=";
+	  } else { os << " WHERE " << $[0] << '='; }
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(li::Tuple<T>());
 	  using Y = std::remove_reference_t<decltype(t)>;
 	  if constexpr (std::is_same<bool, Y>::value) {
