@@ -42,7 +42,6 @@ REGIST(Type,
   TC::DEFAULT, "c/c++",
   TC::EMPTY, "");
 //M_TABLE(Type, id, Tab, id)//Actually,there is no need for an intermediate table in one-to-one
-//one-to-one has been completed. In particular, one-to-one is actually a combination of two tables
 int main(int argc, char* argv[]) { //For example, if on() has multiple conditions, up to three conditions. eg : two conditions
   //cout << ((Tab::$id == Type::$id) && (Type::$bigBlob == Tab::$name)) << '\n';//(`Tab`.`id`=`Type`.`id` AND `Type`.`bigBlob`=`Tab`.`name`)
   Type u; Tab t = TLinker<Tab, Type>(Tab::$id == Type::$id).where(Tab::$id == 2).GetOne(&u); cout << t << '\n';

@@ -16,6 +16,7 @@
 #include <cstdarg>
 #include <stdexcept>
 #include "json.hh"
+
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
   using Expand = int[];
@@ -328,16 +329,17 @@ static const char* orm::getAkTs(const char* _) {
 if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}return 1;}static int _o##p_d=o##p_d();
 //after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)\
- static int o##p_(){std::string s;bool b=false;if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=toSqlCase(#o"_")+toSqlCase(#p"';");\
-if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=toSqlCase(#o"_")+toSqlCase(#p" "); s.push_back('(');\
-s+=pgsqL?"\n\""#o"_"#o_k"\" ":"\n`"#o"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
-s+=" NOT NULL,\n"; s+=pgsqL?"\""#p"_"#p_k"\" ":"`"#p"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\
-s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"#o"_"#p" PRIMARY KEY(\""#o"_"#o_k"\",\""#p"_"#p_k"\")":\
-" NOT NULL,\nCONSTRAINT pk_"#o"_"#p" PRIMARY KEY(`"#o"_"#o_k"`,`"#p"_"#p_k"`)";s+=",\nCONSTRAINT fk_";\
-s+=pgsqL?#o"_"#o_k" FOREIGN KEY(\""#o"_"#o_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#o_k"\")":#o"_"#o_k" FOREIGN KEY(`"\
-#o"_"#o_k"`) REFERENCES `"+toSqlCase(#o)+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";\
-s+=pgsqL?#p"_"#p_k" FOREIGN KEY(\""#p"_"#p_k"\") REFERENCES \""+toSqlCase(#o)+"\"(\""#p_k"\")":#p"_"#p_k" FOREIGN KEY(`"\
-#p"_"#p_k"`) REFERENCES `"+toSqlCase(#p)+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);\n";if(!b)D.conn()(s);printf(s.c_str());\
+ static int o##p_(){std::string s,ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;\
+if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";\
+if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');\
+s+=pgsqL?"\n\""+ot+"_"#o_k"\" ":"\n`"+ot+"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
+s+=" NOT NULL,\n"; s+=pgsqL?"\""+pt+"_"#p_k"\" ":"`"+pt+"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\
+s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(\""+ot+"_"#o_k"\",\""+pt+"_"#p_k"\")":\
+" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(`"+ot+"_"#o_k"`,`"+pt+"_"#p_k"`)";s+=",\nCONSTRAINT fk_";\
+s+=pgsqL?ot+"_"#o_k" FOREIGN KEY(\""+ot+"_"#o_k"\") REFERENCES \""+ot+"\"(\""#o_k"\")":ot+"_"#o_k" FOREIGN KEY(`"\
++ot+"_"#o_k"`) REFERENCES `"+ot+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";\
+s+=pgsqL?pt+"_"#p_k" FOREIGN KEY(\""+pt+"_"#p_k"\") REFERENCES \""+pt+"\"(\""#p_k"\")":pt+"_"#p_k" FOREIGN KEY(`"\
++pt+"_"#p_k"`) REFERENCES `"+pt+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);\n";if(!b)D.conn()(s);printf(s.c_str());\
 return 0;} static int _##o##p=o##p_();
 
 #define COL_1(o,k)      orm::FuckJSON(o.k,#k,j);
@@ -451,8 +453,8 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define REGISTER_TABLE(o)\
 	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
 	template<> uint8_t orm::Table<o>::_idex = 0;\
-	template<> std::string orm::Table<o>::_create = pgsqL?"CREATE TABLE IF NOT EXISTS \""+toSqlCase(#o"\" (\n"):"CREATE TABLE IF NOT EXISTS `"#o"` (\n";\
-	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""+toSqlCase(#o"\""):"DROP TABLE IF EXISTS `"#o"`";\
+	template<> std::string orm::Table<o>::_create = pgsqL?"CREATE TABLE IF NOT EXISTS \""+toSqlCase(#o"\" (\n"):"CREATE TABLE IF NOT EXISTS `"+toSqlCase(#o"` (\n");\
+	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""+toSqlCase(#o"\""):"DROP TABLE IF EXISTS `"+toSqlCase(#o"`");\
 	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+toSqlCase(#o"\""):"`"+toSqlCase(#o"`");\
 	template<> const std::string orm::Table<o>::_lower = toSqlCase(#o);\
 	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\

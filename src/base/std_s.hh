@@ -28,7 +28,7 @@ namespace std {
 	}
 	return static_cast<int8_t>(_Ans);
   }
-#if (defined(__cplusplus) && __cplusplus < 201703L) && !defined(_HAS_CXX17)
+#if !defined(_HAS_CXX17)
   //class string_view {
   // 
   //};

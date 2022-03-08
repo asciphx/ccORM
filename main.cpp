@@ -1,8 +1,8 @@
 #include "src/ccORM.hh"
 auto D =
-//D_mysql();
+D_mysql();
 //D_pgsql();
-D_sqlite("any.db");
+//D_sqlite("any.db");
 #include "module.hh"
 //many-to-many test. It's going on, but I need more stars and honors. The following contents are all machine translation
 void test() {
