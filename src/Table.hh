@@ -12,8 +12,8 @@ namespace orm {
 	  return std::dynamic_pointer_cast<T>(std::enable_shared_from_this<enable_virtual>::shared_from_this());
 	}
   };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
-  template<typename T> class Table : public virtual_shared<T> { /*-----------------------Store alias*//*AS [alias]_<k>*/
-	static const std::string _name, _drop, _lower; static const uint8_t _size; const static char* _alias, * _as_alia;//^
+  template<typename T> class Table : public virtual_shared<T> { /*struct size---proto length----Store alias*//*AS [alias]_<k>*/
+	static const std::string _name, _drop, _lower; static const uint8_t _size, _len; const static char* _alias, * _as_alia;//^
 	static bool _created; static unsigned char _idex; static std::string _create; static const size_t _o$[];/*Store offset[]*/
 	static const std::string_view $[], _ios;/*Store <k> name[]*//*Store (T.<k>,)... *//*lower name*/
 #ifdef _WIN32
@@ -23,13 +23,11 @@ namespace orm {
 	friend struct Sql<T>; static const char* _[];/*Store type character[]*/static int _r, _r1;/*Prepare Run Serialization*/
 	template <typename U> void $et(int8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
-		switch (hack8Str(_[i])) {
-		case "class text"_l:
-		case "4textILt"_l:*reinterpret_cast<text<>*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v; break;
-		case "class std::basic_string"_l:
-		case "NSt7__cx"_l:*reinterpret_cast<std::string*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
+		switch (_[i][0]) {
+		case T_TEXT_:*reinterpret_cast<text<>*>(RUST_CAST(this) + this->_o$[i]) = *v; break;
+		case T_STRING_:*reinterpret_cast<std::string*>(RUST_CAST(this) + this->_o$[i]) = *v;
 		}
-	  } else *reinterpret_cast<U*>(reinterpret_cast<char*>(this) + this->_o$[i]) = *v;
+	  } else *reinterpret_cast<U*>(RUST_CAST(this) + this->_o$[i]) = *v;
 	}
 	template <typename U> friend typename std::enable_if<li::is_vector<U>::value, void>::type FuckJSON(const U& u, const char* s, json& j);
 	template <typename U> friend typename std::enable_if<li::is_ptr<U>::value &&
@@ -104,7 +102,7 @@ namespace orm {
 	//Update the object (The default condition is the value of the frist key)
 	void Update() {
 	  int8_t i = -1; std::ostringstream os; os << "UPDATE " << _name << " SET "; std::string cd(" WHERE ");
-	  if constexpr(pgsqL) {
+	  if constexpr (pgsqL) {
 		cd.push_back('"'); cd += $[0]; cd.push_back('"'); cd.push_back('=');
 	  } else { cd += $[0]; cd.push_back('='); }
 	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(li::Tuple<T>());
@@ -122,9 +120,7 @@ namespace orm {
 		using Z = std::remove_reference_t<decltype(t)>;
 		if (++i && !(T::_tc[i] & TC::AUTO_INCREMENT)) {
 		  if constexpr (std::is_same<bool, Z>::value) {
-			if constexpr (pgsqL) {
-			  os << '"' << T::$[i] << "\"=" << (t ? "true" : "false") << ',';
-			} else { os << T::$[i] << '=' << t << ','; }
+			if constexpr (pgsqL) { os << '"' << T::$[i] << "\"=" << (t ? "true" : "false") << ','; } else { os << T::$[i] << '=' << t << ','; }
 		  } else if constexpr (std::is_fundamental<Z>::value) {
 			if constexpr (pgsqL) { os << '"' << T::$[i] << '"'; } else { os << T::$[i]; } os << '=' << t << ',';
 		  } else if constexpr (std::is_same<tm, Z>::value) {
@@ -162,13 +158,13 @@ namespace orm {
 	}
 	static int _addTable() {//MAC system is not necessarily supported because I don't have physical machine test
 	  if (_created) {
-		_created = false; try {
-		  for (uint8_t i = 0; i < _size; ++i) {//St6vectorI4TypeSaIS1_EE(Linux)
-			if constexpr (_IS_WIN) { if (_[i][0] == 0x53) { continue; } } else { if (_[i][0] == 0x53 || _[i][0] == 0x50) { continue; } }
+		_created = false; bool wrong_order = false; try {
+		  for (uint8_t i = 0; i < _size; ++i) {
+			if (_[i][0] == 0x2a || _[i][0] == 0x5f) { if (i != _size) { wrong_order = true; } continue; } else {}
+			if (wrong_order) { throw std::runtime_error("\033[1;34m*/[]\033[31;4m type should be at the end!\n\033[0m" __FILE__); }
 			if (_tc[i] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
-			  switch (hack8Str(_[i])) {
-			  case "signed char"_l: case 'a': case "short"_l: case 's': case 'int': case 'i': case "__int64"_l: case 'x':
-			  case "d char"_l: case 'h': case "d short"_l: case 't': case "d int"_l: case 'j': case "d __int64"_l: case 'y':
+			  switch (_[i][0]) {
+			  case T_INT8_: case T_INT16_: case T_INT_: case T_INT64_: case T_UINT8_: case T_UINT16_: case T_UINT_: case T_UINT64_:
 			  break; default:throw std::runtime_error("\033[1;34m[sequence]\033[31;4m type must be number!\n\033[0m");
 			  }
 			}
@@ -176,44 +172,32 @@ namespace orm {
 			if constexpr (pgsqL) {
 			  _create.push_back('"'); _create += $[i]; _create.push_back('"');
 			  if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {//Compatible layer, unsigned field may be only half the size
-				switch (hack8Str(_[i])) {
-				case "signed char"_l: case 'a':
-				case "d char"_l: case 'h':
-				case "short"_l: case 's':
-				case "d short"_l: case 't': _create += " SMALLSERIAL PRIMARY KEY"; break;
-				case 'int': case 'i':
-				case "d int"_l: case 'j': _create += " SERIAL PRIMARY KEY"; break;
-				case "__int64"_l: case 'x':
-				case "d __int64"_l: case 'y': _create += " BIGSERIAL PRIMARY KEY"; break;
+				switch (_[i][0]) {
+				case T_INT8_: case T_UINT8_:
+				case T_INT16_: case T_UINT16_: _create += " SMALLSERIAL PRIMARY KEY"; break;
+				case T_INT_: case T_UINT_: _create += " SERIAL PRIMARY KEY"; break;
+				case T_INT64_: case T_UINT64_: _create += " BIGSERIAL PRIMARY KEY"; break;
 				} continue;
 			  }
 			} else if constexpr (sqlitE) {//AUTOINCREMENT is only allowed on an INTEGER PRIMARY KEY
 			  _create.push_back('`'); _create += $[i]; _create.push_back('`');
 			  if (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT) { _create += " INTEGER PRIMARY KEY AUTOINCREMENT"; continue; }
 			} else { _create.push_back('`'); _create += $[i]; _create.push_back('`'); }
-			switch (hack8Str(_[i])) {
-			case 'bool':
-			case 'b': _create += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create += " NOT NULL"; }
-					if constexpr (pgsqL) { goto $; }
-					if (tc & TC::DEFAULT && so2s<bool>(def)) {
-					  _create += " DEFAULT "; _create.push_back('\''); if (def[0] == 't') {
-						_create.push_back('1');
-					  } else { _create.push_back('0'); } _create.push_back('\'');
-					} continue;
-			case "double"_l://or DECIMAL(16,6), Because the decimal places of double are only 6 in C++
-			case 'd': if constexpr (pgsqL) { _create += " DOUBLE PRECISION"; } else { _create += " DOUBLE"; } goto $;
-			case "float"_l:
-			case 'f': _create += " REAL"; goto $;
-			case "signed char"_l:
-			case 'a': _create += " TINYINT"; break;
-			case "short"_l:
-			case 's': _create += " SMALLINT"; break;
-			case 'int':
-			case 'i': _create += " INTEGER"; if constexpr (sqlitE) { if (tc & TC::AUTO_INCREMENT) _create += " AUTOINCREMENT"; } break;
-			case "__int64"_l:
-			case 'x': _create += " BIGINT"; break;
-			case "struct tm"_l:
-			case '2tm': if constexpr (pgsqL) {
+			switch (hack4Str(_[i])) {
+			case T_BOOL_: _create += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create += " NOT NULL"; }
+						if constexpr (pgsqL) { goto $; }
+						if (tc & TC::DEFAULT && so2s<bool>(def)) {
+						  _create += " DEFAULT "; _create.push_back('\''); if (def[0] == 't') {
+							_create.push_back('1');
+						  } else { _create.push_back('0'); } _create.push_back('\'');
+						} continue;//or DECIMAL(16,6), Because the decimal places of double are only 6 in C++
+			case T_DOUBLE_: if constexpr (pgsqL) { _create += " DOUBLE PRECISION"; } else { _create += " DOUBLE"; } goto $;
+			case T_FLOAT_: _create += " REAL"; goto $;
+			case T_INT8_: _create += " TINYINT"; break;
+			case T_INT16_: _create += " SMALLINT"; break;
+			case T_INT_: _create += " INTEGER"; if constexpr (sqlitE) { if (tc & TC::AUTO_INCREMENT) _create += " AUTOINCREMENT"; } break;
+			case T_INT64_: _create += " BIGINT"; break;
+			case T_TM_: if constexpr (pgsqL) {
 			  _create += " timestamp without time zone";
 			} else { _create += " DATETIME"; }
 			if (tc & TC::NOT_NULL) { _create += " NOT NULL"; }
@@ -225,24 +209,18 @@ namespace orm {
 				_create += " DEFAULT now()";
 			  } else { _create += " DEFAULT CURRENT_TIMESTAMP"; }
 			} continue;
-			case "class text"_l: {_create += " VARCHAR("; int c = 0xb; while (_[i][c] < 58)_create.push_back(_[i][c++]); _create.push_back(41); } goto $;
-			case "4textILt"_l: {_create += " VARCHAR("; int c = 8; while (_[i][c] < 58)_create.push_back(_[i][c++]); _create.push_back(41); } goto $;
-			case "class std::basic_string"_l:
-			case "NSt7__cx"_l: _create += " TEXT"; goto $;
-			case "d char"_l://uint8_t,sqlite not support UNSIGNED, PgSQL can use CREATE DOMAIN
-			case 'h': if constexpr (pgsqL) {
+			case T_TEXT_: {_create += " VARCHAR("; _create += _[i] + 1; _create.push_back(')'); } goto $;
+			case T_STRING_: _create += " TEXT"; goto $;
+			case T_UINT8_: if constexpr (pgsqL) {
 			  _create += " UNSIGNED_TINYINT";
 			} else if constexpr (mysqL) { _create += " TINYINT UNSIGNED"; } else { _create += " TINYINT"; } break;
-			case "d short"_l:
-			case 't': if constexpr (pgsqL) {
+			case T_UINT16_: if constexpr (pgsqL) {
 			  _create += " UNSIGNED_SMALLINT";
 			} else if constexpr (mysqL) { _create += " SMALLINT UNSIGNED"; } else { _create += " SMALLINT"; } break;
-			case "d int"_l:
-			case 'j': if constexpr (pgsqL) {
+			case T_UINT_: if constexpr (pgsqL) {
 			  _create += " UNSIGNED_INTEGER";
 			} else if constexpr (mysqL) { _create += " INTEGER UNSIGNED"; } else { _create += " INTEGER"; } break;
-			case "d __int64"_l://PgSQL,sqlite may be difficult to handle
-			case 'y': if constexpr (pgsqL) {
+			case T_UINT64_: if constexpr (pgsqL) {
 			  _create += " UNSIGNED_BIGINT";
 			} else if constexpr (mysqL) { _create += " BIGINT UNSIGNED"; } else { _create += " BIGINT"; } break;
 			}
@@ -255,38 +233,25 @@ namespace orm {
 		  $://String type detection system => unsigned -> d
 			if (tc & TC::NOT_NULL) { _create += " NOT NULL"; }
 			if (tc & TC::DEFAULT) {
-			  switch (hack8Str(_[i])) {
-			  case "double"_l:
-			  case 'd': if (!so2s<double>(def)) { break; } goto _;
-			  case "float"_l:
-			  case 'f': if (!so2s<float>(def)) { break; } goto _;
-			  case "__int64"_l:
-			  case 'x': if (!so2s<long long>(def)) { break; } goto _;
-			  case "signed char"_l:
-			  case 'a': if (!so2s<int8_t>(def)) { break; } goto _;
-			  case 'bool':
-			  case 'b': if (!so2s<bool>(def)) { break; } goto _;
-			  case "short"_l:
-			  case 's': if (!so2s<short>(def)) { break; } goto _;
-			  case 'int':
-			  case 'i': if (!so2s<int>(def)) { break; } _: _create += " DEFAULT ";
+			  switch (_[i][0]) {
+			  case T_DOUBLE_: if (!so2s<double>(def)) { break; } goto _;
+			  case T_FLOAT_: if (!so2s<float>(def)) { break; } goto _;
+			  case T_INT64_: if (!so2s<long long>(def)) { break; } goto _;
+			  case T_INT8_: if (!so2s<int8_t>(def)) { break; } goto _;
+			  case T_BOOL_: if (!so2s<bool>(def)) { break; } goto _;
+			  case T_INT16_: if (!so2s<short>(def)) { break; } goto _;
+			  case T_INT_: if (!so2s<int>(def)) { break; } _: _create += " DEFAULT ";
 				_create.push_back('\''); _create += def; _create.push_back('\''); break;
-			  case "class text"_l:
-			  case "4textILt"_l://maybe check length
-			  case "class std::basic_string"_l:
-			  case "NSt7__cx"_l: _create += " DEFAULT "; _create.push_back('\''); _create += toQuotes(def); _create.push_back('\''); break;
-			  case "d char"_l://not check UNSIGNED, may need to be improved
-			  case 'h':
-			  case "d short"_l:
-			  case 't':
-			  case "d int"_l:
-			  case 'j':
-			  case "d __int64"_l:
-			  case 'y': goto _;
+			  case T_TEXT_:
+			  case T_STRING_: _create += " DEFAULT "; _create.push_back('\''); _create += toQuotes(def); _create.push_back('\''); break;
+			  case T_UINT8_:
+			  case T_UINT16_:
+			  case T_UINT_:
+			  case T_UINT64_: goto _;
 			  }
 			}
 		  } _create += "\n);\n";
-		} catch (const std::exception& e) { std::cerr << e.what(); return 0; }
+		} catch (const std::exception& e) { std::cerr << e.what(); exit(0); }
 	  }
 	  auto DbQuery = D.conn();
 	  std::cout << _create;

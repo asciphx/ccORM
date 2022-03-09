@@ -17,7 +17,7 @@ static std::string toUpperCase(const char* s);
 static std::string& toLowerCase(std::string& s);
 static std::string toLowerCase(const char* s);
 static std::string toSqlCase(const char* s);
-template<typename T> const char* getObjectName();
+template<typename T> const char* ObjName();
 static std::string toQuotes(const char* s);
 std::ostream& operator<<(std::ostream& os, const tm& _v);
 std::string& operator<<(std::string& s, const tm& _v);
@@ -110,6 +110,11 @@ constexpr int operator""_i(const char* s, size_t /*len*/) {
 constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
   unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
 }
+#ifdef _WIN32
+#define _IS_WIN 1
+#else
+#define _IS_WIN 0
+#endif
 static std::string& toUpperCase(std::string& s) {
   char* c = (char*)s.c_str();
   if (*c > 0x60 && *c < 0x7b) { *c &= ~0x20; }
@@ -153,7 +158,7 @@ static std::string toSqlCase(const char* s) {
 	} else { e.push_back(*s); }
   } return e;
 }
-template<typename T> const char* getObjectName() {
+template<typename T> const char* ObjName() {
   const char* s = typeid(T).name();
 #if _WIN32
   while (*++s != 0x20); return ++s;
@@ -202,4 +207,52 @@ bool operator<(tm& t, tm& m) { return mktime(&t) < mktime(&m); }
 bool operator>(tm& t, tm& m) { return mktime(&t) > mktime(&m); }
 bool operator<=(tm& t, tm& m) { return mktime(&t) <= mktime(&m); }
 bool operator>=(tm& t, tm& m) { return mktime(&t) >= mktime(&m); }
+#if _IS_WIN
+#define T_INT8 "signed char"_l
+#define T_UINT8 "d char"_l
+#define T_INT16 "short"_l
+#define T_UINT16 "d short"_l
+#define T_INT 'int'
+#define T_UINT "d int"_l
+#define T_INT64 "__int64"_l
+#define T_UINT64 "d __int64"_l
+#define T_BOOL 'bool'
+#define T_DOUBLE "double"_l
+#define T_FLOAT "float"_l
+#define T_TM "struct tm"_l
+#define T_TEXT "class text"_l
+#define T_STRING "class std::basic_string"_l
+//#elif __APPLE__
+#else
+#define T_INT8 'a'
+#define T_UINT8 'h'
+#define T_INT16 's'
+#define T_UINT16 't'
+#define T_INT 'i'
+#define T_UINT 'j'
+#define T_INT64 'x'
+#define T_UINT64 'y'
+#define T_BOOL 'b'
+#define T_DOUBLE 'd'
+#define T_FLOAT 'f'
+#define T_TM '2tm'
+#define T_TEXT "4textILt"_l
+#define T_STRING "NSt7__cx"_l
+#endif
+#define T_INT8_ 'a'
+#define T_UINT8_ 'h'
+#define T_INT16_ 's'
+#define T_UINT16_ 't'
+#define T_INT_ 'i'
+#define T_UINT_ 'j'
+#define T_INT64_ 'x'
+#define T_UINT64_ 'y'
+#define T_BOOL_ 'b'
+#define T_DOUBLE_ 'd'
+#define T_FLOAT_ 'f'
+#define T_TM_ 'm'
+#define T_TEXT_ 'e'
+#define T_STRING_ 'c'
+#define T_POINTER_ '*'
+#define T_VECTOR_ '_'
 #endif

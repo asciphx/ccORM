@@ -16,7 +16,7 @@
 #include <cstdarg>
 #include <stdexcept>
 #include "json.hh"
-
+#define M_IDEX 0xa
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
   using Expand = int[];
@@ -166,33 +166,75 @@ namespace orm {
   inline typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T _v, const char* s, const json& j) {}
   static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
 #ifdef _MSC_VER
-  inline const char* GetRealType(const char* _);//get key's type char
+  inline const char* RType(const char* _);//get key's type char
+  inline const char* LiType(const char* _);
 #else
-  inline const char* GetRealType(const char* _, const char* $);//get key's type char
+  inline const char* RType(const char* _, const char* $);//get key's type char
+  inline const char* LiType(const char* _, unsigned char $);
 #endif
+  char RES_C[M_IDEX][40] = { 0 }; uint8_t RES_I = 0;
+  inline const char* HandleComma(const char* _) {
+	int8_t i = 0; RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '_';
+	while (*++_ != ',')RES_C[RES_I][++i] = *_; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
+  };
 }
 #if 1
-#ifndef _WIN32
-#define _IS_WIN 0
-#else
-#define _IS_WIN 1
-#endif
 #define EXP(O) O
 #ifdef _MSC_VER
-inline const char* orm::GetRealType(const char* s) {
-  if (s[0] == 117) { return s + 7; } if (s[11] == 118 || s[strLen(s) - 1] == '*') { return "S"; } return s;
+inline const char* orm::LiType(const char* s) {
+  switch (hack8Str(s)) {
+  case T_TM: return "m";
+  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 'e'; RES_C[RES_I][1] = 0; int8_t i = 0; s += 0xa;
+	while (*++s < 58)RES_C[RES_I][++i] = *s; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
+  case T_STRING: return "c";
+  case T_INT8: return "a";
+  case T_UINT8: return "h";
+  case T_INT16: return "s";
+  case T_UINT16: return "t";
+  case T_INT: return "i";
+  case T_UINT: return "j";
+  case T_INT64: return "x";
+  case T_UINT64: return "y";
+  case T_BOOL: return "b";
+  case T_DOUBLE:return "d";
+  case T_FLOAT: return "f";
+  default: return s;
+  }
 }
-#define Inject(U, T) orm::GetRealType(typeid(U::T).name())
+inline const char* orm::RType(const char* s) {
+  if (s[0] == 117) { return s + 7; } if (s[11] == 118) { return HandleComma(s + 24); }
+  if (s[strLen(s) - 1] == '*') {
+	RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '*'; RES_C[RES_I][1] = 0; s += 6;
+	int8_t i = 0; while (*++s != ' ') { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0;
+	return RES_C[RES_I];
+  } return s;
+}
+#define Inject(U, T) orm::LiType(orm::RType(typeid(U::T).name()))
 #define TO_CHAR "\""
 #define FOR_CHAR "`"
 #define IOS_(o,a,k) o##a#k##a
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
-inline const char* orm::GetRealType(const char* s, const char* c) {
-  unsigned char l = strLen(s); l > 9 ? l += 3 : l += 2; return c + l;
+inline const char* orm::LiType(const char* s, unsigned char l) {
+  switch (hack8Str(s)) {
+  case T_TM: return "m";
+  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 'e'; RES_C[RES_I][1] = 0; int8_t i = 0, c = 8;
+	while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
+  case T_STRING: return "c";
+  default: { RES_I < M_IDEX ? ++RES_I : RES_I = 0;
+	if (s[0] == 'S') {
+	  RES_C[RES_I][0] = '_'; RES_C[RES_I][1] = 0; strncat(RES_C[RES_I], s + 10 + l, strLen(s) - 18 - l); return RES_C[RES_I];
+	} else if (s[0] == 'P') {
+	  RES_C[RES_I][0] = '*'; RES_C[RES_I][1] = 0; strcat(RES_C[RES_I], s + l + 1); return RES_C[RES_I];
+	}
+	return s; }
+  }
 }
-#define Inject(U, T) orm::GetRealType(#U,typeid(&U::T).name())
+inline const char* orm::RType(const char* s, const char* c) {
+  unsigned char l = strLen(s); if (l > 9) { l += 3; return orm::LiType(c + l, 2); } else { l += 2; return orm::LiType(c + l, 1); }
+}
+#define Inject(U, T) orm::RType(#U,typeid(&U::T).name())
 #define TO_CHAR "
 /*\" for web markdown, ~!@#$%^&*///"
 #define FOR_CHAR `
@@ -311,15 +353,15 @@ inline const char* orm::GetRealType(const char* s, const char* c) {
 
 static const char* orm::getAkTs(const char* _) {
   switch (hack8Str(_)) {
-  case "signed char"_l: case 'a': if constexpr (!sqlitE) { return "TINYINT"; }
-  case "d char"_l: case 'h': if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; }
-  case "short"_l: case 's': if constexpr (!sqlitE) { return "SMALLINT"; }
-  case "d short"_l: case 't': if constexpr (mysqL) { return "SMALLINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_SMALLINT"; }
-  case 'int': case 'i': return "INTEGER";
-  case "d int"_l: case 'j': if constexpr (mysqL) { return "INTEGER UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_INTEGER"; }
-  case "__int64"_l: case 'x': if constexpr (!sqlitE) { return "BIGINT"; }
-  case "d __int64"_l: case 'y': if constexpr (sqlitE) { return "INTEGER"; }
-					if constexpr (mysqL) { return "BIGINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_BIGINT"; }
+  case T_INT8_: if constexpr (!sqlitE) { return "TINYINT"; }
+  case T_UINT8_: if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; }
+  case T_INT16_: if constexpr (!sqlitE) { return "SMALLINT"; }
+  case T_UINT16_: if constexpr (mysqL) { return "SMALLINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_SMALLINT"; }
+  case T_INT_: return "INTEGER";
+  case T_UINT_: if constexpr (mysqL) { return "INTEGER UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_INTEGER"; }
+  case T_INT64_: if constexpr (!sqlitE) { return "BIGINT"; }
+  case T_UINT64_: if constexpr (sqlitE) { return "INTEGER"; }
+				if constexpr (mysqL) { return "BIGINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_BIGINT"; }
   default: return "[TYPE] MUST BE <NUMBER>!";
   }
 }
@@ -634,6 +676,7 @@ template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Tabl
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
 #define PROTO(o,...)\
 PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
+template<> const uint8_t orm::Table<o>::_len = NUM_ARGS(__VA_ARGS__);\
 template<> const std::string_view orm::Table<o>::_ios=pgsqL?\
 VIEW_CHAR("SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)):\
 VIEW_CHAR("SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));

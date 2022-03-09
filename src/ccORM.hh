@@ -40,6 +40,7 @@ using json = nlohmann::json;
 #include <stdexcept>
 #include <functional>
 #include <assert.h>
+#define RUST_CAST reinterpret_cast<char*>
 #ifdef _WIN32
 #include <winsock2.h>
 #define _CRT_SECURE_NO_WARNINGS
@@ -146,7 +147,7 @@ static char* UnicodeToUtf8(const char* str) {
 }
 #endif
 namespace li {
-  template <typename T> inline constexpr auto Tuple() { return std::make_tuple(); }
+  template <typename T> constexpr inline auto Tuple() { return std::make_tuple(); }
   template<typename C> struct tuple_idex {};
   template<template<typename ...T> class C, typename ...T>
   struct tuple_idex<C<T...>> { template<size_t i> using type = typename std::tuple_element<i, std::tuple<T...> >::type; };
@@ -323,14 +324,14 @@ namespace li {
 	  std::index_sequence<R...>>::ret;
   };
   template <std::size_t... I, typename T>
-  decltype(auto) tuple_filter_impl(std::index_sequence<I...>, T&& t) {
+  decltype(auto) Tuple(std::index_sequence<I...>, T&& t) {
 	return std::make_tuple(std::get<I>(t)...);
   }
   template <template <class> class F, typename T> decltype(auto) tuple_filter(T&& t) {
 	using seq = typename tuple_filter_sequence<
 	  F, std::decay_t<T>, std::make_index_sequence<std::tuple_size<std::decay_t<T>>::value>,
 	  std::index_sequence<>>::ret;
-	return tuple_filter_impl(seq{}, t);
+	return Tuple(seq{}, t);
   }
   template <typename... E, typename F> constexpr void apply_each(F&& f, E&&... e) {
 	(void)std::initializer_list<int>{((void)f(std::forward<E>(e)), 0)...};
@@ -357,15 +358,14 @@ namespace li {
 	auto fun = [&](auto... e) { return tuple_map_reduce_impl(map, reduce, e...); };
 	return std::apply(fun, m);
   }
-  template <typename F> constexpr inline std::tuple<> tuple_filter_impl() { return std::make_tuple(); }
-  template <typename F, typename... M, typename M1> constexpr auto tuple_filter_impl(M1 m1, M... m) {
+  template <typename F, typename... M, typename M1> constexpr auto Tuple(M1 m1, M... m) {
 	if constexpr (std::is_same<M1, F>::value)
-	  return tuple_filter_impl<F>(m...);
+	  return Tuple<F>(m...);
 	else
-	  return std::tuple_cat(std::make_tuple(m1), tuple_filter_impl<F>(m...));
+	  return std::tuple_cat(std::make_tuple(m1), Tuple<F>(m...));
   }
   template <typename F, typename... M> constexpr auto tuple_filter(const std::tuple<M...>& m) {
-	auto fun = [](auto... e) { return tuple_filter_impl<F>(e...); };
+	auto fun = [](auto... e) { return Tuple<F>(e...); };
 	return std::apply(fun, m);
   }
   template <typename... T> struct typelist {};
@@ -604,14 +604,14 @@ namespace li {
 	  if (current_result_) { PQclear(current_result_); current_result_ = nullptr; }
 	  current_result_ = wait_for_next_result(); if (!current_result_) return;
 	}
-	int8_t y = -1, z = -1; constexpr const auto $ = Tuple<T>();
-	ForEachTuple($, [t, u, &y, &z, this](auto& _) {
+	int8_t y = -1; constexpr const auto $ = Tuple<T>();
+	ForEachTuple($, [t, u, &y, this](auto& _) {
 	  using Y = std::remove_reference_t<decltype(t->*_)>;
 	  if constexpr (is_ptr<Y>::value) {
-		if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
-		  ForEachField(u, [&z, &y, this](auto& v) {
+		if constexpr (std::is_same_v<Y, U*>) {
+		  ForEachField(u, [&y, this](auto& v) {
 			using Z = std::remove_reference_t<decltype(v)>;
-			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readPg<Z>(++y, v); }
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { readPg<Z>(++y, v); }
 			}); t->*_ = u;
 		}
 	  } else if constexpr (!is_vector<Y>::value) { readPg<Y>(++y, t->*_); }
@@ -626,27 +626,25 @@ namespace li {
 	  if (current_result_nrows_ == 0) {
 		PQclear(current_result_); current_result_ = nullptr; return;
 	  }
-	} T t; U u; int8_t x = -1, y, z; constexpr const auto $ = Tuple<T>();
+	} T t; U u; int8_t y; constexpr const auto $ = Tuple<T>();
 	for (; row_i_ < current_result_nrows_; ++row_i_) {
-	  y = z = -1, ++x;
-	  ForEachTuple($, [&t, &u, &x, &y, &z, this](auto& _) {
+	  y = -1;
+	  ForEachTuple($, [&t, &u, &y, this](auto& _) {
 		using Y = std::remove_reference_t<decltype(t.*_)>;
 		if constexpr (is_ptr<Y>::value) {
-		  if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
-			ForEachField(&u, [&z, &y, this](auto& v) {
+		  if constexpr (std::is_same_v<Y, U*>) {
+			ForEachField(&u, [&y, this](auto& v) {
 			  using Z = std::remove_reference_t<decltype(v)>;
-			  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readPg<Z>(++y, v); }
+			  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { readPg<Z>(++y, v); }
 			  });
 		  }
 		} else if constexpr (!is_vector<Y>::value) { readPg<Y>(++y, t.*_); }
 		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); v2->push_back(u); v1->push_back(t);
-	}
-	short l = v1->size(); for (short i = 0; i < l; ++i) {
-	  ForEachTuple($, [&t, &i, v1, v2](auto& _) {
-		using X = std::remove_reference_t<decltype(t.*_)>;
-		if constexpr (is_ptr<X>::value) { if constexpr (std::is_same_v<ptr_pack_t<X>, U>) v1->at(i).*_ = &v2->at(i); }
-		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	}
+	} short i = T::_len - 1, l = v1->size();
+	while (++i < T::_size) {
+	  switch (hack4Str(T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
+	} $:
+	for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
   }
   template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
 	int8_t i;
@@ -997,54 +995,57 @@ namespace li {
 		t = sqlite3_column_bytes(stmt_, i) ? (const char*)sqlite3_column_text(stmt_, i) : "";
 	  }
 	}
-	template <typename T> void readOne(T* j) {
-	  int8_t i = -1;
-	  ForEachField(j, [&i, this](auto& t) {
-		using Y = std::remove_reference_t<decltype(t)>; if constexpr (!is_vector<Y>::value && !is_ptr<Y>::value) { readSqlite<Y>(++i, t); }
-		});
-	}
-	template <typename T, typename U> void readO2O(T* t, U* u) {
-	  int8_t y = -1, z = -1; constexpr const auto $ = Tuple<T>();
-	  ForEachTuple($, [t, u, &y, &z, this](auto& _) {
-		using Y = std::remove_reference_t<decltype(t->*_)>;
-		if constexpr (is_ptr<Y>::value) {
-		  if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
-			ForEachField(u, [&z, &y, this](auto& v) {
-			  using Z = std::remove_reference_t<decltype(v)>;
-			  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readSqlite<Z>(++y, v); }
-			  }); t->*_ = u;
-		  }
-		} else if constexpr (!is_vector<Y>::value) { readSqlite<Y>(++y, t->*_); }
-		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	}
-	template <typename T, typename U> void readO2O(std::vector<T>* v1, std::vector<U>* v2) {
-	  if (last_step_ret_ != SQLITE_ROW) return; T t; U u; int8_t x = -1, y, z;
-	  constexpr const auto $ = Tuple<T>(); _: y = z = -1, ++x;
-	  ForEachTuple($, [&t, &u, &x, &y, &z, this](auto& _) {
-		using Y = std::remove_reference_t<decltype(t.*_)>;
-		if constexpr (is_ptr<Y>::value) {
-		  if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
-			ForEachField(&u, [&z, &y, this](auto& v) {
-			  using Z = std::remove_reference_t<decltype(v)>;
-			  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readSqlite<Z>(++y, v); }
-			  });
-		  }
-		} else if constexpr (!is_vector<Y>::value) { readSqlite<Y>(++y, t.*_); }
-		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	  v2->push_back(u); v1->push_back(t); last_step_ret_ = sqlite3_step(stmt_);
-	  if (last_step_ret_ == SQLITE_ROW) { goto _; } short l = v1->size();
-	  for (short i = 0; i < l; ++i) {
-		ForEachTuple($, [&t, &i, v1, v2](auto& _) {
-		  using X = std::remove_reference_t<decltype(t.*_)>;
-		  if constexpr (is_ptr<X>::value) { if constexpr (std::is_same_v<ptr_pack_t<X>, U>) v1->at(i).*_ = &v2->at(i); }
-		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
+	template <typename T> inline void readSqlite(int8_t& i, int8_t& k, T* j) {
+	  switch (hack4Str(T::_[i])) {
+	  case T_INT8_:*reinterpret_cast<int8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
+	  case T_UINT8_:*reinterpret_cast<uint8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
+	  case T_INT16_:*reinterpret_cast<int16_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
+	  case T_UINT16_:*reinterpret_cast<uint16_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
+	  case T_INT_:*reinterpret_cast<int32_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
+	  case T_UINT_:*reinterpret_cast<uint32_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
+	  case T_INT64_:*reinterpret_cast<int64_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
+	  case T_UINT64_:*reinterpret_cast<uint64_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
+	  case T_TM_: {
+		tm* t = reinterpret_cast<tm*>(RUST_CAST(j) + j->_o$[i]); ++k;
+		int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, k) != 0) {
+		  sscanf((const char*)sqlite3_column_text(stmt_, k), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
+		} t->tm_year = year - 1900; t->tm_mon = month - 1; t->tm_mday = day; t->tm_hour = hour; t->tm_min = min; t->tm_sec = sec;
+	  } break;
+	  case T_DOUBLE_:*reinterpret_cast<double*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_double(stmt_, ++k); break;
+	  case T_FLOAT_:*reinterpret_cast<float*>(RUST_CAST(j) + j->_o$[i]) =
+		sqlite3_column_bytes(stmt_, k) ? boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, ++k)) : 0.0F; break;
+	  case T_BOOL_:*reinterpret_cast<bool*>(RUST_CAST(j) + j->_o$[i]) =
+		sqlite3_column_bytes(stmt_, k) ? boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, ++k)) : false; break;
+	  case T_TEXT_:*reinterpret_cast<text<>*>(RUST_CAST(j) + j->_o$[i]) =
+		sqlite3_column_bytes(stmt_, k) ? (const char*)sqlite3_column_text(stmt_, ++k) : ""; break;
+	  case T_STRING_:*reinterpret_cast<std::string*>(RUST_CAST(j) + j->_o$[i]) =
+		sqlite3_column_bytes(stmt_, k) ? (const char*)sqlite3_column_text(stmt_, ++k) : ""; break;
 	  }
 	}
-	//Many to Many
+	template <typename T> void readOne(T* j) {
+	  int8_t i = -1, k = -1; 
+	  while (++i < T::_len) { readSqlite(i, k, j); }
+	}
+	template <typename T, typename U> void readO2O(T* t, U* u) {
+	  int8_t y = -1, z = -1;
+	  while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
+	  while (++z < U::_len) { readSqlite(z, y, u); }
+	}
+	template <typename T, typename U> void readO2O(std::vector<T>* v1, std::vector<U>* v2) {
+	  if (last_step_ret_ != SQLITE_ROW) return; T t; U u; int8_t y, z;
+	  int8_t ncols = sqlite3_column_count(stmt_); _: y = z = -1;
+	  while (++z < T::_len) { readSqlite(z, y, &t); }z = -1;
+	  while (++z < U::_len) { readSqlite(z, y, &u); }
+	  v2->push_back(u); v1->push_back(t); last_step_ret_ = sqlite3_step(stmt_);
+	  if (last_step_ret_ == SQLITE_ROW) { goto _; } short i = T::_len - 1, l = v1->size();
+	  while (++i < T::_size) {
+	  switch (hack4Str(T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
+	  } $:
+	  for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
+	}
 	template <typename T> void readM2M(std::vector<T>* vt) {
 	  if (last_step_ret_ != SQLITE_ROW) return; constexpr auto $ = Tuple<T>();
 	  int8_t i, z, y; T t; char* c; _: i = z = y = -1;
-	  /*if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
 	  if (rowcount_ > 0 && strcmp(c, (const char*)sqlite3_column_text(stmt_, 0))) {
 		i += T::_size;
 		auto& v = dynamic_cast<T*>(&t)->*std::get<T::_size - 1>(li::Tuple<T>());
@@ -1052,7 +1053,8 @@ namespace li {
 		if constexpr (is_vector<Y>::value) {
 		}
 	  }
-	  c = (const char*)sqlite3_column_text(stmt_, 0); ++rowcount_;*/
+	  c = (const char*)sqlite3_column_text(stmt_, 0); ++rowcount_;
+
 	  last_step_ret_ = sqlite3_step(stmt_); vt->push_back(t); if (last_step_ret_ == SQLITE_ROW) { goto _; }
 	}
 	template <typename T> void readArr(std::vector<T>* output) {
@@ -1904,42 +1906,40 @@ namespace li {
   }
   template <typename B> template <typename T, typename U> void mysql_result<B>::readO2O(T* t, U* u) {
 	next_row(); if (end_of_result_) return;
-	int8_t y = -1, z = -1; constexpr const auto $ = Tuple<T>();
-	ForEachTuple($, [t, u, &y, &z, this](auto& _) {
+	int8_t y = -1; constexpr const auto $ = Tuple<T>();
+	ForEachTuple($, [t, u, &y, this](auto& _) {
 	  using Y = std::remove_reference_t<decltype(t->*_)>;
 	  if constexpr (is_ptr<Y>::value) {
-		if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
-		  ForEachField(u, [&z, &y, this](auto& v) {
+		if constexpr (std::is_same_v<Y, U*>) {
+		  ForEachField(u, [&y, this](auto& v) {
 			using Z = std::remove_reference_t<decltype(v)>;
-			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readMySQL<Z>(++y, v); }
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { readMySQL<Z>(++y, v); }
 			}); t->*_ = u;
 		}
 	  } else if constexpr (!is_vector<Y>::value) { readMySQL<Y>(++y, t->*_); }
 	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
   }
   template <typename B> template <typename T, typename U> void mysql_result<B>::readO2O(std::vector<T>* v1, std::vector<U>* v2) {
-	next_row(); if (end_of_result_) return; T t; U u; int8_t x = -1, y, z;
-	constexpr const auto $ = Tuple<T>(); _: y = z = -1, ++x;
-	ForEachTuple($, [&t, &u, &x, &y, &z, this](auto& _) {
+	next_row(); if (end_of_result_) return; T t; U u; int8_t y;
+	constexpr const auto $ = Tuple<T>(); _: y = -1;
+	ForEachTuple($, [&t, &u, &y, this](auto& _) {
 	  using Y = std::remove_reference_t<decltype(t.*_)>;
 	  if constexpr (is_ptr<Y>::value) {
-		if constexpr (std::is_same_v<ptr_pack_t<Y>, U>) {
-		  ForEachField(&u, [&z, &y, this](auto& v) {
+		if constexpr (std::is_same_v<Y, U*>) {
+		  ForEachField(&u, [&y, this](auto& v) {
 			using Z = std::remove_reference_t<decltype(v)>;
-			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { ++z; readMySQL<Z>(++y, v); }
+			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { readMySQL<Z>(++y, v); }
 			});
 		}
 	  } else if constexpr (!is_vector<Y>::value) { readMySQL<Y>(++y, t.*_); }
 	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); v2->push_back(u); v1->push_back(t);
 	  if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
 		++current_result_nrows_; goto _;
-	  }
-	  short l = v1->size(); for (short i = 0; i < l; ++i) {
-		ForEachTuple($, [&t, &i, v1, v2](auto& _) {
-		  using X = std::remove_reference_t<decltype(t.*_)>;
-		  if constexpr (is_ptr<X>::value) { if constexpr (std::is_same_v<ptr_pack_t<X>, U>) v1->at(i).*_ = &v2->at(i); }
-		  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{});
-	  }
+	  } short i = T::_len - 1, l = v1->size();
+	  while (++i < T::_size) {
+	  switch (hack4Str(T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
+	  } $:
+	  for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
   }
   template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>* output) {
 	next_row(); if (end_of_result_) return; T j; int8_t i = 0;
@@ -2195,11 +2195,9 @@ namespace li {
   };
   typedef sql_database<mysql> Mysql;
   typedef sql_database<pgsql, 3000> Pgsql;
-  //FastestDev Mode. Each time, the table will be deleted and then recreated
 #ifndef FastestDev
 #define FastestDev 1
 #endif
-  //If the configuration is not secure, you will connect to the development environment instead of the formal environment
 #ifndef IsDevMode
 #define IsDevMode 1
 #endif
