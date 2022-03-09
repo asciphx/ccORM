@@ -23,7 +23,7 @@ namespace orm {
 	friend struct Sql<T>; static const char* _[];/*Store type character[]*/static int _r, _r1;/*Prepare Run Serialization*/
 	template <typename U> void $et(int8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
-		switch (_[i][0]) {
+		switch (hack1Str(_[i])) {
 		case T_TEXT_:*reinterpret_cast<text<>*>(RUST_CAST(this) + this->_o$[i]) = *v; break;
 		case T_STRING_:*reinterpret_cast<std::string*>(RUST_CAST(this) + this->_o$[i]) = *v;
 		}
@@ -183,7 +183,7 @@ namespace orm {
 			  _create.push_back('`'); _create += $[i]; _create.push_back('`');
 			  if (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT) { _create += " INTEGER PRIMARY KEY AUTOINCREMENT"; continue; }
 			} else { _create.push_back('`'); _create += $[i]; _create.push_back('`'); }
-			switch (hack4Str(_[i])) {
+			switch (hack1Str(_[i])) {
 			case T_BOOL_: _create += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create += " NOT NULL"; }
 						if constexpr (pgsqL) { goto $; }
 						if (tc & TC::DEFAULT && so2s<bool>(def)) {
