@@ -86,7 +86,6 @@ extern "C" {
   static inline constexpr unsigned long long hackAllStr(const char* s) {
 	unsigned long long r = 0; for (unsigned short i = 0xffff; s[++i]; r *= 0x1f, r += s[i]); return r;
   }
-  static inline constexpr int hack1Str(const char* s) { return (int)s[0]; }
   //The following void can only be used for MySQL or certain types(in the "ccORM.hh" file)
   static inline short atos_(char* c) {
 	short r = 0; if (*c == '-') { while (*++c) r = r * 10 - *c + 0x30; } else { while (*c) r = r * 10 + *c++ - 0x30; } return r;

@@ -4,7 +4,6 @@
 #include<vector>
 #include<stdarg.h>
 #include"macros.hh"
-#define N0TYPE(A) A::_[i][0]!=0x2a&&A::_[i][0]!=0x5f
 namespace orm {
   enum class Sort { ASC, DESC }; static const char* SORT[2] = { "", " DESC" };
   template<typename T> class Table;//eg: T::Q()->$(T::$id, T::$name, T::$date)->where(T::$id == 1)->GetOne();
@@ -16,12 +15,12 @@ namespace orm {
 	//max to three conditions -> eg:(Tab::$id == Type::$id) && (Type::name == Tab::$name) && (Type::age == Tab::age)
 	template<unsigned short I>
 	TLinker<T, U>(const text<I>& v_) : _(T::_ios), ___(v_), w_("") {
-	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_size && N0TYPE(U); ++i) { f(_, U::$[i]); }
+	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_len; ++i) { f(_, U::$[i]); }
 	  _ += " FROM "; _ += T::_name; _ += T::_alias;
 	}
 	//Default on() conditions -> Associate the primary key of two tables => `Tab`.`id`=`Type`.`id`
 	TLinker<T, U>() : _(T::_ios), w_("") {
-	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_size && N0TYPE(U); ++i) { f(_, U::$[i]); }_ += " FROM ";
+	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_len; ++i) { f(_, U::$[i]); }_ += " FROM ";
 	  _ += T::_name; _ += T::_alias; std::string s; F<T>(s, T::$[0]); s += " = "; F<U>(s, U::$[0]); ___ = s;
 	}
 	inline TLinker<T, U>& size(uint8_t size) { size_ = size < 1 ? 1 : size; return *this; }
@@ -32,7 +31,7 @@ namespace orm {
 	  __ += col.c_str(); __ += SORT[static_cast<char>(ord)]; __.push_back(','); return *this;
 	};
 	//The properties of the first parameter passed in will be changed
-	T GetOne(U* u, const Sort& ord = Sort::ASC) {
+	T GetOne(U* u, const Sort& ord = Sort::ASC)noexcept {
 	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str(); if (w_[0]) _ += w_;
 	  _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
 		__.push_back(34); __ += T::$[0]; __.push_back(34);
@@ -40,7 +39,7 @@ namespace orm {
 	  _ += " LIMIT 1"; return D.conn()(_).template findOne<T>(u);
 	};
 	//If the first parameter passed in contains a value, it will be cleared.
-	std::vector<T> GetArr(std::vector<U>* vu, const Sort& ord = Sort::ASC) {
+	std::vector<T> GetArr(std::vector<U>* vu, const Sort& ord = Sort::ASC)noexcept {
 	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str(); if (w_[0]) _ += w_;
 	  _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
 		__.push_back(34); __ += T::$[0]; __.push_back(34);
@@ -49,7 +48,7 @@ namespace orm {
 	  return D.conn()(_).template findArray<T>(vu);
 	};
 	//Implementing many-to-many
-	inline void leftJoin() {
+	inline void leftJoin()noexcept(false) {
 	  //_ += " LEFT JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str();
 	  //_ += " LIMIT "; _ += std::to_string(size_); _ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);
 	};
@@ -112,8 +111,8 @@ namespace orm {
 	template<unsigned short I>
 	inline Sql<T>& where(const text<I>& str);
 	//Default ASC for the first field
-	std::vector<T> GetArr(const Sort& ord = Sort::ASC);
-	inline T GetOne();
+	std::vector<T> GetArr(const Sort& ord = Sort::ASC)noexcept;
+	inline T GetOne()noexcept;
 	inline decltype(D)::connection_type DB();
 	//-------------------------------------DataMapper-------------------------------------
 	static void InsertArr(typename T::arr& t);
@@ -130,7 +129,7 @@ namespace orm {
   }
   template<typename T>
   template<unsigned short I> Sql<T>& Sql<T>::where(const text<I>& v_) { _ += " WHERE "; _ += v_.c_str(); return *this; }
-  template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept(false) {
+  template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept {
 	std::string sql(_); sql += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
 	  __.push_back(34); __ += T::$[0]; __.push_back(34);
 	} else { __.push_back(96); __ += T::$[0]; __.push_back(96); }
@@ -138,14 +137,14 @@ namespace orm {
 	sql += " OFFSET "; sql += std::to_string((page_ - 1) * size_);// std::cout << sql << '\n';
 	this->clear(); return D.conn()(sql).template findArray<T>();
   }
-  template<typename T> T Sql<T>::GetOne()noexcept(false) {
+  template<typename T> T Sql<T>::GetOne()noexcept {
 	std::string sql(_); sql += " LIMIT 1"; this->clear(); return D.conn()(sql).template findOne<T>();
   };
   template<typename T> decltype(D)::connection_type Sql<T>::DB() { ___ = true; return D.conn(); }
   template<typename T> void Sql<T>::InsertArr(typename T::arr& input) {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
-	for (; i < T::_size; ++i) {
-	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && N0TYPE(T)) {
+	for (; i < T::_len; ++i) {
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
 	  }
 	} os.seekp(-1, os.cur);
@@ -172,8 +171,8 @@ namespace orm {
   }
   template<typename T> void Sql<T>::InsertArr(std::vector<T>* input) {
 	int8_t i = 0; std::ostringstream os, ov; ov << "VALUES "; os << "INSERT INTO " << T::_name << " (";
-	for (; i < T::_size; ++i) {
-	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT)) && N0TYPE(T)) {
+	for (; i < T::_len; ++i) {
+	  if (!(T::_tc[i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
 		if constexpr (pgsqL) { os << '"' << T::$[i] << "\","; } else { os << T::$[i] << ','; }
 	  }
 	} os.seekp(-1, os.cur);
