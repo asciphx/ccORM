@@ -15,15 +15,13 @@ namespace orm {
 	//max to three conditions -> eg:(Tab::$id == Type::$id) && (Type::name == Tab::$name) && (Type::age == Tab::age)
 	template<unsigned short I>
 	TLinker<T, U>(const text<I>& v_) : _(T::_ios), ___(v_), w_("") {
-	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_len; ++i) { f(_, U::$[i]); }
-	  _ += " FROM "; _ += T::_name; _ += T::_alias;
+	  f(U::$[0]); for (uint8_t i = 1; i < U::_len; ++i) { f(U::$[i]); } _ += " FROM "; _ += T::_name; _ += T::_alias;
 	}
 	//Default on() conditions -> Associate the primary key of two tables => `Tab`.`id`=`Type`.`id`
 	TLinker<T, U>() : _(T::_ios), w_("") {
-	  f(_, U::$[0]); for (uint8_t i = 1; i < U::_len; ++i) { f(_, U::$[i]); }_ += " FROM ";
-	  _ += T::_name; _ += T::_alias; std::string s; F<T>(s, T::$[0]); s += " = "; F<U>(s, U::$[0]); ___ = s;
+	  f(U::$[0]); for (uint8_t i = 1; i < U::_len; ++i) { f(U::$[i]); }_ += " FROM "; _ += T::_name; _ += T::_alias;
 	}
-	inline TLinker<T, U>& size(uint8_t size) { size_ = size < 1 ? 1 : size; return *this; }
+	inline TLinker<T, U>& size(uint8_t size) { size_ = size; return *this; }
 	inline TLinker<T, U>& page(size_t page) { page_ = page < 1 ? 1 : page; return *this; }
 	template<unsigned short I>
 	inline TLinker<T, U>& where(const text<I>& str) { w_ += " WHERE "; w_ += str.c_str(); return *this; }
@@ -32,25 +30,35 @@ namespace orm {
 	};
 	//The properties of the first parameter passed in will be changed
 	T GetOne(U* u, const Sort& ord = Sort::ASC)noexcept {
-	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str(); if (w_[0]) _ += w_;
-	  _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
+	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON ";
+	  if (___[0]) { _ += ___.c_str(); } else { F<T>(T::$[0]); _.push_back('='); F<U>(U::$[0]); }
+	  if (w_[0]) _ += w_; _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
 		__.push_back(34); __ += T::$[0]; __.push_back(34);
 	  } else { __.push_back(96); __ += T::$[0]; __.push_back(96); } _ += __; _ += SORT[static_cast<char>(ord)];
 	  _ += " LIMIT 1"; return D.conn()(_).template findOne<T>(u);
 	};
 	//If the first parameter passed in contains a value, it will be cleared.
 	std::vector<T> GetArr(std::vector<U>* vu, const Sort& ord = Sort::ASC)noexcept {
-	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str(); if (w_[0]) _ += w_;
-	  _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
+	  _ += " INNER JOIN "; _ += U::_name; _ += U::_alias; _ += " ON ";
+	  if (___[0]) { _ += ___.c_str(); } else { F<T>(T::$[0]); _.push_back('='); F<U>(U::$[0]); }
+	  if (w_[0]) _ += w_; _ += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
 		__.push_back(34); __ += T::$[0]; __.push_back(34);
 	  } else { __.push_back(96); __ += T::$[0]; __.push_back(96); } _ += __; _ += SORT[static_cast<char>(ord)];
 	  _ += " LIMIT "; _ += std::to_string(size_); _ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);
 	  return D.conn()(_).template findArray<T>(vu);
 	};
-	//Implementing many-to-many
+	//LEFT JOIN type_tab ON type_tab.`tab_id`= `Tab`.id LEFT JOIN `type` `Type` ON type_tab.`type_id` = `Type`.`id`
 	inline void leftJoin()noexcept(false) {
-	  //_ += " LEFT JOIN "; _ += U::_name; _ += U::_alias; _ += " ON "; _ += ___.c_str();
-	  //_ += " LIMIT "; _ += std::to_string(size_); _ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);
+	  _ += " LEFT JOIN "; _ += T::_mT; _ += " ON "; _ += T::_mT; _.push_back('.'); if constexpr (pgsqL) {
+		_.push_back('"'); _ += T::_low; _.push_back('_'); _ += T::$[0]; _.push_back('"');
+	  } else { _.push_back('`'); _ += T::_low; _.push_back('_'); _ += T::$[0]; _.push_back('`'); }
+	  _.push_back('='); F<T>(T::$[0]); _ += " LEFT JOIN "; _ += U::_name; _ += U::_alias; _ += " ON ";
+	  _ += T::_mT; _.push_back('.'); if constexpr (pgsqL) {
+		_.push_back('"'); _ += U::_low; _.push_back('_'); _ += U::$[0]; _.push_back('"');
+	  } else { _.push_back('`'); _ += U::_low; _.push_back('_'); _ += U::$[0]; _.push_back('`'); }
+	  _.push_back('='); F<U>(U::$[0]); _ += " LIMIT "; _ += std::to_string(size_); _ += " OFFSET ";
+	  _ += std::to_string((page_ - 1) * size_);
+	  std::cout << _ << '\n';
 	};
 	//The principle is similar to the reflector of Rust language, but closer to the machine code
 	json GetJson() {
@@ -82,22 +90,22 @@ namespace orm {
 	  return json{ "Only stars, flowers and applause can satisfy my arrogance and greatness" };
 	};
   private: uint8_t size_{ 10 }; size_t page_{ 1 }; std::string _, __, w_; text<0x188> ___;
-		 template<typename V> inline void F(std::string& os, const std::string_view& c);//&os += `V`.`id`
-		 inline void f(std::string& os, const std::string_view& c);//_ += `U`.`id` AS U_id
+		 template<typename V> inline void F(const std::string_view& c) {
+		   _ += V::_alias + 1; _.push_back('.'); if constexpr (pgsqL) {
+			 _.push_back('"'); _ += c; _.push_back('"');
+		   } else { _.push_back('`'); _ += c; _.push_back('`'); }
+		 };//&_ += `V`.`id`
+		 inline void f(const std::string_view& c) {
+		   _.push_back(','); _ += U::_alias + 1; _.push_back('.'); if constexpr (pgsqL) {
+			 _.push_back('"'); _ += c; _.push_back('"');
+		   } else { _.push_back('`'); _ += c; _.push_back('`'); } _ += U::_as_alia; _ += c;
+		 };//_ += `U`.`id` AS U_id
   };
-  template<class T, class U>
-  template<typename V>
-  inline void TLinker<T, U>::F(std::string& os, const std::string_view& c) {
-	os += V::_alias + 1; os.push_back('.'); if constexpr (pgsqL) {
-	  os.push_back('"'); os += c; os.push_back('"');
-	} else { os.push_back('`'); os += c; os.push_back('`'); }
-  }
-  template<class T, class U>
-  inline void TLinker<T, U>::f(std::string& os, const std::string_view& c) {
-	os.push_back(','); os += U::_alias + 1; os.push_back('.'); if constexpr (pgsqL) {
-	  os.push_back('"'); os += c; os.push_back('"');
-	} else { os.push_back('`'); os += c; os.push_back('`'); } os += U::_as_alia; os += c;
-  };
+  //template<class T, class U>
+  //template<typename V>
+  //inline void TLinker<T, U>::F(std::string_view& c){}
+  //template<class T, class U>
+  //inline void TLinker<T, U>::f(std::string_view& c){}
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> struct Sql {
 	friend class Table<T>;
@@ -122,7 +130,7 @@ namespace orm {
 		   _ = T::_ios; _ += " FROM "; _ += T::_name; _ += T::_alias; size_ = 10; __[0] = 0; page_ = 1; ___ = true;
 		 }
   };
-  template<typename T> Sql<T>& Sql<T>::size(uint8_t size) { size_ = size < 1 ? 1 : size; return *this; }
+  template<typename T> Sql<T>& Sql<T>::size(uint8_t size) { size_ = size; return *this; }
   template<typename T> Sql<T>& Sql<T>::page(size_t page) { page_ = page < 1 ? 1 : page; return *this; }
   template<typename T> Sql<T>& Sql<T>::orderBy(const text<0x3f>& col, const Sort& ord) {
 	__ += col.c_str(); __ += SORT[static_cast<char>(ord)]; __.push_back(','); return *this;

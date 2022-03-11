@@ -174,8 +174,8 @@ namespace orm {
 #endif
   char RES_C[M_IDEX][40] = { 0 }; uint8_t RES_I = 0;
   inline const char* HandleComma(const char* _) {
-	int8_t i = 0; RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '_';
-	while (*++_ != ',')RES_C[RES_I][++i] = *_; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
+	int8_t i = 0; RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f;
+	while (*++_ != 0x2c)RES_C[RES_I][++i] = *_; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
   };
 }
 #if 1
@@ -195,17 +195,17 @@ inline const char* orm::LiType(const char* s) {
   case T_DOUBLE:return "d";
   case T_FLOAT: return "f";
   case T_TM: return "m";
-  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 'e'; RES_C[RES_I][1] = 0;
+  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0;
 	int8_t i = 0; s += M_IDEX; while (*++s < 58)RES_C[RES_I][++i] = *s; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
   case T_STRING: return "c";
   default: return s;
   }
 }
 inline const char* orm::RType(const char* s) {
-  if (s[0] == 117) { return s + 7; } if (s[11] == 118) { return HandleComma(s + 24); }
-  if (s[strLen(s) - 1] == '*') {
-	RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '*'; RES_C[RES_I][1] = 0; s += 6;
-	int8_t i = 0; while (*++s != ' ') { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
+  if (s[0] == 117) { return s + M_IDE; } if (s[11] == 118) { return HandleComma(s + M_IDE * 3); }
+  if (s[strLen(s) - 1] == 0x2a) {
+	RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0; s += 6;
+	int8_t i = 0; while (*++s != 0x20) { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
   } return s;
 }
 #define Inject(U, T) orm::LiType(orm::RType(typeid(U::T).name()))
@@ -218,15 +218,15 @@ inline const char* orm::RType(const char* s) {
 inline const char* orm::LiType(const char* s, unsigned char l) {
   switch (hack8Str(s)) {
   case T_TM: return "m";
-  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 'e'; RES_C[RES_I][1] = 0;
-	int8_t i = 0, c = 8; while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
+  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0;
+	int8_t i = 0, c = M_IDE; while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
   case T_STRING: return "c";
   default:
-	if (s[0] == 'S') {
-	  RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '_'; RES_C[RES_I][1] = 0;
-	  strncat(RES_C[RES_I], s + M_IDEX + l, strLen(s) - 18 - l); return RES_C[RES_I];
-	} else if (s[0] == 'P') {
-	  RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '*'; RES_C[RES_I][1] = 0;
+	if (s[0] == 0x53) {
+	  RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f; RES_C[RES_I][1] = 0;
+	  strncat(RES_C[RES_I], s + M_IDEX + l, strLen(s) - M_IDE - M_IDEX - l); return RES_C[RES_I];
+	} else if (s[0] == 0x50) {
+	  RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0;
 	  strcat(RES_C[RES_I], s + l + 1); return RES_C[RES_I];
 	}
 	return s;
@@ -372,6 +372,9 @@ static const char* orm::getAkTs(const char* _) {
 if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}return 1;}static int _o##p_d=o##p_d();
 //after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)\
+template<> const std::string orm::Table<o>::_mT = toSqlCase(#o#p);\
+template<> const std::string orm::Table<p>::_mT = toSqlCase(#o#p);\
+static const text<63> EXP($)EXP(o)EXP(_)EXP(p)=toSqlCase(#o#p);\
  static int o##p_(){std::string s,ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;\
 if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";\
 if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');\
@@ -499,7 +502,7 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	template<> std::string orm::Table<o>::_create = pgsqL?"CREATE TABLE IF NOT EXISTS \""+toSqlCase(#o"\" (\n"):"CREATE TABLE IF NOT EXISTS `"+toSqlCase(#o"` (\n");\
 	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""+toSqlCase(#o"\""):"DROP TABLE IF EXISTS `"+toSqlCase(#o"`");\
 	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+toSqlCase(#o"\""):"`"+toSqlCase(#o"`");\
-	template<> const std::string orm::Table<o>::_lower = toSqlCase(#o);\
+	template<> const std::string orm::Table<o>::_low = toSqlCase(#o);\
 	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
 	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
 	template<> bool orm::Table<o>::_created = true;

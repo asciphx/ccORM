@@ -79,6 +79,7 @@ inline double ntohd(uint64_t l) {
 #define INT8OID 20
 #define INT2OID 21
 #define INT4OID 23
+#define M_IDE 0x8
 static const char RES_DATE_FORMAT[] = "%4d-%2d-%2d %2d:%2d:%2d";
 struct Timer {
   template<typename F> void setTimeout(F func, uint32_t milliseconds);

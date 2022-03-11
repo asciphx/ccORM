@@ -13,9 +13,9 @@ namespace orm {
 	}
   };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
   template<typename T> class Table : public virtual_shared<T> { /*struct size---proto length----Store alias*//*AS [alias]_<k>*/
-	static const std::string _name, _drop, _lower; static const uint8_t _size, _len; const static char* _alias, * _as_alia;//^
+	static const std::string _name, _drop, _low, _mT; static const uint8_t _size, _len; const static char* _alias, * _as_alia;//^
 	static bool _created; static unsigned char _idex; static std::string _create; static const size_t _o$[];/*Store offset[]*/
-	static const std::string_view $[], _ios;/*Store <k> name[]*//*Store (T.<k>,)... *//*lower name*/
+	static const std::string_view $[], _ios;/*Store <k> name[]*//*Store (T.<k>,)...*//*_low -> lower name*//*_mT -> M_TABLE name*/
 #ifdef _WIN32
 	friend typename T; const static char* _def[];/*Store default values[]*/static unsigned char _tc[];/*Store key type[]*/
 #endif
@@ -58,9 +58,12 @@ namespace orm {
 	};
 	//<T> serialized as JSON with std::vector, includes empty std::vector
 	json get() { return json(*dynamic_cast<T*>(this)); }
-	inline bool is_null() { return *((char*)(RUST_CAST(this) + this->_o$[0])) == 0; }
 	//-------------------------------------ActiveRecord-------------------------------------
-
+	Table& operator=(Table&& t) {
+	  if (this != &t) {}return *this;
+	}
+	//
+	inline bool is_null() { return *((char*)(RUST_CAST(this) + this->_o$[0])) == 0; }
 	//Insert the object (Returns the inserted ID)
 	auto Insert() {
 	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
@@ -277,7 +280,7 @@ namespace orm {
   typename Table<T>::ptr Table<T>::create(Args&& ... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
 
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
-	if (*((char*)(RUST_CAST(c) + c->_o$[0])) == 0) { s = "null"; return s; }
+	if (c == nullptr || *((char*)(RUST_CAST(c) + c->_o$[0])) == 0) { s = "null"; return s; }
 	s.push_back('{'); int8_t i = -1;
 	ForEachField(dynamic_cast<T*>(c), [&i, c, &s](auto& t) {
 	  using Y = std::remove_reference_t<decltype(t)>;

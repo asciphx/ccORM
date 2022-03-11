@@ -77,12 +77,12 @@ extern "C" {
 	  } free(chr);
 	} return t;
   }
-  static inline unsigned long long hack8Str(const char* s) {
+  static inline constexpr unsigned long long hack8Str(const char* s) {
 	unsigned long long r = 0; for (signed char i = -1; ++i < 8 && s[i]; r *= 0x100, r += s[i]); return r;
   }//If only the first four digits need to be matched and there is no conflict, it is recommended to use hack4Str to improve efficiency
-  static inline int hack4Str(const char* s) { int r = 0; for (signed char i = -1; ++i < 4 && s[i]; r *= 0x100, r += s[i]); return r; }
+  static inline constexpr int hack4Str(const char* s) { int r = 0; for (signed char i = -1; ++i < 4 && s[i]; r *= 0x100, r += s[i]); return r; }
   //Hack8str is downward compatible with hack4str, however, it is not compatible with the hackstr method
-  static inline unsigned long long hackStr(const char* s) {
+  static inline constexpr unsigned long long hackStr(const char* s) {
 	unsigned long long r = 0; for (unsigned short i = 0xffff; s[++i]; r *= 0x1f, r += s[i]); return r;
   }
   //The following void can only be used for MySQL or certain types(in the "ccORM.hh" file)
@@ -115,63 +115,32 @@ constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
 #define _IS_WIN 0
 #endif
 static std::string& toUpperCase(std::string& s) {
-  char* c = (char*)s.c_str();
-  if (*c > 0x60 && *c < 0x7b) { *c &= ~0x20; }
-  while (*++c) {
-	if (*c > 0x60 && *c < 0x7b) *c &= ~0x20;
-  }
-  return s;
+  char* c = (char*)s.c_str(); if (*c > 0x60 && *c < 0x7b) { *c &= ~0x20; }
+  while (*++c) { if (*c > 0x60 && *c < 0x7b) *c &= ~0x20; } return s;
 }
 static std::string toUpperCase(const char* s) {
-  std::string e;
-  if (*s > 0x60 && *s < 0x7b) { e.push_back(*s - 0x20); }
-  while (*++s) {
-	if (*s > 0x60 && *s < 0x7b) {
-	  e.push_back(*s - 0x20);
-	} else { e.push_back(*s); }
-  } return e;
+  std::string e; if (*s > 0x60 && *s < 0x7b) { e.push_back(*s - 0x20); }
+  while (*++s) { if (*s > 0x60 && *s < 0x7b) { e.push_back(*s - 0x20); } else { e.push_back(*s); } } return e;
 }
 static std::string& toLowerCase(std::string& s) {
-  char* c = (char*)s.c_str();
-  if (*c > 0x40 && *c < 0x5b) { *c |= 0x20; }
-  while (*++c) {
-	if (*c > 0x40 && *c < 0x5b) *c |= 0x20;
-  }
-  return s;
+  char* c = (char*)s.c_str(); if (*c > 0x40 && *c < 0x5b) { *c |= 0x20; }
+  while (*++c) { if (*c > 0x40 && *c < 0x5b) *c |= 0x20; } return s;
 }
 static std::string toLowerCase(const char* s) {
-  std::string e;
-  if (*s > 0x40 && *s < 0x5b) { e.push_back(*s + 0x20); }
-  while (*++s) {
-	if (*s > 0x40 && *s < 0x5b) {
-	  e.push_back(*s + 0x20);
-	} else { e.push_back(*s); }
-  } return e;
+  std::string e; if (*s > 0x40 && *s < 0x5b) { e.push_back(*s + 0x20); }
+  while (*++s) { if (*s > 0x40 && *s < 0x5b) { e.push_back(*s + 0x20); } else { e.push_back(*s); } } return e;
 }
 static std::string toSqlCase(const char* s) {
-  std::string e;
-  if (*s > 0x40 && *s < 0x5b) { e.push_back(*s + 0x20); }
-  while (*++s) {
-	if (*s > 0x40 && *s < 0x5b) {
-	  e.push_back(0x5f); e.push_back(*s + 0x20);
-	} else { e.push_back(*s); }
-  } return e;
+  std::string e; if (*s > 0x40 && *s < 0x5b) { e.push_back(*s + 0x20); }
+  while (*++s) { if (*s > 0x40 && *s < 0x5b) { e.push_back(0x5f); e.push_back(*s + 0x20); } else { e.push_back(*s); } } return e;
 }
-template<typename T> const char* ObjName() {
-  const char* s = typeid(T).name();
-#if _WIN32
-  while (*++s != 0x20); return ++s;
-#else
-  while (*s < 0x3a && *s++ != 0x24) {}; return s;
-#endif
+template<typename T> inline const char* ObjName() {
+  const char* s = typeid(T).name(); if constexpr (_IS_WIN) {
+	while (*++s != 0x20); return ++s;
+  } else { while (*s < 0x3a && *s++ != 0x24) {}; return s; }
 }
 static std::string toQuotes(const char* s) {
-  std::string e; while (*s) {
-	if (*s == 0x27) {
-	  e.push_back(0x27); e.push_back(0x27);
-	} else { e.push_back(*s); }
-	*++s;
-  } return e;
+  std::string e; while (*s) { if (*s == 0x27) { e.push_back(0x27); e.push_back(0x27); } else { e.push_back(*s); } *++s; } return e;
 }
 std::ostream& operator<<(std::ostream& os, const tm& _v) {
 #ifdef _WIN32
@@ -209,13 +178,13 @@ bool operator>=(tm& t, tm& m) { return mktime(&t) >= mktime(&m); }
 //Basic judgment type characters supported by ccORM (with switch(hack8Str(...)))
 #if _IS_WIN
 #define T_INT8 "signed char"_l
-#define T_UINT8 "d char"_l
+#define T_UINT8 " char"_l
 #define T_INT16 "short"_l
-#define T_UINT16 "d short"_l
+#define T_UINT16 " short"_l
 #define T_INT 'int'
-#define T_UINT "d int"_l
+#define T_UINT " int"_l
 #define T_INT64 "__int64"_l
-#define T_UINT64 "d __int64"_l
+#define T_UINT64 " __int64"_l
 #define T_BOOL 'bool'
 #define T_DOUBLE "double"_l
 #define T_FLOAT "float"_l
