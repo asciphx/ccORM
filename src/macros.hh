@@ -16,7 +16,7 @@
 #include <cstdarg>
 #include <stdexcept>
 #include "json.hh"
-#define M_IDEX 0xa
+#define M_IDEX 0xa//Magic numbers, big fools, don't change them
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
   using Expand = int[];
@@ -183,10 +183,6 @@ namespace orm {
 #ifdef _MSC_VER
 inline const char* orm::LiType(const char* s) {
   switch (hack8Str(s)) {
-  case T_TM: return "m";
-  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 'e'; RES_C[RES_I][1] = 0; int8_t i = 0; s += 0xa;
-	while (*++s < 58)RES_C[RES_I][++i] = *s; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
-  case T_STRING: return "c";
   case T_INT8: return "a";
   case T_UINT8: return "h";
   case T_INT16: return "s";
@@ -198,6 +194,10 @@ inline const char* orm::LiType(const char* s) {
   case T_BOOL: return "b";
   case T_DOUBLE:return "d";
   case T_FLOAT: return "f";
+  case T_TM: return "m";
+  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 'e'; RES_C[RES_I][1] = 0;
+	int8_t i = 0; s += M_IDEX; while (*++s < 58)RES_C[RES_I][++i] = *s; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
+  case T_STRING: return "c";
   default: return s;
   }
 }
@@ -205,8 +205,7 @@ inline const char* orm::RType(const char* s) {
   if (s[0] == 117) { return s + 7; } if (s[11] == 118) { return HandleComma(s + 24); }
   if (s[strLen(s) - 1] == '*') {
 	RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '*'; RES_C[RES_I][1] = 0; s += 6;
-	int8_t i = 0; while (*++s != ' ') { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0;
-	return RES_C[RES_I];
+	int8_t i = 0; while (*++s != ' ') { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
   } return s;
 }
 #define Inject(U, T) orm::LiType(orm::RType(typeid(U::T).name()))
@@ -219,16 +218,18 @@ inline const char* orm::RType(const char* s) {
 inline const char* orm::LiType(const char* s, unsigned char l) {
   switch (hack8Str(s)) {
   case T_TM: return "m";
-  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 'e'; RES_C[RES_I][1] = 0; int8_t i = 0, c = 8;
-	while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
+  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 'e'; RES_C[RES_I][1] = 0;
+	int8_t i = 0, c = 8; while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
   case T_STRING: return "c";
-  default: { RES_I < M_IDEX ? ++RES_I : RES_I = 0;
+  default:
 	if (s[0] == 'S') {
-	  RES_C[RES_I][0] = '_'; RES_C[RES_I][1] = 0; strncat(RES_C[RES_I], s + 10 + l, strLen(s) - 18 - l); return RES_C[RES_I];
+	  RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '_'; RES_C[RES_I][1] = 0;
+	  strncat(RES_C[RES_I], s + M_IDEX + l, strLen(s) - 18 - l); return RES_C[RES_I];
 	} else if (s[0] == 'P') {
-	  RES_C[RES_I][0] = '*'; RES_C[RES_I][1] = 0; strcat(RES_C[RES_I], s + l + 1); return RES_C[RES_I];
+	  RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = '*'; RES_C[RES_I][1] = 0;
+	  strcat(RES_C[RES_I], s + l + 1); return RES_C[RES_I];
 	}
-	return s; }
+	return s;
   }
 }
 inline const char* orm::RType(const char* s, const char* c) {
@@ -352,7 +353,7 @@ inline const char* orm::RType(const char* s, const char* c) {
  template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
 
 static const char* orm::getAkTs(const char* _) {
-  switch (hack8Str(_)) {
+  switch (hack4Str(_)) {
   case T_INT8_: if constexpr (!sqlitE) { return "TINYINT"; }
   case T_UINT8_: if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; }
   case T_INT16_: if constexpr (!sqlitE) { return "SMALLINT"; }
