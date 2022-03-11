@@ -642,7 +642,7 @@ namespace li {
 		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); v2->push_back(u); v1->push_back(t);
 	} short i = T::_len - 1, l = v1->size();
 	while (++i < T::_size) {
-	  switch (hack1Str(T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
+	  switch (static_cast<char>(*T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
 	} $:
 	for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
   }
@@ -996,7 +996,43 @@ namespace li {
 	  }
 	}
 	template <typename T> inline void readSqlite(int8_t& i, int8_t& k, T* j) {
-	  switch (hack1Str(T::_[i])) {
+	  // if constexpr (*T::_[i] == T_INT8_) {
+		 //*reinterpret_cast<int8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_UINT8_) {
+		 //*reinterpret_cast<uint8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_INT16_) {
+		 //*reinterpret_cast<int16_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_UINT16_) {
+		 //*reinterpret_cast<uint16_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_INT_) {
+		 //*reinterpret_cast<int32_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_UINT_) {
+		 //*reinterpret_cast<uint32_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_INT64_) {
+		 //*reinterpret_cast<int64_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_UINT64_) {
+		 //*reinterpret_cast<uint64_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_TM_) {
+		 //tm* t = reinterpret_cast<tm*>(RUST_CAST(j) + j->_o$[i]); ++k;
+		 //int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, k) != 0) {
+		 //  sscanf((const char*)sqlite3_column_text(stmt_, k), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
+		 //} t->tm_year = year - 1900; t->tm_mon = month - 1; t->tm_mday = day; t->tm_hour = hour; t->tm_min = min; t->tm_sec = sec;
+	  // } else if constexpr (*T::_[i] == T_DOUBLE_) {
+		 //*reinterpret_cast<double*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_double(stmt_, ++k);
+	  // } else if constexpr (*T::_[i] == T_FLOAT_) {
+		 //*reinterpret_cast<float*>(RUST_CAST(j) + j->_o$[i]) =
+		 //  sqlite3_column_bytes(stmt_, k) ? boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, ++k)) : 0.0F;
+	  // } else if constexpr (*T::_[i] == T_BOOL_) {
+		 //*reinterpret_cast<bool*>(RUST_CAST(j) + j->_o$[i]) =
+		 //  sqlite3_column_bytes(stmt_, k) ? boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, ++k)) : false;
+	  // } else if constexpr (*T::_[i] == T_TEXT_) {
+		 //*reinterpret_cast<text<>*>(RUST_CAST(j) + j->_o$[i]) =
+		 //  sqlite3_column_bytes(stmt_, k) ? (const char*)sqlite3_column_text(stmt_, ++k) : "";
+	  // } else if constexpr (*T::_[i] == T_STRING_) {
+		 //*reinterpret_cast<std::string*>(RUST_CAST(j) + j->_o$[i]) =
+		 //  sqlite3_column_bytes(stmt_, k) ? (const char*)sqlite3_column_text(stmt_, ++k) : "";
+	  // }
+	  switch (static_cast<char>(*T::_[i])) {
 	  case T_INT8_:*reinterpret_cast<int8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
 	  case T_UINT8_:*reinterpret_cast<uint8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
 	  case T_INT16_:*reinterpret_cast<int16_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
@@ -1030,7 +1066,7 @@ namespace li {
 	  while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
 	  while (++z < U::_len) { readSqlite(z, y, u); }z = T::_len - 1;
 	  while (++z < T::_size) {
-		switch (hack1Str(T::_[z])) {
+		switch (static_cast<char>(*T::_[z])) {
 		case T_POINTER_: if (strCmp(T::_[z] + 1, ObjName<U>()) == 0) { *reinterpret_cast<U**>(RUST_CAST(t) + t->_o$[z]) = u; }
 		}
 	  }
@@ -1042,7 +1078,7 @@ namespace li {
 	  v2->push_back(u); v1->push_back(t); last_step_ret_ = sqlite3_step(stmt_);
 	  if (last_step_ret_ == SQLITE_ROW) { goto _; } short i = T::_len - 1, l = v1->size();
 	  while (++i < T::_size) {
-	  switch (hack1Str(T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
+	  switch (static_cast<char>(*T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
 	  } $:
 	  for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
 	}
@@ -1940,7 +1976,7 @@ namespace li {
 		++current_result_nrows_; goto _;
 	  } short i = T::_len - 1, l = v1->size();
 	  while (++i < T::_size) {
-	  switch (hack1Str(T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
+	  switch (static_cast<char>(*T::_[i])) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
 	  } $:
 	  for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
   }

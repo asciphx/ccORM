@@ -13,13 +13,13 @@ Struct(Tab) {
   bool ok;
   text<15> name;
   tm date;
-  Type* types;
+  Type* type;
   Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), Type * e = nullptr) :
-	id(a), ok(b), name(c), date(d), types(e) {}
-  ~Tab() { types = nullptr; }
+	id(a), ok(b), name(c), date(d), type(e) {}
+  ~Tab() { type = nullptr; }
   FIELD(id, ok, name, date)
 };
-CONSTRUCT(Tab, id, ok, name, date, types)
+CONSTRUCT(Tab, id, ok, name, date, type)
 PROTO(Tab, id, ok, name, date)
 REGIST(Tab,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
@@ -31,13 +31,13 @@ Struct(Type) {
   uint8_t id;
   text<10> language;
   double bigBlob;
-  Tab* tabs;
+  Tab* tab;
   Type(uint8_t a = 0, const char* b = "", double c = 0, Tab * d = nullptr) :
-	id(a), language(b), bigBlob(c), tabs(d) {}
-  ~Type() { tabs = nullptr; }
+	id(a), language(b), bigBlob(c), tab(d) {}
+  ~Type() { tab = nullptr; }
   FIELD(id, language, bigBlob)
 };
-CONSTRUCT(Type, id, language, bigBlob, tabs)
+CONSTRUCT(Type, id, language, bigBlob, tab)
 PROTO(Type, id, language, bigBlob)
 REGIST(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",

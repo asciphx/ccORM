@@ -33,8 +33,7 @@ extern "C" {
 	if (j == k) { return d + i - k; } return (char*)0;
   }
   static int strCmp(const char* c, const char* s) {
-	if (c[0] == 0 || s[0] == 0) { return -1; } while (*s == *c && *c && *s)++c, ++s;
-	if (*c == *s) { return 0; } if (*c > *s)return 1; return -1;
+	while (*s == *c && *c && *s)++c, ++s; return *c == *s ? 0 : *c > *s ? 1 : -1;
   }
   static int find1CharPosDESC(const char* c, const char d) {
 	for (int l = strLen(c), i = l - 1; i > 0; --i) { if (c[i] == d)return l - i; } return -1;
@@ -78,15 +77,14 @@ extern "C" {
 	  } free(chr);
 	} return t;
   }
-  static inline constexpr unsigned long long hack8Str(const char* s) {
+  static inline unsigned long long hack8Str(const char* s) {
 	unsigned long long r = 0; for (signed char i = -1; ++i < 8 && s[i]; r *= 0x100, r += s[i]); return r;
   }//If only the first four digits need to be matched and there is no conflict, it is recommended to use hack4Str to improve efficiency
-  static inline constexpr int hack4Str(const char* s) { int r = 0; for (signed char i = -1; ++i < 4 && s[i]; r *= 0x100, r += s[i]); return r; }
-  //Hack8str is downward compatible with hack4str, however, it is not compatible with the hackallstr method
-  static inline constexpr unsigned long long hackAllStr(const char* s) {
+  static inline int hack4Str(const char* s) { int r = 0; for (signed char i = -1; ++i < 4 && s[i]; r *= 0x100, r += s[i]); return r; }
+  //Hack8str is downward compatible with hack4str, however, it is not compatible with the hackstr method
+  static inline unsigned long long hackStr(const char* s) {
 	unsigned long long r = 0; for (unsigned short i = 0xffff; s[++i]; r *= 0x1f, r += s[i]); return r;
   }
-  static inline constexpr int hack1Str(const char* s) { return (int)s[0]; }
   //The following void can only be used for MySQL or certain types(in the "ccORM.hh" file)
   static inline short atos_(char* c) {
 	short r = 0; if (*c == '-') { while (*++c) r = r * 10 - *c + 0x30; } else { while (*c) r = r * 10 + *c++ - 0x30; } return r;
@@ -107,7 +105,7 @@ constexpr unsigned long long operator""_l(const char* s, size_t /*len*/) {
 constexpr int operator""_i(const char* s, size_t /*len*/) {
   int r = 0; for (int i = 0; i < 4 && s[i]; r *= 0x100, r += s[i++]); return r;
 }
-//You can match more strings with hackallstr method, but you need to match ""_a used together
+//You can match more strings with hackstr method, but you need to match ""_a used together
 constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
   unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
 }
@@ -208,6 +206,7 @@ bool operator<(tm& t, tm& m) { return mktime(&t) < mktime(&m); }
 bool operator>(tm& t, tm& m) { return mktime(&t) > mktime(&m); }
 bool operator<=(tm& t, tm& m) { return mktime(&t) <= mktime(&m); }
 bool operator>=(tm& t, tm& m) { return mktime(&t) >= mktime(&m); }
+//Basic judgment type characters supported by ccORM (with switch(hack8Str(...)))
 #if _IS_WIN
 #define T_INT8 "signed char"_l
 #define T_UINT8 "d char"_l
@@ -240,6 +239,7 @@ bool operator>=(tm& t, tm& m) { return mktime(&t) >= mktime(&m); }
 #define T_TEXT "4textILt"_l
 #define T_STRING "NSt7__cx"_l
 #endif
+//Corrected type character sequence
 #define T_INT8_ 'a'
 #define T_UINT8_ 'h'
 #define T_INT16_ 's'

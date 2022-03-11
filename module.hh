@@ -9,11 +9,13 @@ Struct(Tab) {
   text<15> name;
   tm date;
   vector<Type> types;
-  Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}) :
-	id(a), ok(b), name(c), date(d), types(e) {}
+  Type* type;
+  Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}, Type * f = nullptr) :
+	id(a), ok(b), name(c), date(d), types(e), type(f) {}
+  ~Tab() { type = nullptr; }
   FIELD(id, ok, name, date)
 };
-CONSTRUCT(Tab, id, ok, name, date, types)
+CONSTRUCT(Tab, id, ok, name, date, types, type)
 PROTO(Tab, id, ok, name, date)
 REGIST(Tab,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
@@ -26,11 +28,13 @@ Struct(Type) {
   text<10> language;
   double bigBlob;
   vector<Tab> tabs;
-  Type(uint8_t a = 0, const char* b = "", double c = 0, vector<Tab> d = {}) :
-	id(a), language(b), bigBlob(c), tabs(d) {}
+  Tab* tab;
+  Type(uint8_t a = 0, const char* b = "", double c = 0, vector<Tab> d = {}, Tab * e = nullptr) :
+	id(a), language(b), bigBlob(c), tabs(d), tab(e) {}
+  ~Type() { tab = nullptr; }
   FIELD(id, language, bigBlob)
 };
-CONSTRUCT(Type, id, language, bigBlob, tabs)
+CONSTRUCT(Type, id, language, bigBlob, tabs, tab)
 PROTO(Type, id, language, bigBlob)
 REGIST(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
