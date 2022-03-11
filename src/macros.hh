@@ -374,7 +374,6 @@ if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}retur
 #define M_TABLE(o, o_k, p, p_k)\
 template<> const std::string orm::Table<o>::_mT = toSqlCase(#o#p);\
 template<> const std::string orm::Table<p>::_mT = toSqlCase(#o#p);\
-static const text<63> EXP($)EXP(o)EXP(_)EXP(p)=toSqlCase(#o#p);\
  static int o##p_(){std::string s,ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;\
 if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";\
 if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');\

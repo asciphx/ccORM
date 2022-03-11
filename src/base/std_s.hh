@@ -29,9 +29,13 @@ namespace std {
 	return static_cast<int8_t>(_Ans);
   }
   //If it is lower than C++ 17, it maybe needs to be implemented
-#if !defined(_HAS_CXX17)||(_WIN32&&_HAS_CXX17==0)
+#if _WIN32
+#if _HAS_CXX17==0
   struct string_view {
 	string_view(const char*, unsigned long long);
   };
+#endif
+#elif !defined(_HAS_CXX17)
+
 #endif
 }
