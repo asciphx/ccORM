@@ -59,10 +59,8 @@ namespace orm {
 	//<T> serialized as JSON with std::vector, includes empty std::vector
 	json get() { return json(*dynamic_cast<T*>(this)); }
 	//-------------------------------------ActiveRecord-------------------------------------
-	Table& operator=(Table&& t) {
-	  if (this != &t) {}return *this;
-	}
-	//
+
+    //check null
 	inline bool is_null() { return *((char*)(RUST_CAST(this) + this->_o$[0])) == 0; }
 	//Insert the object (Returns the inserted ID)
 	auto Insert() {
