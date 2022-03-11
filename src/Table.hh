@@ -23,7 +23,7 @@ namespace orm {
 	friend struct Sql<T>; static const char* _[];/*Store type character[]*/static int _r, _r1;/*Prepare Run Serialization*/
 	template <typename U> void $et(int8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
-		switch (static_cast<char>(*_[i])) {
+		switch (*_[i]) {
 		case T_TEXT_:*reinterpret_cast<text<>*>(RUST_CAST(this) + this->_o$[i]) = *v; break;
 		case T_STRING_:*reinterpret_cast<std::string*>(RUST_CAST(this) + this->_o$[i]) = *v;
 		}
@@ -58,6 +58,7 @@ namespace orm {
 	};
 	//<T> serialized as JSON with std::vector, includes empty std::vector
 	json get() { return json(*dynamic_cast<T*>(this)); }
+	inline bool is_null() { return *((char*)(RUST_CAST(this) + this->_o$[0])) == 0; }
 	//-------------------------------------ActiveRecord-------------------------------------
 
 	//Insert the object (Returns the inserted ID)
@@ -160,10 +161,10 @@ namespace orm {
 	  if (_created) {
 		_created = false; bool wrong_order = false; try {
 		  for (uint8_t i = 0; i < _size; ++i) {
-			if (static_cast<char>(*_[i]) == 0x2a || static_cast<char>(*_[i]) == 0x5f) { if (i < _len) { wrong_order = true; } continue; }
+			if (*_[i] == 0x2a || *_[i] == 0x5f) { if (i < _len) { wrong_order = true; } continue; }
 			if (wrong_order) { throw std::runtime_error("\033[1;34m*/[]\033[31;4m type should be at the end!\n\033[0m" __FILE__); }
 			if (_tc[i] & TC::AUTO_INCREMENT) {//check sequence key, and it must be number
-			  switch (static_cast<char>(*_[i])) {
+			  switch (*_[i]) {
 			  case T_INT8_: case T_INT16_: case T_INT_: case T_INT64_: case T_UINT8_: case T_UINT16_: case T_UINT_: case T_UINT64_:
 			  break; default:throw std::runtime_error("\033[1;34m[sequence]\033[31;4m type must be number!\n\033[0m");
 			  }
@@ -172,7 +173,7 @@ namespace orm {
 			if constexpr (pgsqL) {
 			  _create.push_back('"'); _create += $[i]; _create.push_back('"');
 			  if (tc & TC::PRIMARY_KEY || tc & TC::AUTO_INCREMENT) {//Compatible layer, unsigned field may be only half the size
-				switch (static_cast<char>(*_[i])) {
+				switch (*_[i]) {
 				case T_INT8_: case T_UINT8_:
 				case T_INT16_: case T_UINT16_: _create += " SMALLSERIAL PRIMARY KEY"; break;
 				case T_INT_: case T_UINT_: _create += " SERIAL PRIMARY KEY"; break;
@@ -183,7 +184,7 @@ namespace orm {
 			  _create.push_back('`'); _create += $[i]; _create.push_back('`');
 			  if (tc & TC::PRIMARY_KEY && tc & TC::AUTO_INCREMENT) { _create += " INTEGER PRIMARY KEY AUTOINCREMENT"; continue; }
 			} else { _create.push_back('`'); _create += $[i]; _create.push_back('`'); }
-			switch (static_cast<char>(*_[i])) {
+			switch (*_[i]) {
 			case T_BOOL_: _create += " BOOLEAN"; if (tc & TC::NOT_NULL) { _create += " NOT NULL"; }
 						if constexpr (pgsqL) { goto $; }
 						if (tc & TC::DEFAULT && so2s<bool>(def)) {
@@ -233,7 +234,7 @@ namespace orm {
 		  $://String type detection system => unsigned -> d
 			if (tc & TC::NOT_NULL) { _create += " NOT NULL"; }
 			if (tc & TC::DEFAULT) {
-			  switch (static_cast<char>(*_[i])) {
+			  switch (*_[i]) {
 			  case T_DOUBLE_: if (!so2s<double>(def)) { break; } goto _;
 			  case T_FLOAT_: if (!so2s<float>(def)) { break; } goto _;
 			  case T_INT64_: if (!so2s<long long>(def)) { break; } goto _;
@@ -276,6 +277,7 @@ namespace orm {
   typename Table<T>::ptr Table<T>::create(Args&& ... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
 
   template <typename T> std::string& operator<<(std::string& s, Table<T>* c) {
+	if (*((char*)(RUST_CAST(c) + c->_o$[0])) == 0) { s = "null"; return s; }
 	s.push_back('{'); int8_t i = -1;
 	ForEachField(dynamic_cast<T*>(c), [&i, c, &s](auto& t) {
 	  using Y = std::remove_reference_t<decltype(t)>;
