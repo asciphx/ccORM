@@ -16,9 +16,9 @@ void test() {
   //t->Delete();//delete
   //Type ty{1, "wwzzgg", 3.1415926}; cout << "The number with ID " << ty.Insert() << " has been inserted\n";
   cout << Tab::Q().orderBy(Tab::$date).GetArr(Sort::DESC) << '\n';
-  vector<Type> vu; vector<Tab> vt = TLinker<Tab, Type>().GetArr(&vu); cout << vt << '\n';//one-to-one -> GetArr
+  vector<Type> vu; vector<Tab> vt = Tab::Q().innerJoin<Type>(Tab::$id==Type::$id).GetArr(&vu); cout << vt << '\n';//one-to-one -> GetArr
   *t = Tab::Q().where(Tab::$id == 9).GetOne(); cout << t << '\n';//null
-  cout << TLinker<Tab, Type>().GetJson();//Test combination, joint table debugging
+  cout << Tab::Q().GetJson<Type>();//Test combination, joint table debugging
 }
 int main(int argc, char* argv[]) {
   clock_t start = clock(); test(); if constexpr (FastestDev) { return 0; }

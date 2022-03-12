@@ -69,8 +69,7 @@ namespace orm {
 		for (size_t i = 0; i < l; ++i) {
 		  auto* t = &_v[i]; s.push_back('{'); int8_t k = -1;
 		  ForEachTuple($, [t, &k, &s](auto& _) {
-			using Y = std::remove_reference_t<decltype(t->*_)>;
-			if constexpr (std::is_same<const tm, Y>::value) {
+			if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
 #ifdef _WIN32
 			  os << std::setw(4) << time->tm_year + 1900;
@@ -81,14 +80,14 @@ namespace orm {
 				<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
 			} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false";
-			} else if constexpr (std::is_fundamental<Y>::value) {
+			} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_);
-			} else if constexpr (std::is_same<const std::string, Y>::value) {
+			} else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
 			  s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\"";
-			} else if constexpr (li::is_vector<Y>::value) {
-			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_);
-			} else if constexpr (li::is_ptr<Y>::value) {
-			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << *t->*_;
+			} else if constexpr (li::is_vector<std::decay_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
+			} else if constexpr (li::is_ptr<std::decay_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_;
 			} else {
 			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
 			} s.push_back(',');

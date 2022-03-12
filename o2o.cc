@@ -46,7 +46,7 @@ REGIST(Type,
 //M_TABLE(Type, id, Tab, id)//Actually,there is no need for an intermediate table in one-to-one
 int main(int argc, char* argv[]) { //For example, if on() has multiple conditions, up to three conditions. eg : two conditions
   //cout << ((Tab::$id == Type::$id) && (Type::$bigBlob == Tab::$name)) << '\n';//(`Tab`.`id`=`Type`.`id` AND `Type`.`bigBlob`=`Tab`.`name`)
-  Type u; Tab t = TLinker<Tab, Type>(Tab::$id == Type::$id).where(Tab::$id == 2).GetOne(&u); cout << t << '\n' << std::boolalpha;
-  vector<Type> vu; vector<Tab> vt = TLinker<Tab, Type>().GetArr(&vu); cout << vt << '\n';
+  Type u; Tab t = Tab::Q().innerJoin<Type>(Tab::$id == Type::$id).where(Tab::$id == 2).GetOne(&u); cout << t << '\n';
+  vector<Type> vu; vector<Tab> vt = Tab::Q().innerJoin<Type>().GetArr(&vu); cout << vt << '\n';
   return 0;
 }

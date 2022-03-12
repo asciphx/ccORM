@@ -19,8 +19,8 @@ namespace orm {
 #ifdef _WIN32
 	friend typename T; const static char* _def[];/*Store default values[]*/static unsigned char _tc[];/*Store key type[]*/
 #endif
-	template<typename U, typename V> friend struct TLinker; friend typename decltype(D)::db_rs;
-	friend struct Sql<T>; static const char* _[];/*Store type character[]*/static int _r, _r1;/*Prepare Run Serialization*/
+	friend typename decltype(D)::db_rs; template<typename U> friend struct Sql;
+	static const char* _[];/*Store type character[]*/static int _r, _r1;/*Prepare Run Serialization*/
 	template <typename U> void $et(int8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
 		switch (*_[i]) {
@@ -57,11 +57,11 @@ namespace orm {
 	  if (q->___) { q->___ = false; return *q; } std::this_thread::yield(); goto _;
 	};
 	//<T> serialized as JSON with std::vector, includes empty std::vector
-	json get() { return json(*dynamic_cast<T*>(this)); }
+	inline json get() { return json(*dynamic_cast<T*>(this)); }
+	//check null
+	inline bool is_null() { return *((char*)(RUST_CAST(this) + this->_o$[0])) == 0; }
 	//-------------------------------------ActiveRecord-------------------------------------
 
-    //check null
-	inline bool is_null() { return *((char*)(RUST_CAST(this) + this->_o$[0])) == 0; }
 	//Insert the object (Returns the inserted ID)
 	auto Insert() {
 	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
