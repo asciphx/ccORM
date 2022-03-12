@@ -55,7 +55,7 @@ namespace orm {
 		}
 		//std::cout << '\n' << typeid(li::ExP<T>(li::ExP(_))).name();
 		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); std::cout << '\n';
-	  return json{ "Only stars, flowers and applause can satisfy my arrogance and greatness" };
+	  ___ = true; return json{ "Only stars, flowers and applause can satisfy my arrogance and greatness" };
 	};
 	inline decltype(D)::connection_type DB();
 	//-------------------------------------DataMapper-------------------------------------
