@@ -1008,10 +1008,11 @@ namespace li {
 	}
 	template <typename T, typename U> void readO2O(T* t, U* u) {
 	  if (last_step_ret_ != SQLITE_ROW) return; int8_t y = -1, z = T::_len - 1;//-1
-	  ForEachTuple(Tuple<T>(), [t, u, &y, this](auto& _) {
+    constexpr const auto $ = Tuple<T>(); constexpr const auto $1 = Tuple<U>();
+	  ForEachTuple($, [t, &y, this](auto& _) {
 		readSqlite<std::remove_reference_t<decltype(t->*_)>>(++y, t->*_);
 		}, std::make_index_sequence<T::_len>{});
-	  ForEachTuple(Tuple<U>(), [u, &y, this](auto& _) {
+	  ForEachTuple($1, [u, &y, this](auto& _) {
 		readSqlite<std::remove_reference_t<decltype(u->*_)>>(++y, u->*_);
 		}, std::make_index_sequence<U::_len>{});
 		//while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
