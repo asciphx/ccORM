@@ -2969,7 +2969,7 @@ namespace nlohmann::detail {
 }
 #elif JSON_HAS_FILESYSTEM
 #include <filesystem>
-namespace nlohmann::detail {
+namespace nlohmann {
   namespace std_fs = std::filesystem;
 }
 #endif
@@ -3433,17 +3433,6 @@ namespace std {
 #pragma clang diagnostic pop
 #endif
 }
-#if JSON_HAS_EXPERIMENTAL_FILESYSTEM
-#include <experimental/filesystem>
-namespace nlohmann::detail {
-  namespace std_fs = std::experimental::filesystem;
-}
-#elif JSON_HAS_FILESYSTEM
-#include <filesystem>
-namespace nlohmann::detail {
-  namespace std_fs = std::filesystem;
-}
-#endif
 namespace nlohmann {
   namespace detail {
 	template<value_t> struct external_constructor;

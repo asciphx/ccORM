@@ -22,6 +22,9 @@
 #include <string_view>
 #include <mysql/mysql.h>
 #include <libpq-fe.h>
+#define SQLITE_DEFAULT_WORKER_THREADS 2
+#define SQLITE_MAX_WORKER_THREADS 8
+#define SQLITE_ENABLE_JSON1
 #include <sqlite3.h>
 #include "./utils/text.hh"
 #define EXPECT_THROW(STM)\
@@ -80,6 +83,7 @@ inline double ntohd(uint64_t l) {
 #define INT2OID 21
 #define INT4OID 23
 #define M_IDE 0x8
+#pragma warning(disable:4172)
 static const char RES_DATE_FORMAT[] = "%4d-%2d-%2d %2d:%2d:%2d";
 struct Timer {
   template<typename F> void setTimeout(F func, uint32_t milliseconds);
@@ -208,10 +212,7 @@ namespace li {
   int type_hashmap<V>::counter_ = 0;
   constexpr int count_first_falses() { return 0; }
   template <typename... B> constexpr int count_first_falses(bool b1, B... b) {
-	if (b1)
-	  return 0;
-	else
-	  return 1 + count_first_falses(b...);
+	if (b1) return 0; else return 1 + count_first_falses(b...);
   }
   template <typename E, typename... T> decltype(auto) arg_get_by_type_(void*, E* a1, T&&... args) {
 	return std::forward<E*>(a1);
@@ -407,28 +408,18 @@ namespace li {
   struct pgsql_statement_data;
   struct pgsql_connection_data {
 	~pgsql_connection_data() {
-	  if (pgconn_) {
-		cancel();
-		PQfinish(pgconn_);
-	  }
+	  if (pgconn_) { cancel(); PQfinish(pgconn_); }
 	}
 	void cancel() {
 	  if (pgconn_) {
-		PGcancel* cancel = PQgetCancel(pgconn_);
-		char x[256];
-		if (cancel) {
-		  PQcancel(cancel, x, 256);
-		  PQfreeCancel(cancel);
-		}
+		PGcancel* cancel = PQgetCancel(pgconn_); char x[256];
+		if (cancel) { PQcancel(cancel, x, 256); PQfreeCancel(cancel); }
 	  }
 	}
 	void flush() {
 	  while (int ret = PQflush(pgconn_)) {
-		if (ret == -1) {
-		  std::cerr << "PQflush error" << std::endl;
-		}
-		if (ret == 1)
-		  std::this_thread::yield();
+		if (ret == -1) { std::cerr << "PQflush error" << std::endl; }
+		if (ret == 1) std::this_thread::yield();
 	  }
 	}
 	PGconn* pgconn_ = nullptr;
@@ -494,7 +485,8 @@ namespace li {
 		}
 	  } else {
 		PGresult* res = PQgetResult(connection);
-		if (PQresultStatus(res) == PGRES_FATAL_ERROR && PQerrorMessage(connection)[0] != 0) {
+		uint8_t i = PQresultStatus(res);
+		if (i == PGRES_FATAL_ERROR && PQerrorMessage(connection)[0] != 0) {
 		  PQclear(res);
 		  connection_status = 1;
 		  if (!nothrow)
@@ -502,13 +494,14 @@ namespace li {
 			  PQerrorMessage(connection));
 		  else
 			std::cerr << "Postgresql FATAL error: " << PQerrorMessage(connection) << std::endl;
-		} else if (PQresultStatus(res) == PGRES_NONFATAL_ERROR)
+		} else if (i == PGRES_NONFATAL_ERROR) {
 		  std::cerr << "Postgresql non fatal error: " << PQerrorMessage(connection) << std::endl;
+		} else if (!PQntuples(res)) res = nullptr;
 		return res;
 	  }
 	}
   }
-  PGresult* pgsql_result::wait_for_next_result() {
+  inline PGresult* pgsql_result::wait_for_next_result() {
 	return pg_wait_for_next_result(connection_->pgconn_, connection_->error_);
   }
   void pgsql_result::flush_results() {
@@ -644,7 +637,7 @@ namespace li {
 	} short i = T::_len - 1, l = v1->size();
 	while (++i < T::_size) {
 	  switch (*T::_[i]) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
-	} $:
+	} return; $:
 	for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
   }
   template <typename T> void pgsql_result::readArr(std::vector<T>* output) {
@@ -713,7 +706,7 @@ namespace li {
 	return row_i_;
   }
   template <typename T> bool pgsql_result::read(T&& output) {
-	int nfields = proto_type_.size();
+	int nfields = proto_type_.size(); using X = std::decay_t<T>;
 	if (!current_result_ || row_i_ == current_result_nrows_) {
 	  if (current_result_) {
 		PQclear(current_result_);
@@ -736,15 +729,22 @@ namespace li {
 		  proto_type_[field_i] = PQftype(current_result_, field_i);
 	  }
 	}
-	int i = 0;
-	if (nfields != std::tuple_size_v<std::decay_t<T>>)
-	  throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
-		"field and the outputs.");
-	tuple_map(std::forward<T>(output), [&](auto& m) {
-	  fetch_value(m, i, proto_type_[i]);
-	  ++i;
-	  });
-	++this->row_i_;
+	if constexpr (is_vector<X>::value) {
+	  int8_t i = 0;
+	  for (vector_pack_t<X> j; row_i_ < current_result_nrows_; ++row_i_) {
+		readPg<vector_pack_t<X>>(i, j); output.push_back(j);
+	  }
+	} else {
+	  int i = 0;
+	  if (nfields != std::tuple_size_v<X>)
+		throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
+		  "field and the outputs.");
+	  tuple_map(std::forward<T>(output), [&](auto& m) {
+		fetch_value(m, i, proto_type_[i]);
+		++i;
+		});
+	  ++this->row_i_;
+	}
 	return true;
   }
   long long int pgsql_result::last_insert_id() {
@@ -865,14 +865,16 @@ namespace li {
 
 	template <typename T1, typename... T> bool r__(T1&& t1, T&... tail);
 	template <typename T> void r__(std::optional<T>& o);
+	template <typename T> void r__(std::vector<T>& o);
 
 	template <typename F> void map(F f);
 	inline json JSON(uint8_t size, size_t page);
 	inline json JSON();
-	template <typename T> inline T findOne();
-	template <typename T, typename U> inline T findOne(U* u);
-	template <typename T, typename U> inline std::vector<T> findArray(std::vector<U>* u);
-	template <typename T> inline std::vector<T> findArray();
+	template <typename T> inline T find();
+	template <typename T, typename U> inline T find(U* u);
+	template <typename T, typename U> inline std::vector<T> find(std::vector<U>* u);
+	template <typename T> inline std::vector<T> findArr();
+	template <typename T> inline T findMany();
 	template <typename T> inline std::vector<T> findMany();
   };
   template <typename B> inline json sql_result<B>::JSON(uint8_t size, size_t page) {
@@ -880,34 +882,29 @@ namespace li {
   }
   template <typename B> inline json sql_result<B>::JSON() { json t; impl_.readJson(&t); return t; }
   template <typename B>
-  template <typename O> inline O sql_result<B>::findOne() { O t; impl_.readOne(&t); return t; }
+  template <typename O> inline O sql_result<B>::find() { O t; impl_.readOne(&t); return t; }
   template <typename B>
-  template <typename O, typename U> inline O sql_result<B>::findOne(U* u) { O t; impl_.readO2O(&t, u); return t; }
+  template <typename O, typename U> inline O sql_result<B>::find(U* u) { O t; impl_.readO2O(&t, u); return t; }
   template <typename B>
   template <typename O, typename U>
-  inline std::vector<O> sql_result<B>::findArray(std::vector<U>* u) { std::vector<O> t; impl_.readO2O(&t, u); return t; }
+  inline std::vector<O> sql_result<B>::find(std::vector<U>* u) { std::vector<O> t; impl_.readO2O(&t, u); return t; }
   template <typename B>
-  template <typename O> inline std::vector<O> sql_result<B>::findArray() { std::vector<O> ts; impl_.readArr(&ts); return ts; }
+  template <typename O> inline std::vector<O> sql_result<B>::findArr() { std::vector<O> ts; impl_.readArr(&ts); return ts; }
+  template <typename B>
+  template <typename O> inline O sql_result<B>::findMany() { O t; impl_.readM2M(&t); return t; }
   template <typename B>
   template <typename O> inline std::vector<O> sql_result<B>::findMany() { std::vector<O> ts; impl_.readM2M(&ts); return ts; }
   template <typename B>
   template <typename T1, typename... T>
   bool sql_result<B>::r__(T1&& t1, T&... tail) {
 	if constexpr (is_tuple<std::decay_t<T1>>::value) {
-	  static_assert(sizeof...(T) == 0);
-	  return impl_.read(std::forward<T1>(t1));
+	  static_assert(sizeof...(T) == 0); return impl_.read(std::forward<T1>(t1));
 	} else
 	  return impl_.read(std::tie(t1, tail...));
   }
   template <typename B> template <typename T1, typename... T> auto sql_result<B>::r__() {
-	auto t = [] {
-	  if constexpr (sizeof...(T) == 0)
-		return T1{};
-	  else
-		return std::tuple<T1, T...>{};
-	}();
-	if (!this->r__(t))
-	  throw std::runtime_error("sql_result::r__: error: Trying to read a request that did not return any data.");
+	auto t = [] { if constexpr (sizeof...(T) == 0) return T1{}; else return std::tuple<T1, T...>{}; }();
+	if constexpr (is_vector<T1>::value) { impl_.read(std::forward<T1&>(t)); } else this->r__(t);
 	return t;
   }
   template <typename B> template <typename T> void sql_result<B>::r__(std::optional<T>& o) {
@@ -916,16 +913,8 @@ namespace li {
   template <typename B>
   template <typename T1, typename... T>
   auto sql_result<B>::read_optional() {
-	auto t = [] {
-	  if constexpr (sizeof...(T) == 0)
-		return T1{};
-	  else
-		return std::tuple<T1, T...>{};
-	}();
-	if (this->r__(t))
-	  return std::make_optional(std::move(t));
-	else
-	  return std::optional<decltype(t)>{};
+	auto t = [] { if constexpr (sizeof...(T) == 0) return T1{}; else return std::tuple<T1, T...>{}; }();
+	if (this->r__(t)) return std::make_optional(std::move(t)); else return std::optional<decltype(t)>{};
   }
   namespace internal {
 	template<typename T, typename F>
@@ -938,23 +927,14 @@ namespace li {
   template <typename B> template <typename F> void sql_result<B>::map(F map_function) {
 	if constexpr (std::is_same_v<B, sqlite_statement_result>) {
 	} else {
-	  if constexpr (IS_VALID(B, map(map_function)))
-		this->impl_.map(map_function);
+	  if constexpr (IS_VALID(B, map(map_function))) this->impl_.map(map_function);
 	  typedef typename unconstref_tuple_elements<callable_arguments_tuple_t<F>>::ret TP;
 	  typedef std::tuple_element_t<0, TP> TP0;
 	  auto t = [] {
 		static_assert(std::tuple_size_v < TP >> 0, "sql_result map function must take at least 1 argument.");
-		if constexpr (is_tuple<TP0>::value)
-		  return TP0{};
-		else
-		  return TP{};
+		if constexpr (is_tuple<TP0>::value) return TP0{}; else return TP{};
 	  }();
-	  while (this->r__(t)) {
-		if constexpr (is_tuple<TP0>::value)
-		  map_function(t);
-		else
-		  std::apply(map_function, t);
-	  }
+	  while (this->r__(t)) { if constexpr (is_tuple<TP0>::value) map_function(t); else std::apply(map_function, t); }
 	}
   }
   template <typename T>
@@ -997,42 +977,6 @@ namespace li {
 	  }
 	}
 	template <typename T> inline void readSqlite(int8_t& i, int8_t& k, T* j) {
-	  // if constexpr (*T::_[i] == T_INT8_) {
-		 //*reinterpret_cast<int8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_UINT8_) {
-		 //*reinterpret_cast<uint8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_INT16_) {
-		 //*reinterpret_cast<int16_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_UINT16_) {
-		 //*reinterpret_cast<uint16_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_INT_) {
-		 //*reinterpret_cast<int32_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_UINT_) {
-		 //*reinterpret_cast<uint32_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_INT64_) {
-		 //*reinterpret_cast<int64_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_UINT64_) {
-		 //*reinterpret_cast<uint64_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_TM_) {
-		 //tm* t = reinterpret_cast<tm*>(RUST_CAST(j) + j->_o$[i]); ++k;
-		 //int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sqlite3_column_bytes(stmt_, k) != 0) {
-		 //  sscanf((const char*)sqlite3_column_text(stmt_, k), RES_DATE_FORMAT, &year, &month, &day, &hour, &min, &sec);
-		 //} t->tm_year = year - 1900; t->tm_mon = month - 1; t->tm_mday = day; t->tm_hour = hour; t->tm_min = min; t->tm_sec = sec;
-	  // } else if constexpr (*T::_[i] == T_DOUBLE_) {
-		 //*reinterpret_cast<double*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_double(stmt_, ++k);
-	  // } else if constexpr (*T::_[i] == T_FLOAT_) {
-		 //*reinterpret_cast<float*>(RUST_CAST(j) + j->_o$[i]) =
-		 //  sqlite3_column_bytes(stmt_, k) ? boost::lexical_cast<float>((const char*)sqlite3_column_text(stmt_, ++k)) : 0.0F;
-	  // } else if constexpr (*T::_[i] == T_BOOL_) {
-		 //*reinterpret_cast<bool*>(RUST_CAST(j) + j->_o$[i]) =
-		 //  sqlite3_column_bytes(stmt_, k) ? boost::lexical_cast<bool>((const char*)sqlite3_column_text(stmt_, ++k)) : false;
-	  // } else if constexpr (*T::_[i] == T_TEXT_) {
-		 //*reinterpret_cast<text<>*>(RUST_CAST(j) + j->_o$[i]) =
-		 //  sqlite3_column_bytes(stmt_, k) ? (const char*)sqlite3_column_text(stmt_, ++k) : "";
-	  // } else if constexpr (*T::_[i] == T_STRING_) {
-		 //*reinterpret_cast<std::string*>(RUST_CAST(j) + j->_o$[i]) =
-		 //  sqlite3_column_bytes(stmt_, k) ? (const char*)sqlite3_column_text(stmt_, ++k) : "";
-	  // }
 	  switch (*T::_[i]) {
 	  case T_INT8_:*reinterpret_cast<int8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
 	  case T_UINT8_:*reinterpret_cast<uint8_t*>(RUST_CAST(j) + j->_o$[i]) = sqlite3_column_int64(stmt_, ++k); break;
@@ -1063,14 +1007,20 @@ namespace li {
 	  if (last_step_ret_ != SQLITE_ROW) return; int8_t i = -1, k = -1; while (++i < T::_len) { readSqlite(i, k, j); }
 	}
 	template <typename T, typename U> void readO2O(T* t, U* u) {
-	  if (last_step_ret_ != SQLITE_ROW) return; int8_t y = -1, z = -1;
-	  while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
-	  while (++z < U::_len) { readSqlite(z, y, u); }z = T::_len - 1;
-	  while (++z < T::_size) {
-		switch (*T::_[z]) {
-		case T_POINTER_: if (strCmp(T::_[z] + 1, ObjName<U>()) == 0) { *reinterpret_cast<U**>(RUST_CAST(t) + t->_o$[z]) = u; }
-		}
-	  }
+	  if (last_step_ret_ != SQLITE_ROW) return; int8_t y = -1, z = T::_len - 1;//-1
+	  ForEachTuple(Tuple<T>(), [t, u, &y, this](auto& _) {
+		readSqlite<std::remove_reference_t<decltype(t->*_)>>(++y, t->*_);
+		}, std::make_index_sequence<T::_len>{});
+	  ForEachTuple(Tuple<U>(), [u, &y, this](auto& _) {
+		readSqlite<std::remove_reference_t<decltype(u->*_)>>(++y, u->*_);
+		}, std::make_index_sequence<U::_len>{});
+		//while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
+		//while (++z < U::_len) { readSqlite(z, y, u); }z = T::_len - 1;
+	    while (++z < T::_size) {
+		  switch (*T::_[z]) {
+		  case T_POINTER_: if (strCmp(T::_[z] + 1, ObjName<U>()) == 0) { *reinterpret_cast<U**>(RUST_CAST(t) + t->_o$[z]) = u; }
+		  }
+	    }
 	}
 	template <typename T, typename U> void readO2O(std::vector<T>* v1, std::vector<U>* v2) {
 	  if (last_step_ret_ != SQLITE_ROW) return; T t; U u; int8_t y, z; _: y = z = -1;
@@ -1080,8 +1030,11 @@ namespace li {
 	  if (last_step_ret_ == SQLITE_ROW) { goto _; } short i = T::_len - 1, l = v1->size();
 	  while (++i < T::_size) {
 	  switch (*T::_[i]) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
-	  } $:
+	  } return; $:
 	  for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
+	}
+	template <typename T> void readM2M(T* t) {
+	  if (last_step_ret_ != SQLITE_ROW) return;
 	}
 	template <typename T> void readM2M(std::vector<T>* vt) {
 	  if (last_step_ret_ != SQLITE_ROW) return; constexpr auto $ = Tuple<T>();
@@ -1127,21 +1080,26 @@ namespace li {
 	  } output->push_back(j); goto _;
 	}
 	template <typename T> bool read(T&& output) {
-	  if (last_step_ret_ != SQLITE_ROW) return false;
-	  int ncols = sqlite3_column_count(stmt_);
-	  int i = 0;
-	  std::size_t tuple_size = std::tuple_size_v<std::decay_t<T>>;
-	  if (ncols != tuple_size) {
-		std::ostringstream ss;
-		ss << "Invalid number of parameters: SQL request has " << ncols
-		  << " fields but the function to process it has " << tuple_size << " parameters.";
-		throw std::runtime_error(ss.str());
+	  if (last_step_ret_ != SQLITE_ROW) return false; using X = std::decay_t<T>;
+	  if constexpr (is_vector<X>::value) {
+		vector_pack_t<X> j; int8_t i = 0; _: readSqlite<vector_pack_t<X>>(i, j);
+		output.push_back(j); last_step_ret_ = sqlite3_step(stmt_);
+		if (last_step_ret_ == SQLITE_ROW) { goto _; }
+	  } else {
+		int i = 0; int ncols = sqlite3_column_count(stmt_);
+		std::size_t tuple_size = std::tuple_size_v<X>;
+		if (ncols != tuple_size) {
+		  std::ostringstream ss;
+		  ss << "Invalid number of parameters: SQL request has " << ncols
+			<< " fields but the function to process it has " << tuple_size << " parameters.";
+		  throw std::runtime_error(ss.str());
+		}
+		auto read_elt = [&](auto& v) {
+		  this->read_column(i, v, sqlite3_column_type(stmt_, i));
+		  ++i;
+		};
+		tuple_map(std::forward<T>(output), read_elt);
 	  }
-	  auto read_elt = [&](auto& v) {
-		this->read_column(i, v, sqlite3_column_type(stmt_, i));
-		++i;
-	  };
-	  tuple_map(std::forward<T>(output), read_elt);
 	  return true;
 	}
 	inline long long int last_insert_id() { return sqlite3_last_insert_rowid(db_); }
@@ -1978,7 +1936,7 @@ namespace li {
 	  } short i = T::_len - 1, l = v1->size();
 	  while (++i < T::_size) {
 	  switch (*T::_[i]) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
-	  } $:
+	  } return; $:
 	  for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
   }
   template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>* output) {
@@ -2233,7 +2191,7 @@ namespace li {
 	  return impl.scoped_connection(sptr);
 	}
   };
-  typedef sql_database<mysql> Mysql;
+  typedef sql_database<mysql, 4000> Mysql;
   typedef sql_database<pgsql, 3000> Pgsql;
 #ifndef FastestDev
 #define FastestDev 1
@@ -2241,24 +2199,22 @@ namespace li {
 #ifndef IsDevMode
 #define IsDevMode 1
 #endif
-#define Unsafe FastestDev || IsDevMode
-  //The configuration isn't safe ? development : environment online
+  //库名：test测试环境【自动重建表】| dev开发环境【手动同步字段（假的测试数据）不会重建表】| Database线上环境貌似字段只能加不能减
+  //The configuration is FastestDev ? development : is IsDevMode ? IsDevMode : environment online
   struct sql_config {
-	const char* my_host = Unsafe ? "127.0.0.1" : "cd.tencentcdb.com";
-	const char* my_data = Unsafe ? "test" : "Database";
-	const char* my_user = Unsafe ? "root" : "User";
-	const char* my_pwds = Unsafe ? "" : "Password";
-	const short my_port = Unsafe ? 3306 : 10025;
+	const char* my_host = FastestDev ? "127.0.0.1" : IsDevMode ? "127.0.0.1" : "cd.tencentcdb.com";
+	const char* my_data = FastestDev ? "test" : IsDevMode ? "dev" : "Database";
+	const char* my_user = FastestDev ? "root" : IsDevMode ? "root" : "User";
+	const char* my_pwds = FastestDev ? "" : IsDevMode ? "" : "Password";
+	const short my_port = FastestDev ? 3306 : IsDevMode ? 3306 : 10025;
 
-	const char* pg_host = Unsafe ? "127.0.0.1" : "cd.tencentcdb.com";
-	const char* pg_data = Unsafe ? "test" : "Database";
-	const char* pg_user = Unsafe ? "Asciphx" : "User";
-	const char* pg_pwds = Unsafe ? "" : "Password";
-	const short pg_port = Unsafe ? 5432 : 10052;
+	const char* pg_host = FastestDev ? "127.0.0.1" : IsDevMode ? "127.0.0.1" : "cd.tencentcdb.com";
+	const char* pg_data = FastestDev ? "test" : IsDevMode ? "dev" : "Database";
+	const char* pg_user = FastestDev ? "Asciphx" : IsDevMode ? "Asciphx" : "User";
+	const char* pg_pwds = FastestDev ? "" : IsDevMode ? "" : "Password";
+	const short pg_port = FastestDev ? 5432 : IsDevMode ? 5432 : 10052;
   } C;
-  //On the right above is the configuration in the environment online. Please modify it consciously
 #define D_mysql() li::Mysql(li::C.my_host,li::C.my_data,li::C.my_user,li::C.my_pwds,li::C.my_port,"utf8")
 #define D_pgsql() li::Pgsql(li::C.pg_host,li::C.pg_data,li::C.pg_user,li::C.pg_pwds,li::C.pg_port,"utf8")
-  //SQLite is not suitable for multi-threaded environments
-#define D_sqlite(path) li::Sqlite(Unsafe?"dev." path:path)
+#define D_sqlite(path) li::Sqlite(FastestDev?"test." path:IsDevMode?"dev." path:path)
 }

@@ -83,7 +83,7 @@ extern "C" {
   static inline constexpr int hack4Str(const char* s) { int r = 0; for (signed char i = -1; ++i < 4 && s[i]; r *= 0x100, r += s[i]); return r; }
   //Hack8str is downward compatible with hack4str, however, it is not compatible with the hackstr method
   static inline constexpr unsigned long long hackStr(const char* s) {
-	unsigned long long r = 0; for (unsigned short i = 0xffff; s[++i]; r *= 0x1f, r += s[i]); return r;
+	unsigned long long r = 0; for (unsigned short i = 0xffff; s[++i]; r *= 0x1f, r += s[i] - 0x2f); return r;
   }
   //The following void can only be used for MySQL or certain types(in the "ccORM.hh" file)
   static inline short atos_(char* c) {
@@ -107,7 +107,7 @@ constexpr int operator""_i(const char* s, size_t /*len*/) {
 }
 //You can match more strings with hackstr method, but you need to match ""_a used together
 constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
-  unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
+  unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x1f, r += s[i++] - 0x2f); return r;
 }
 #ifdef _WIN32
 #define _IS_WIN 1
@@ -138,6 +138,15 @@ template<typename T> inline const char* ObjName() {
   const char* s = typeid(T).name(); if constexpr (_IS_WIN) {
 	while (*++s != 0x20); return ++s;
   } else { while (*s < 0x3a && *s++ != 0x24) {}; return s; }
+}
+template<typename T, typename U> inline uint64_t ObjLink() {
+  const char* s = typeid(T).name(), * c = typeid(U).name(); unsigned long long r = 0; if constexpr (_IS_WIN) {
+	while (*++s != 0x20); while (*++c != 0x20); for (; *++s; r *= 0x1f, r += *s - 0x2f); for (; *++c; r *= 0x1f, r += *c - 0x2f);
+  } else {
+	while (*s < 0x3a && *s++ != 0x24) {}; while (*c < 0x3a && *c++ != 0x24) {};
+	for (; *s; r *= 0x1f, r += *s++ - 0x2f); for (; *c; r *= 0x1f, r += *c++ - 0x2f);
+  }
+  return r;
 }
 static std::string toQuotes(const char* s) {
   std::string e; while (*s) { if (*s == 0x27) { e.push_back(0x27); e.push_back(0x27); } else { e.push_back(*s); } *++s; } return e;

@@ -33,6 +33,21 @@ namespace std {
 #if _HAS_CXX17==0
   struct string_view {
 	string_view(const char*, unsigned long long);
+	[[nodiscard]] size_t length() const;
+	[[nodiscard]] size_t size() const;
+	[[nodiscard]] inline const char* data() const;
+  };
+  struct nullopt_t {
+	explicit constexpr nullopt_t(int) {}
+  };
+  template <class T>
+  struct optional {
+	using value_type = T;
+	constexpr optional() noexcept {}
+	constexpr optional(nullopt_t) noexcept {}
+  };
+  struct any {
+	any(void* v); any& operator=(void*);
   };
 #endif
 #elif !defined(_HAS_CXX17)

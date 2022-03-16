@@ -6,7 +6,7 @@
 #include"macros.hh"
 namespace orm {
   enum class Sort { ASC, DESC }; static const char* SORT[2] = { "", " DESC" };
-  template<typename T> class Table;
+  template<typename T> class Table;//SELECT `id` FROM `tab` ORDER BY `tab`.`id` ASC LIMIT size_ OFFSET (page_ - 1) * size_
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> struct Sql {
 	friend class Table<T>;
@@ -22,40 +22,19 @@ namespace orm {
 	//Default ASC for the first field
 	std::vector<T> GetArr(const Sort& ord = Sort::ASC)noexcept;
 	inline T GetOne()noexcept;
-	template<typename U> T GetOne(U* u, const Sort& ord = Sort::ASC)noexcept {
-	  _ += " LIMIT 1"; std::string sql(_); this->clear(); return D.conn()(sql).template findOne<T>(u);
+	template<typename U> T GetOne(U* u, const Sort& ord = Sort::ASC)noexcept { //std::cout << _ << '\n';
+	  _ += " LIMIT 1"; std::string sql(_); this->clear(); return D.conn()(sql).template find<T>(u);
 	};
 	template<typename U> std::vector<T> GetArr(std::vector<U>* vu, const Sort& ord = Sort::ASC)noexcept {
-	  _ += " LIMIT "; _ += std::to_string(size_); _ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);
-	  std::string sql(_); this->clear(); return D.conn()(sql).template findArray<T>(vu);
+	  _ += " ORDER BY"; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
+		__.push_back(34); __ += T::$[0]; __.push_back(34);
+	  } else { __.push_back(96); __ += T::$[0]; __.push_back(96); }
+	  _ += __; _ += SORT[static_cast<char>(ord)]; _ += " LIMIT "; _ += std::to_string(size_);
+	  _ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);// std::cout << _ << '\n';
+	  std::string sql(_); this->clear(); return D.conn()(sql).template find<T>(vu);
 	};
-	template<typename U> json GetJson() {
-	  constexpr auto $ = std::tuple_cat(li::Tuple<T>(), li::Tuple<U>()); T t; U u; int8_t z = -1, y = -1;
-	  ForEachTuple($, [&t, &u, &z, &y](auto& _) {
-		//std::cout << getObjectName<decltype(li::ExT(_))>() << "->";
-		if constexpr (std::is_same<decltype(li::ExT(_)), T>::value) {
-		  T* o = dynamic_cast<T*>(&t); ++z; using Z = std::remove_reference_t<decltype(o->*_)>;
-		  if constexpr (li::is_vector<Z>::value) {
-			std::vector<li::vector_pack_t<Z>> v_t = o->*_;
-			std::cout << T::$[z] << ":vector<" << typeid(li::vector_pack_t<Z>).name() << ">, ";
-		  } else if constexpr (li::is_ptr<Z>::value) {
-			std::cout << T::$[z] << ":*" << typeid(li::ptr_pack_t<Z>).name() << ", ";
-		  } else {
-			std::cout << T::$[z] << ':' << typeid(o->*_).name() << ", ";
-		  }
-		} else {
-		  U* o = dynamic_cast<U*>(&u); ++y; using Y = std::remove_reference_t<decltype(o->*_)>;
-		  if constexpr (li::is_vector<Y>::value) {
-			std::cout << U::$[y] << ":vector<" << typeid(li::vector_pack_t<Y>).name() << ">";
-		  } else if constexpr (li::is_ptr<Y>::value) {
-			std::cout << U::$[y] << ":*" << typeid(li::ptr_pack_t<Y>).name();
-		  } else {
-			std::cout << U::$[y] << ':' << typeid(o->*_).name() << ", ";
-		  }
-		}
-		//std::cout << '\n' << typeid(li::ExP<T>(li::ExP(_))).name();
-		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); std::cout << '\n';
-	  ___ = true; return json{ "Only stars, flowers and applause can satisfy my arrogance and greatness" };
+	json GetJson() {
+	  std::cout << _; this->clear(); return json{ "Only stars, flowers and applause can satisfy my arrogance and greatness" };
 	};
 	inline decltype(D)::connection_type DB();
 	//-------------------------------------DataMapper-------------------------------------
@@ -63,6 +42,7 @@ namespace orm {
 	template<typename U> inline Sql<T>& innerJoin();
 	template<typename U, unsigned short I> inline Sql<T>& innerJoin(const text<I>& v_);
 	template<typename U> inline Sql<T>& leftJoin();
+	template<typename U, typename V> inline Sql<T>& leftJoin();
   private: uint8_t size_{ 10 }; size_t page_{ 1 }; std::string _, __; bool ___{ true };
 		 inline void clear() {
 		   _ = T::_ios; _ += " FROM "; _ += T::_name; _ += T::_alias; size_ = 10; __[0] = 0; page_ = 1; ___ = true;
@@ -86,15 +66,15 @@ namespace orm {
   template<typename T>
   template<unsigned short I> Sql<T>& Sql<T>::where(const text<I>& v_) { _ += " WHERE "; _ += v_.c_str(); return *this; }
   template<typename T> std::vector<T> Sql<T>::GetArr(const Sort& ord)noexcept {
-	std::string sql(_); sql += " ORDER BY "; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
+	_ += " ORDER BY"; __ += T::_alias; __.push_back('.'); if constexpr (pgsqL) {
 	  __.push_back(34); __ += T::$[0]; __.push_back(34);
 	} else { __.push_back(96); __ += T::$[0]; __.push_back(96); }
-	sql += __; sql += SORT[static_cast<char>(ord)]; sql += " LIMIT "; sql += std::to_string(size_);
-	sql += " OFFSET "; sql += std::to_string((page_ - 1) * size_);// std::cout << sql << '\n';
-	this->clear(); return D.conn()(sql).template findArray<T>();
+	_ += __; _ += SORT[static_cast<char>(ord)]; _ += " LIMIT "; _ += std::to_string(size_);
+	_ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);// std::cout << sql << '\n';
+	std::string sql(_); this->clear(); return D.conn()(sql).template findArr<T>();
   }
   template<typename T> T Sql<T>::GetOne()noexcept {
-	_ += " LIMIT 1"; std::string sql(_); this->clear(); return D.conn()(sql).template findOne<T>();
+	_ += " LIMIT 1"; std::string sql(_); this->clear(); return D.conn()(sql).template find<T>();
   }
   template<typename T> decltype(D)::connection_type Sql<T>::DB() { ___ = true; return D.conn(); }
   template<typename T> void Sql<T>::InsertArr(std::vector<T>* input) {
@@ -136,15 +116,36 @@ namespace orm {
 	_ += " ON "; _ += v_.c_str(); return *this;
   }
   template<typename T> template<typename U> Sql<T>& Sql<T>::leftJoin() {
-	_.erase(static_cast<int>(T::_ios.size()), _.size()); for (int8_t i = -1; ++i < U::_len; f<U>(U::$[i]));
-	_ += " FROM "; _ += T::_name; _ += T::_alias;
-	_ += " LEFT JOIN "; _ += T::_mT; _ += " ON "; _ += T::_mT; _.push_back('.'); if constexpr (pgsqL) {
+	_.erase(static_cast<int>(T::_ios.size()), _.size()); std::string* M = &RES_M_T[ObjLink<T, U>()];
+	for (int8_t i = -1; ++i < U::_len; f<U>(U::$[i])); _ += " FROM "; _ += T::_name; _ += T::_alias;
+	_ += " LEFT JOIN "; _ += *M; _ += " ON "; _ += *M; _.push_back('.'); if constexpr (pgsqL) {
 	  _.push_back('"'); _ += T::_low; _.push_back('_'); _ += T::$[0]; _.push_back('"');
 	} else { _.push_back('`'); _ += T::_low; _.push_back('_'); _ += T::$[0]; _.push_back('`'); }
 	_.push_back('='); F<T>(T::$[0]); _ += " LEFT JOIN "; _ += U::_name; _ += U::_alias; _ += " ON ";
-	_ += T::_mT; _.push_back('.'); if constexpr (pgsqL) {
+	_ += *M; _.push_back('.'); M = nullptr; if constexpr (pgsqL) {
 	  _.push_back('"'); _ += U::_low; _.push_back('_'); _ += U::$[0]; _.push_back('"');
 	} else { _.push_back('`'); _ += U::_low; _.push_back('_'); _ += U::$[0]; _.push_back('`'); }
-	_.push_back('='); F<U>(U::$[0]); std::cout << _ << '\n'; return *this;
+	_.push_back('='); F<U>(U::$[0]); return *this;
+  }
+  template<typename T> template<typename U, typename V> Sql<T>& Sql<T>::leftJoin() {
+	_.erase(static_cast<int>(T::_ios.size()), _.size()); std::string* M = &RES_M_T[ObjLink<T, U>()],
+	  * N = &RES_M_T[ObjLink<U, V>()]; for (int8_t i = -1; ++i < U::_len; f<U>(U::$[i]));
+	for (int8_t i = -1; ++i < V::_len; f<V>(V::$[i])); _ += " FROM "; _ += T::_name; _ += T::_alias;
+	_ += " LEFT JOIN "; _ += *M; _ += " ON "; _ += *M; _.push_back('.'); if constexpr (pgsqL) {
+	  _.push_back('"'); _ += T::_low; _.push_back('_'); _ += T::$[0]; _.push_back('"');
+	} else { _.push_back('`'); _ += T::_low; _.push_back('_'); _ += T::$[0]; _.push_back('`'); }
+	_.push_back('='); F<T>(T::$[0]); _ += " LEFT JOIN "; _ += U::_name; _ += U::_alias; _ += " ON ";
+	_ += *M; _.push_back('.'); M = nullptr; if constexpr (pgsqL) {
+	  _.push_back('"'); _ += U::_low; _.push_back('_'); _ += U::$[0]; _.push_back('"');
+	} else { _.push_back('`'); _ += U::_low; _.push_back('_'); _ += U::$[0]; _.push_back('`'); }
+	_.push_back('='); F<U>(U::$[0]); _ += " LEFT JOIN "; _ += *N; _ += " ON "; _ += *N;
+	_.push_back('.'); if constexpr (pgsqL) {
+	  _.push_back('"'); _ += T::_low; _.push_back('_'); _ += T::$[0]; _.push_back('"');
+	} else { _.push_back('`'); _ += T::_low; _.push_back('_'); _ += T::$[0]; _.push_back('`'); }
+	_.push_back('='); F<T>(T::$[0]); _ += " LEFT JOIN "; _ += V::_name; _ += V::_alias; _ += " ON ";
+	_ += *N; _.push_back('.'); N = nullptr; if constexpr (pgsqL) {
+	  _.push_back('"'); _ += V::_low; _.push_back('_'); _ += V::$[0]; _.push_back('"');
+	} else { _.push_back('`'); _ += V::_low; _.push_back('_'); _ += V::$[0]; _.push_back('`'); }
+	_.push_back('='); F<V>(V::$[0]); return *this;
   }
 }//chrono::milliseconds(100)microseconds

@@ -19,6 +19,7 @@
 #define M_IDEX 0xa//Magic numbers, big fools, don't change them
 namespace orm {
   static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
+  static std::unordered_map<uint64_t, std::string> RES_M_T;
   using Expand = int[];
 #define Exp (void)orm::Expand
   template <typename T, typename Fn, std::size_t... I>
@@ -164,18 +165,18 @@ namespace orm {
   template <class T>
   inline typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T _v, const char* s, const json& j) {}
   static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
+  char RES_C[M_IDEX][40] = { 0 }; uint8_t RES_I = 0;
 #ifdef _MSC_VER
   inline const char* RType(const char* _);//get key's type char
   inline const char* LiType(const char* _);
-#else
-  inline const char* RType(const char* _, const char* $);//get key's type char
-  inline const char* LiType(const char* _, unsigned char $);
-#endif
-  char RES_C[M_IDEX][40] = { 0 }; uint8_t RES_I = 0;
   inline const char* HandleComma(const char* _) {
 	int8_t i = 0; RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f;
 	while (*++_ != 0x2c)RES_C[RES_I][++i] = *_; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
   };
+#else
+  inline const char* RType(const char* _, const char* $);//get key's type char
+  inline const char* LiType(const char* _, unsigned char $);
+#endif
 }
 #if 1
 #define EXP(O) O
@@ -371,10 +372,8 @@ static const char* orm::getAkTs(const char* _) {
 if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}return 1;}static int _o##p_d=o##p_d();
 //after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)\
-template<> const std::string orm::Table<o>::_mT = toSqlCase(#o#p);\
-template<> const std::string orm::Table<p>::_mT = toSqlCase(#o#p);\
- static int o##p_(){std::string s,ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;\
-if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";\
+static int o##p_(){std::string s,ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;orm::RES_M_T[hackStr(#o#p)]=toSqlCase(#o#p);\
+orm::RES_M_T[hackStr(#p#o)]=toSqlCase(#o#p);if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";\
 if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');\
 s+=pgsqL?"\n\""+ot+"_"#o_k"\" ":"\n`"+ot+"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
 s+=" NOT NULL,\n"; s+=pgsqL?"\""+pt+"_"#p_k"\" ":"`"+pt+"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\
@@ -495,12 +494,15 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
 
 #define REGISTER_TABLE(o)\
+	template<> const std::string orm::Table<o>::_low = toSqlCase(#o"");\
 	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
 	template<> uint8_t orm::Table<o>::_idex = 0;\
-	template<> std::string orm::Table<o>::_create = pgsqL?"CREATE TABLE IF NOT EXISTS \""+toSqlCase(#o"\" (\n"):"CREATE TABLE IF NOT EXISTS `"+toSqlCase(#o"` (\n");\
-	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""+toSqlCase(#o"\""):"DROP TABLE IF EXISTS `"+toSqlCase(#o"`");\
-	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+toSqlCase(#o"\""):"`"+toSqlCase(#o"`");\
-	template<> const std::string orm::Table<o>::_low = toSqlCase(#o);\
+	template<> std::string orm::Table<o>::_create = pgsqL?\
+	"CREATE TABLE IF NOT EXISTS \""+orm::Table<o>::_low+"\" (\n":\
+	"CREATE TABLE IF NOT EXISTS `"+orm::Table<o>::_low+"` (\n";\
+	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""\
+	+orm::Table<o>::_low+"\"":"DROP TABLE IF EXISTS `"+orm::Table<o>::_low+"`";\
+	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+orm::Table<o>::_low+"\"":"`"+orm::Table<o>::_low+"`";\
 	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
 	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
 	template<> bool orm::Table<o>::_created = true;
