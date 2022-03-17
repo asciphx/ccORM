@@ -372,8 +372,8 @@ static const char* orm::getAkTs(const char* _) {
 if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}return 1;}static int _o##p_d=o##p_d();
 //after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)\
-static int o##p_(){std::string s,ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;orm::RES_M_T[hackStr(#o#p)]=toSqlCase(#o#p);\
-orm::RES_M_T[hackStr(#p#o)]=toSqlCase(#o#p);if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";\
+static int o##p_(){std::string s=toSqlCase(#o#p),ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;orm::RES_M_T[hackStr(#o#p)]=s;\
+orm::RES_M_T[hackStr(#p#o)]=s;if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";\
 if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');\
 s+=pgsqL?"\n\""+ot+"_"#o_k"\" ":"\n`"+ot+"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
 s+=" NOT NULL,\n"; s+=pgsqL?"\""+pt+"_"#p_k"\" ":"`"+pt+"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\

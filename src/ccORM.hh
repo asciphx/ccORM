@@ -729,7 +729,12 @@ namespace li {
 		  proto_type_[field_i] = PQftype(current_result_, field_i);
 	  }
 	}
-	if constexpr (is_vector<X>::value) {
+	if constexpr (is_text<X>::value) {
+	  output.push_back('('); output += PQgetvalue(current_result_, row_i_, 0); ++row_i_;
+	  for (; row_i_ < current_result_nrows_; ++row_i_) {
+		output.push_back(','); output += PQgetvalue(current_result_, row_i_, 0);
+	  } output.push_back(')');
+	} else if constexpr (is_vector<X>::value) {
 	  int8_t i = 0;
 	  for (vector_pack_t<X> j; row_i_ < current_result_nrows_; ++row_i_) {
 		readPg<vector_pack_t<X>>(i, j); output.push_back(j);
@@ -904,7 +909,7 @@ namespace li {
   }
   template <typename B> template <typename T1, typename... T> auto sql_result<B>::r__() {
 	auto t = [] { if constexpr (sizeof...(T) == 0) return T1{}; else return std::tuple<T1, T...>{}; }();
-	if constexpr (is_vector<T1>::value) { impl_.read(std::forward<T1&>(t)); } else this->r__(t);
+	if constexpr (is_text<T1>::value || is_vector<T1>::value) { impl_.read(std::forward<T1&>(t)); } else this->r__(t);
 	return t;
   }
   template <typename B> template <typename T> void sql_result<B>::r__(std::optional<T>& o) {
@@ -1004,19 +1009,14 @@ namespace li {
 	  }
 	}
 	template <typename T> void readOne(T* j) {
-	  if (last_step_ret_ != SQLITE_ROW) return; int8_t i = -1, k = -1; while (++i < T::_len) { readSqlite(i, k, j); }
+	  if (last_step_ret_ != SQLITE_ROW) return;
+	  int8_t i = -1, k = -1; 
+	  while (++i < T::_len) { readSqlite(i, k, j); }
 	}
 	template <typename T, typename U> void readO2O(T* t, U* u) {
-	  if (last_step_ret_ != SQLITE_ROW) return; int8_t y = -1, z = T::_len - 1;//-1
-    constexpr const auto $ = Tuple<T>(); constexpr const auto $1 = Tuple<U>();
-	  ForEachTuple($, [t, &y, this](auto& _) {
-		readSqlite<std::remove_reference_t<decltype(t->*_)>>(++y, t->*_);
-		}, std::make_index_sequence<T::_len>{});
-	  ForEachTuple($1, [u, &y, this](auto& _) {
-		readSqlite<std::remove_reference_t<decltype(u->*_)>>(++y, u->*_);
-		}, std::make_index_sequence<U::_len>{});
-		//while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
-		//while (++z < U::_len) { readSqlite(z, y, u); }z = T::_len - 1;
+	  if (last_step_ret_ != SQLITE_ROW) return; int8_t y = -1, z = -1;
+		while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
+		while (++z < U::_len) { readSqlite(z, y, u); }z = T::_len - 1;
 	    while (++z < T::_size) {
 		  switch (*T::_[z]) {
 		  case T_POINTER_: if (strCmp(T::_[z] + 1, ObjName<U>()) == 0) { *reinterpret_cast<U**>(RUST_CAST(t) + t->_o$[z]) = u; }
@@ -1034,6 +1034,7 @@ namespace li {
 	  } return; $:
 	  for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
 	}
+	//Many to Many
 	template <typename T> void readM2M(T* t) {
 	  if (last_step_ret_ != SQLITE_ROW) return;
 	}
@@ -1082,7 +1083,13 @@ namespace li {
 	}
 	template <typename T> bool read(T&& output) {
 	  if (last_step_ret_ != SQLITE_ROW) return false; using X = std::decay_t<T>;
-	  if constexpr (is_vector<X>::value) {
+	  if constexpr (is_text<X>::value) {
+		output.push_back('('); output += (const char*)sqlite3_column_text(stmt_, 0);
+	  __:last_step_ret_ = sqlite3_step(stmt_);
+		if (last_step_ret_ == SQLITE_ROW) {
+		  output.push_back(','); output += (const char*)sqlite3_column_text(stmt_, 0); goto __;
+		} output.push_back(')');
+	  } else if constexpr (is_vector<X>::value) {
 		vector_pack_t<X> j; int8_t i = 0; _: readSqlite<vector_pack_t<X>>(i, j);
 		output.push_back(j); last_step_ret_ = sqlite3_step(stmt_);
 		if (last_step_ret_ == SQLITE_ROW) { goto _; }
@@ -1994,18 +2001,26 @@ namespace li {
 	} output->push_back(j); ++current_result_nrows_; goto _;
   }
   template <typename B> template <typename T> bool mysql_result<B>::read(T&& output) {
-	next_row();
-	if (end_of_result_) return false;
-	unsigned int i = 0;
-	if (std::tuple_size_v<std::decay_t<T>> != current_row_num_fields_)
-	  throw std::runtime_error(std::string("The request number of field (") +
-		std::to_string(current_row_num_fields_) +
-		") does not match the size of the tuple (" +
-		std::to_string(std::tuple_size_v<std::decay_t<T>>) + ")");
-	tuple_map(std::forward<T>(output), [&](auto& v) {
-	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(std::string_view(current_row_[i], current_row_lengths_[i]));
-	  ++i;
-	  });
+	next_row(); if (end_of_result_) return false; using X = std::decay_t<T>; unsigned int i = 0;
+	if constexpr (is_text<X>::value) {
+	  output.push_back('('); output += current_row_[0];
+	__:if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
+	  output.push_back(','); output += current_row_[0]; goto __;
+	} output.push_back(')');
+	} else if constexpr (is_vector<X>::value) {
+	  vector_pack_t<X> j; int8_t i = 0; _: readMySQL<vector_pack_t<X>>(i, j); output.push_back(j);
+	  if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) goto _;
+	} else {
+	  if (std::tuple_size_v<X> != current_row_num_fields_)
+		throw std::runtime_error(std::string("The request number of field (") +
+		  std::to_string(current_row_num_fields_) +
+		  ") does not match the size of the tuple (" +
+		  std::to_string(std::tuple_size_v<X>) + ")");
+	  tuple_map(std::forward<T>(output), [&](auto& v) {
+		v = boost::lexical_cast<std::decay_t<decltype(v)>>(std::string_view(current_row_[i], current_row_lengths_[i]));
+		++i;
+		});
+	}
 	return true;
   }
   template <typename B> long long int mysql_result<B>::affected_rows() {
@@ -2215,6 +2230,7 @@ namespace li {
 	const char* pg_pwds = FastestDev ? "" : IsDevMode ? "" : "Password";
 	const short pg_port = FastestDev ? 5432 : IsDevMode ? 5432 : 10052;
   } C;
+  //On the right above is the configuration in the environment online. Please modify it consciously
 #define D_mysql() li::Mysql(li::C.my_host,li::C.my_data,li::C.my_user,li::C.my_pwds,li::C.my_port,"utf8")
 #define D_pgsql() li::Pgsql(li::C.pg_host,li::C.pg_data,li::C.pg_user,li::C.pg_pwds,li::C.pg_port,"utf8")
 #define D_sqlite(path) li::Sqlite(FastestDev?"test." path:IsDevMode?"dev." path:path)

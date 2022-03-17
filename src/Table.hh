@@ -19,7 +19,7 @@ namespace orm {
 #ifdef _WIN32
 	friend typename T; const static char* _def[];/*Store default values[]*/static unsigned char _tc[];/*Store key type[]*/
 #endif
-	friend typename decltype(D)::db_rs; template<typename U> friend struct Sql;
+	friend typename decltype(D)::db_rs; template<typename U> friend struct Sql; friend struct Query<T>;
 	static const char* _[];/*Store type character[]*/static int _r, _r1;/*Prepare Run Serialization*/
 	template <typename U> void $et(int8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
@@ -58,7 +58,7 @@ namespace orm {
 	};
 	//<T> serialized as JSON with std::vector, includes empty std::vector
 	inline json get() { return json(*dynamic_cast<T*>(this)); }
-    //check null
+	//check null
 	inline bool is_null() { return *((char*)(RUST_CAST(this) + this->_o$[0])) == 0; }
 	//-------------------------------------ActiveRecord-------------------------------------
 

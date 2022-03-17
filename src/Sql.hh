@@ -6,7 +6,32 @@
 #include"macros.hh"
 namespace orm {
   enum class Sort { ASC, DESC }; static const char* SORT[2] = { "", " DESC" };
-  template<typename T> class Table;//SELECT `id` FROM `tab` ORDER BY `tab`.`id` ASC LIMIT size_ OFFSET (page_ - 1) * size_
+  template<typename T> class Table;//LIMIT size_ OFFSET (page_ - 1) * size_
+  template<typename T>//QueryBuilder
+  struct Query {
+	Query<T>(Query<T> const&) = delete; Query<T>& operator=(Query<T>&&) = delete;
+	Query<T>(Query<T>&&) = default; Query<T>& operator=(Query<T> const&) = delete;
+	//The complete Query<T> statement builds and reads the specified column
+	template<typename F, typename... K>
+	Query<T>(F& f, K&&...k) : _("SELECT ") {
+	  static_assert(is_text<std::decay_t<F>>::value); _ += f.c_str(); if constexpr (sizeof...(K) > 0) {
+		static_assert(is_text<std::decay_t<K>...>::value); Exp{ (fields(_, std::forward<K>(k)), 0)... };
+	  } _ += " FROM "; _ += T::_name; _ += T::_alias; _ += " ORDER BY "; _ += f.c_str();
+	} 
+	~Query<T>() {}
+	Query<T>& size(uint8_t size) { size_ = size; return *this; }
+	Query<T>& page(size_t page) { page_ = page < 1 ? 1 : page; return *this; }
+	template<unsigned short I> Query<T>& where(const text<I>& v_) { _ += " WHERE "; _ += v_.c_str(); return *this; }
+	template<typename V> auto inline Get(const Sort& ord = Sort::ASC) {
+	  _ += SORT[static_cast<char>(ord)]; _ += " LIMIT "; _ += std::to_string(size_); _ += " OFFSET ";
+	  _ += std::to_string((page_ - 1) * size_); std::string sql(_); this->clear();// std::cout << sql;
+	  return D.conn()(sql).r__<V>();
+	}
+  private: uint8_t size_{ 10 }; size_t page_{ 1 }; std::string _;
+		 inline void fields(std::string& os, const text<0x3f>& v_);//Filter static field
+		 inline void clear() { _ = "SELECT "; size_ = 10; page_ = 1; }
+  };
+  template<typename T> void Query<T>::fields(std::string& os, const text<0x3f>& v_) { os.push_back(','); os += v_.c_str(); };
   //Naming beginning with an uppercase letter means that the object returned is not "*this"
   template<typename T> struct Sql {
 	friend class Table<T>;
@@ -33,8 +58,33 @@ namespace orm {
 	  _ += " OFFSET "; _ += std::to_string((page_ - 1) * size_);// std::cout << _ << '\n';
 	  std::string sql(_); this->clear(); return D.conn()(sql).template find<T>(vu);
 	};
-	json GetJson() {
-	  std::cout << _; this->clear(); return json{ "Only stars, flowers and applause can satisfy my arrogance and greatness" };
+	template<typename U> json GetJson() {
+	  constexpr auto $ = std::tuple_cat(li::Tuple<T>(), li::Tuple<U>()); T t; U u; int8_t z = -1, y = -1;
+	  ForEachTuple($, [&t, &u, &z, &y](auto& _) {
+		//std::cout << ObjName<decltype(li::ExT(_))>() << "->";
+		if constexpr (std::is_same<decltype(li::ExT(_)), T>::value) {
+		  T* o = dynamic_cast<T*>(&t); ++z; using Z = std::remove_reference_t<decltype(o->*_)>;
+		  if constexpr (li::is_vector<Z>::value) {
+			std::vector<li::vector_pack_t<Z>> v_t = o->*_;
+			std::cout << T::$[z] << ":vector<" << typeid(li::vector_pack_t<Z>).name() << ">, ";
+		  } else if constexpr (li::is_ptr<Z>::value) {
+			std::cout << T::$[z] << ":*" << typeid(li::ptr_pack_t<Z>).name() << ", ";
+		  } else {
+			std::cout << T::$[z] << ':' << typeid(o->*_).name() << ", ";
+		  }
+		} else {
+		  U* o = dynamic_cast<U*>(&u); ++y; using Y = std::remove_reference_t<decltype(o->*_)>;
+		  if constexpr (li::is_vector<Y>::value) {
+			std::cout << U::$[y] << ":vector<" << typeid(li::vector_pack_t<Y>).name() << ">";
+		  } else if constexpr (li::is_ptr<Y>::value) {
+			std::cout << U::$[y] << ":*" << typeid(li::ptr_pack_t<Y>).name();
+		  } else {
+			std::cout << U::$[y] << ':' << typeid(o->*_).name() << ", ";
+		  }
+		}
+		//std::cout << '\n' << typeid(li::ExP<T>(li::ExP(_))).name();
+		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); std::cout << '\n';
+	  ___ = true; return json{ "Only stars, flowers and applause can satisfy my arrogance and greatness" };
 	};
 	inline decltype(D)::connection_type DB();
 	//-------------------------------------DataMapper-------------------------------------
@@ -45,7 +95,7 @@ namespace orm {
 	template<typename U, typename V> inline Sql<T>& leftJoin();
   private: uint8_t size_{ 10 }; size_t page_{ 1 }; std::string _, __; bool ___{ true };
 		 inline void clear() {
-		   _ = T::_ios; _ += " FROM "; _ += T::_name; _ += T::_alias; size_ = 10; __[0] = 0; page_ = 1; ___ = true;
+		   _ = T::_ios; _ += " FROM "; _ += T::_name; _ += T::_alias; size_ = 10; __.clear(); page_ = 1; ___ = true;
 		 }
 		 template<typename V> inline void F(const std::string_view& c) {
 		   _ += V::_alias + 1; _.push_back('.'); if constexpr (pgsqL) {
