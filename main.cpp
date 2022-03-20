@@ -24,12 +24,12 @@ int main(int argc, char* argv[]) {
   clock_t start = clock(); test(); if constexpr (FastestDev) { return 0; }
   Timer t; bool run = true;//Marks the running state of the second thread
   t.setTimeout([&run] {
-	int i = 0; for (; i < 999999; ++i) {
+	int i = 0; for (; i < 99999; ++i) {
 	  Tab::Q().where(Tab::$id == 2).GetOne();
 	} printf("<%d>", i);
 	run = false;//Represents the end of the secondary thread
 	}, 6);
-  int i = 0; for (; i < 999998; ++i) {
+  int i = 0; for (; i < 99998; ++i) {
 	Tab::Q().where(Tab::$id == 1).GetOne();
   }//Multithreading test, here is the first thread, that is, the main thread
   printf("<%d>", i);

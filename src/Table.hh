@@ -13,13 +13,13 @@ namespace orm {
 	}
   };/*int main() { std::shared_ptr<Z> z = std::make_shared<Z>(); std::shared_ptr<B> b = z->B::shared_from_this(); } */
   template<typename T> class Table : public virtual_shared<T> { /*struct size---proto length----Store alias*//*AS [alias]_<k>*/
-	static const std::string _name, _drop, _low; static const uint8_t _size, _len; const static char* _alias, * _as_alia;//^
+	static const std::string _name, _drop, _low; static const uint8_t _size, _len; const static std::string_view _alias, _as_alia;//^
 	static bool _created; static unsigned char _idex; static std::string _create; static const size_t _o$[];/*Store offset[]*/
 	static const std::string_view $[], _ios;/*Store <k> name[]*//*Store (T.<k>,)...*//*_low -> lower name*/
 #ifdef _WIN32
 	friend typename T; const static char* _def[];/*Store default values[]*/static unsigned char _tc[];/*Store key type[]*/
 #endif
-	friend typename decltype(D)::db_rs; template<typename U> friend struct Sql; friend struct Query<T>;
+	friend typename decltype(D)::db_rs; template<typename U> friend struct Sql; template<typename U> friend struct Query;
 	static const char* _[];/*Store type character[]*/static int _r, _r1;/*Prepare Run Serialization*/
 	template <typename U> void $et(int8_t i, const U* v) {
 	  if constexpr (std::is_same<U, const char*>::value) {
@@ -39,6 +39,7 @@ namespace orm {
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U> c);
 	template <typename U> friend std::string& operator<<(std::string& s, std::vector<U>* c);//vector<T>* serialized as string
 	template <typename U> friend std::ostream& operator<<(std::ostream& o, std::vector<U>* c);
+	template <typename U, typename Fn> friend inline constexpr void ForEachField(U* value, Fn&& fn);
   public:
 #ifndef _WIN32
 	const static char* _def[]; static unsigned char _tc[];
@@ -64,7 +65,7 @@ namespace orm {
 
 	//Insert the object (Returns the inserted ID)
 	auto Insert() {
-	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << " (";
+	  int8_t i = -1; std::ostringstream os, ov; ov << "VALUES ("; os << "INSERT INTO " << _name << '(';
 	  ForEachField(dynamic_cast<T*>(this), [&i, &os, &ov](auto& t) {
 		using Y = std::remove_reference_t<decltype(t)>;
 		if (!(_tc[++i] & (TC::PRIMARY_KEY | TC::AUTO_INCREMENT))) {
@@ -107,7 +108,7 @@ namespace orm {
 	  if constexpr (pgsqL) {
 		cd.push_back('"'); cd += $[0]; cd.push_back('"'); cd.push_back('=');
 	  } else { cd += $[0]; cd.push_back('='); }
-	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(li::Tuple<T>());
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(T::Tuple);
 	  using Y = std::remove_reference_t<decltype(t)>;
 	  if constexpr (std::is_fundamental<Y>::value) {
 		cd += std::to_string(t);
@@ -143,7 +144,7 @@ namespace orm {
 	  if constexpr (pgsqL) {
 		os << " WHERE \"" << $[0] << "\"=";
 	  } else { os << " WHERE " << $[0] << '='; }
-	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(li::Tuple<T>());
+	  auto& t = dynamic_cast<T*>(this)->*std::get<0>(T::Tuple);
 	  using Y = std::remove_reference_t<decltype(t)>;
 	  if constexpr (std::is_same<bool, Y>::value) {
 		if constexpr (pgsqL) { os << (t ? "true" : "false"); } else { os << t; }

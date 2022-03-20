@@ -598,7 +598,7 @@ namespace li {
 	  if (current_result_) { PQclear(current_result_); current_result_ = nullptr; }
 	  current_result_ = wait_for_next_result(); if (!current_result_) return;
 	}
-	int8_t y = -1; constexpr const auto $ = Tuple<T>();
+	int8_t y = -1; constexpr auto& $ = T::Tuple;
 	ForEachTuple($, [t, u, &y, this](auto& _) {
 	  using Y = std::remove_reference_t<decltype(t->*_)>;
 	  if constexpr (is_ptr<Y>::value) {
@@ -620,20 +620,16 @@ namespace li {
 	  if (current_result_nrows_ == 0) {
 		PQclear(current_result_); current_result_ = nullptr; return;
 	  }
-	} T t; U u; int8_t y; constexpr const auto $ = Tuple<T>();
+	} T t; U u; int8_t y; constexpr auto& $ = T::Tuple; constexpr auto& $1 = U::Tuple;
 	for (; row_i_ < current_result_nrows_; ++row_i_) {
 	  y = -1;
-	  ForEachTuple($, [&t, &u, &y, this](auto& _) {
-		using Y = std::remove_reference_t<decltype(t.*_)>;
-		if constexpr (is_ptr<Y>::value) {
-		  if constexpr (std::is_same_v<Y, U*>) {
-			ForEachField(&u, [&y, this](auto& v) {
-			  using Z = std::remove_reference_t<decltype(v)>;
-			  if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { readPg<Z>(++y, v); }
-			  });
-		  }
-		} else if constexpr (!is_vector<Y>::value) { readPg<Y>(++y, t.*_); }
-		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); v2->push_back(u); v1->push_back(t);
+	  ForEachTuple($, [&t, &y, this](auto& _) {
+		readPg<std::remove_reference_t<decltype(t.*_)>>(++y, t.*_);
+		}, std::make_index_sequence<T::_len>{});
+	  ForEachTuple($1, [&u, &y, this](auto& _) {
+		readPg<std::remove_reference_t<decltype(u.*_)>>(++y, u.*_);
+		}, std::make_index_sequence<U::_len>{});
+	  v2->push_back(u); v1->push_back(t);
 	} short i = T::_len - 1, l = v1->size();
 	while (++i < T::_size) {
 	  switch (*T::_[i]) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
@@ -733,7 +729,7 @@ namespace li {
 	  output.push_back('('); output += PQgetvalue(current_result_, row_i_, 0); ++row_i_;
 	  for (; row_i_ < current_result_nrows_; ++row_i_) {
 		output.push_back(','); output += PQgetvalue(current_result_, row_i_, 0);
-	  } output.push_back(')');
+	  } output.push_back(')'); output.end();
 	} else if constexpr (is_vector<X>::value) {
 	  int8_t i = 0;
 	  for (vector_pack_t<X> j; row_i_ < current_result_nrows_; ++row_i_) {
@@ -1014,14 +1010,21 @@ namespace li {
 	  while (++i < T::_len) { readSqlite(i, k, j); }
 	}
 	template <typename T, typename U> void readO2O(T* t, U* u) {
-	  if (last_step_ret_ != SQLITE_ROW) return; int8_t y = -1, z = -1;
-		while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
-		while (++z < U::_len) { readSqlite(z, y, u); }z = T::_len - 1;
-	    while (++z < T::_size) {
-		  switch (*T::_[z]) {
-		  case T_POINTER_: if (strCmp(T::_[z] + 1, ObjName<U>()) == 0) { *reinterpret_cast<U**>(RUST_CAST(t) + t->_o$[z]) = u; }
-		  }
-	    }
+	  if (last_step_ret_ != SQLITE_ROW) return; int8_t y = -1;//, z = -1;
+	  constexpr auto& $ = T::Tuple; constexpr auto& $1 = U::Tuple;
+	  ForEachTuple($, [t, &y, this](auto& _) {
+		readSqlite<std::remove_reference_t<decltype(t->*_)>>(++y, t->*_);
+		}, std::make_index_sequence<T::_len>{});
+	  ForEachTuple($1, [u, &y, this](auto& _) {
+		readSqlite<std::remove_reference_t<decltype(u->*_)>>(++y, u->*_);
+		}, std::make_index_sequence<U::_len>{}); t->*tuple_get_by_type<U* T::*>($) = u;
+		//while (++z < T::_len) { readSqlite(z, y, t); }z = -1;
+		//while (++z < U::_len) { readSqlite(z, y, u); }z = T::_len - 1;
+	   // while (++z < T::_size) {
+		  //switch (*T::_[z]) {
+		  //case T_POINTER_: if (strCmp(T::_[z] + 1, ObjName<U>()) == 0) { *reinterpret_cast<U**>(RUST_CAST(t) + t->_o$[z]) = u; }
+		  //}
+	   // }
 	}
 	template <typename T, typename U> void readO2O(std::vector<T>* v1, std::vector<U>* v2) {
 	  if (last_step_ret_ != SQLITE_ROW) return; T t; U u; int8_t y, z; _: y = z = -1;
@@ -1041,6 +1044,7 @@ namespace li {
 	template <typename T> void readM2M(std::vector<T>* vt) {
 	  if (last_step_ret_ != SQLITE_ROW) return; constexpr auto $ = Tuple<T>();
 	  int8_t i, z, y; T t; char* c; _: i = z = y = -1;
+	  //if (strcmp(sqlite3_column_name(stmt_, i), T::$[z]) != 0) { continue; }
 	  if (rowcount_ > 0 && strcmp(c, (const char*)sqlite3_column_text(stmt_, 0))) {
 		i += T::_size;
 		auto& v = dynamic_cast<T*>(&t)->*std::get<T::_size - 1>(li::Tuple<T>());
@@ -1088,7 +1092,7 @@ namespace li {
 	  __:last_step_ret_ = sqlite3_step(stmt_);
 		if (last_step_ret_ == SQLITE_ROW) {
 		  output.push_back(','); output += (const char*)sqlite3_column_text(stmt_, 0); goto __;
-		} output.push_back(')');
+		} output.push_back(')'); output.end();
 	  } else if constexpr (is_vector<X>::value) {
 		vector_pack_t<X> j; int8_t i = 0; _: readSqlite<vector_pack_t<X>>(i, j);
 		output.push_back(j); last_step_ret_ = sqlite3_step(stmt_);
@@ -1254,7 +1258,7 @@ namespace li {
 	inline Sqlite() {}
 	Sqlite(const std::string& path, unsigned int synchronous = 1) {
 	  path_ = path;
-	  con_.conn(path, SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_SHAREDCACHE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
+	  con_.conn(path, SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_SHAREDCACHE);
 	  std::ostringstream ss;
 	  ss << "PRAGMA synchronous=" << synchronous;
 	  con_(ss.str());
@@ -1912,7 +1916,7 @@ namespace li {
   }
   template <typename B> template <typename T, typename U> void mysql_result<B>::readO2O(T* t, U* u) {
 	next_row(); if (end_of_result_) return;
-	int8_t y = -1; constexpr const auto $ = Tuple<T>();
+	int8_t y = -1; constexpr auto& $ = T::Tuple;
 	ForEachTuple($, [t, u, &y, this](auto& _) {
 	  using Y = std::remove_reference_t<decltype(t->*_)>;
 	  if constexpr (is_ptr<Y>::value) {
@@ -1927,25 +1931,21 @@ namespace li {
   }
   template <typename B> template <typename T, typename U> void mysql_result<B>::readO2O(std::vector<T>* v1, std::vector<U>* v2) {
 	next_row(); if (end_of_result_) return; T t; U u; int8_t y;
-	constexpr const auto $ = Tuple<T>(); _: y = -1;
-	ForEachTuple($, [&t, &u, &y, this](auto& _) {
-	  using Y = std::remove_reference_t<decltype(t.*_)>;
-	  if constexpr (is_ptr<Y>::value) {
-		if constexpr (std::is_same_v<Y, U*>) {
-		  ForEachField(&u, [&y, this](auto& v) {
-			using Z = std::remove_reference_t<decltype(v)>;
-			if constexpr (!is_vector<Z>::value && !is_ptr<Z>::value) { readMySQL<Z>(++y, v); }
-			});
-		}
-	  } else if constexpr (!is_vector<Y>::value) { readMySQL<Y>(++y, t.*_); }
-	  }, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); v2->push_back(u); v1->push_back(t);
-	  if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
-		++current_result_nrows_; goto _;
-	  } short i = T::_len - 1, l = v1->size();
-	  while (++i < T::_size) {
-	  switch (*T::_[i]) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
-	  } return; $:
-	  for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
+	constexpr auto& $ = T::Tuple; constexpr auto& $1 = U::Tuple; _: y = -1;
+	ForEachTuple($, [&t, &y, this](auto& _) {
+	  readMySQL<std::remove_reference_t<decltype(t.*_)>>(++y, t.*_);
+	  }, std::make_index_sequence<T::_len>{});
+	ForEachTuple($1, [&u, &y, this](auto& _) {
+	  readMySQL<std::remove_reference_t<decltype(u.*_)>>(++y, u.*_);
+	  }, std::make_index_sequence<U::_len>{});
+	v2->push_back(u); v1->push_back(t);
+	if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
+	  ++current_result_nrows_; goto _;
+	} short i = T::_len - 1, l = v1->size();
+	while (++i < T::_size) {
+	switch (*T::_[i]) { case T_POINTER_: if (strCmp(T::_[i] + 1, ObjName<U>()) == 0) { y = i; goto $; } }
+	} return; $:
+	for (i = 0; i < l; ++i) { *reinterpret_cast<U**>(RUST_CAST(&v1->at(i)) + v1->at(i)._o$[y]) = &v2->at(i); }
   }
   template <typename B> template <typename T> void mysql_result<B>::readArr(std::vector<T>* output) {
 	next_row(); if (end_of_result_) return; T j; int8_t i = 0;
@@ -2006,7 +2006,7 @@ namespace li {
 	  output.push_back('('); output += current_row_[0];
 	__:if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
 	  output.push_back(','); output += current_row_[0]; goto __;
-	} output.push_back(')');
+	} output.push_back(')'); output.end();
 	} else if constexpr (is_vector<X>::value) {
 	  vector_pack_t<X> j; int8_t i = 0; _: readMySQL<vector_pack_t<X>>(i, j); output.push_back(j);
 	  if ((current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) goto _;

@@ -41,7 +41,8 @@ Struct(Tab) {
   Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}, Type * f = nullptr) :
 	id(a), ok(b), name(c), date(d), types(e), type(f) {}
   ~Tab() { type = nullptr; }
-  FIELD(id, ok, name, date)
+  REFLECT(Tab, id, ok, name, date, types, type)
+	FIELD(id, ok, name, date)
 };
 CONSTRUCT(Tab, id, ok, name, date, types, type)
 PROTO(Tab, id, ok, name, date)
@@ -60,7 +61,8 @@ Struct(Type) {
   Type(uint8_t a = 0, const char* b = "", double c = 0, vector<Tab> d = {}, Tab * e = nullptr) :
 	id(a), language(b), bigBlob(c), tabs(d), tab(e) {}
   ~Type() { tab = nullptr; }
-  FIELD(id, language, bigBlob)
+  REFLECT(Type, id, language, bigBlob, tabs, tab)
+	FIELD(id, language, bigBlob)
 };
 CONSTRUCT(Type, id, language, bigBlob, tabs, tab)
 PROTO(Type, id, language, bigBlob)

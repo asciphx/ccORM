@@ -28,9 +28,7 @@ namespace orm {
   }
   template <typename T, typename Fn>
   inline constexpr void ForEachField(T* value, Fn&& fn) {
-	constexpr const auto tuplE = li::Tuple<T>();
-	ForEachTuple(tuplE, [value, &fn](auto field) { fn(value->*(field)); },
-	  std::make_index_sequence<std::tuple_size<decltype(tuplE)>::value>{});
+	ForEachTuple(T::Tuple, [value, &fn](auto field) { fn(value->*(field)); }, std::make_index_sequence<T::_size>{});
   }
   static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
   enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
@@ -66,7 +64,7 @@ namespace orm {
 		std::string s; s.push_back('['); s += std::to_string(_v[0]);
 		for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s);
 	  } else {
-		constexpr auto $ = li::Tuple<TYPE>(); std::string s; s.reserve(0x3f); s.push_back('[');
+		auto& $ = TYPE::Tuple; std::string s; s.reserve(0x3f); s.push_back('[');
 		for (size_t i = 0; i < l; ++i) {
 		  auto* t = &_v[i]; s.push_back('{'); int8_t k = -1;
 		  ForEachTuple($, [t, &k, &s](auto& _) {
@@ -92,7 +90,7 @@ namespace orm {
 			} else {
 			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
 			} s.push_back(',');
-			}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); s[s.size() - 1] = '}'; s.push_back(',');
+			}, std::make_index_sequence<TYPE::_size>{}); s[s.size() - 1] = '}'; s.push_back(',');
 		} s[s.size() - 1] = ']'; j[c] = json::parse(s);
 	  }
 	}
@@ -106,7 +104,7 @@ namespace orm {
 	if (_v == nullptr) {
 	  j[c] = nullptr;
 	} else {
-	  constexpr auto $ = li::Tuple<li::ptr_pack_t<T>>(); auto* t = _v; std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1;
+	  auto& $ = li::ptr_pack_t<T>::Tuple; auto* t = _v; std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1;
 	  ForEachTuple($, [t, &k, &s](auto& _) {
 		using Y = std::remove_reference_t<decltype(t->*_)>;
 		if constexpr (std::is_same<tm, Y>::value) {
@@ -133,7 +131,7 @@ namespace orm {
 		} else {
 		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(',');
 		}
-		}, std::make_index_sequence<std::tuple_size<decltype($)>::value>{}); s[s.size() - 1] = '}';
+		}, std::make_index_sequence<li::ptr_pack_t<T>::_size>{}); s[s.size() - 1] = '}';
 		j[c] = json::parse(s);
 	}
   }
@@ -493,6 +491,42 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define STARS_N(o,N,...) EXP(STAR_##N(o,__VA_ARGS__))
 #define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
 
+#define STAR__1(o,k)      decltype(&o::k)
+#define STAR__2(o,k,...)  decltype(&o::k), EXP(STAR__1(o,__VA_ARGS__))
+#define STAR__3(o,k,...)  decltype(&o::k), EXP(STAR__2(o,__VA_ARGS__))
+#define STAR__4(o,k,...)  decltype(&o::k), EXP(STAR__3(o,__VA_ARGS__))
+#define STAR__5(o,k,...)  decltype(&o::k), EXP(STAR__4(o,__VA_ARGS__))
+#define STAR__6(o,k,...)  decltype(&o::k), EXP(STAR__5(o,__VA_ARGS__))
+#define STAR__7(o,k,...)  decltype(&o::k), EXP(STAR__6(o,__VA_ARGS__))
+#define STAR__8(o,k,...)  decltype(&o::k), EXP(STAR__7(o,__VA_ARGS__))
+#define STAR__9(o,k,...)  decltype(&o::k), EXP(STAR__8(o,__VA_ARGS__))
+#define STAR__10(o,k,...) decltype(&o::k), EXP(STAR__9(o,__VA_ARGS__))
+#define STAR__11(o,k,...) decltype(&o::k), EXP(STAR__10(o,__VA_ARGS__))
+#define STAR__12(o,k,...) decltype(&o::k), EXP(STAR__11(o,__VA_ARGS__))
+#define STAR__13(o,k,...) decltype(&o::k), EXP(STAR__12(o,__VA_ARGS__))
+#define STAR__14(o,k,...) decltype(&o::k), EXP(STAR__13(o,__VA_ARGS__))
+#define STAR__15(o,k,...) decltype(&o::k), EXP(STAR__14(o,__VA_ARGS__))
+#define STAR__16(o,k,...) decltype(&o::k), EXP(STAR__15(o,__VA_ARGS__))
+#define STAR__17(o,k,...) decltype(&o::k), EXP(STAR__16(o,__VA_ARGS__))
+#define STAR__18(o,k,...) decltype(&o::k), EXP(STAR__17(o,__VA_ARGS__))
+#define STAR__19(o,k,...) decltype(&o::k), EXP(STAR__18(o,__VA_ARGS__))
+#define STAR__20(o,k,...) decltype(&o::k), EXP(STAR__19(o,__VA_ARGS__))
+#define STAR__21(o,k,...) decltype(&o::k), EXP(STAR__20(o,__VA_ARGS__))
+#define STAR__22(o,k,...) decltype(&o::k), EXP(STAR__21(o,__VA_ARGS__))
+#define STAR__23(o,k,...) decltype(&o::k), EXP(STAR__22(o,__VA_ARGS__))
+#define STAR__24(o,k,...) decltype(&o::k), EXP(STAR__23(o,__VA_ARGS__))
+#define STAR__25(o,k,...) decltype(&o::k), EXP(STAR__24(o,__VA_ARGS__))
+#define STAR__26(o,k,...) decltype(&o::k), EXP(STAR__25(o,__VA_ARGS__))
+#define STAR__27(o,k,...) decltype(&o::k), EXP(STAR__26(o,__VA_ARGS__))
+#define STAR__28(o,k,...) decltype(&o::k), EXP(STAR__27(o,__VA_ARGS__))
+#define STAR__29(o,k,...) decltype(&o::k), EXP(STAR__28(o,__VA_ARGS__))
+#define STAR__30(o,k,...) decltype(&o::k), EXP(STAR__29(o,__VA_ARGS__))
+#define STAR__31(o,k,...) decltype(&o::k), EXP(STAR__30(o,__VA_ARGS__))
+#define STAR__32(o,k,...) decltype(&o::k), EXP(STAR__31(o,__VA_ARGS__))
+#define STAR_S_N(o,N,...) EXP(STAR__##N(o,__VA_ARGS__))
+#define STAR_S(o,N,...) STAR_S_N(o,N,__VA_ARGS__)
+#define REFLECT(o,...) static std::tuple<STAR_S(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> Tuple;
+
 #define REGISTER_TABLE(o)\
 	template<> const std::string orm::Table<o>::_low = toSqlCase(#o"");\
 	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
@@ -502,17 +536,16 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 	"CREATE TABLE IF NOT EXISTS `"+orm::Table<o>::_low+"` (\n";\
 	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""\
 	+orm::Table<o>::_low+"\"":"DROP TABLE IF EXISTS `"+orm::Table<o>::_low+"`";\
-	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+orm::Table<o>::_low+"\"":"`"+orm::Table<o>::_low+"`";\
-	template<> const char* orm::Table<o>::_alias = pgsqL?" \""#o"\"":" `"#o"`";\
-	template<> const char* orm::Table<o>::_as_alia = " AS "#o"_";\
+	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+orm::Table<o>::_low+"\" ":"`"+orm::Table<o>::_low+"` ";\
+	template<> const std::string_view orm::Table<o>::_alias = pgsqL?VIEW_CHAR("\""#o"\""):VIEW_CHAR("`"#o"`");\
+	template<> const std::string_view orm::Table<o>::_as_alia = VIEW_CHAR(" AS "#o"_");\
 	template<> bool orm::Table<o>::_created = true;
 #define CONSTRUCT(o,...)\
         REGIST_STATIC(o, __VA_ARGS__)\
 		ATTRS(o, __VA_ARGS__)\
 		REGISTER_TABLE(o)\
-    template <> inline constexpr auto li::Tuple<o>() {\
-      return std::make_tuple(STARS(o,NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
-    }
+	std::tuple<STAR_S(o, NUM_ARGS(__VA_ARGS__),__VA_ARGS__)>\
+	o::Tuple = std::make_tuple(STARS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));
 
 #define PTR_2(k,t,v)      _tc[k] = t; _def[k] = v;
 #define PTR_4(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
