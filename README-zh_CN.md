@@ -1,4 +1,4 @@
-﻿# ccORM[版本 1.5]
+﻿# ccORM[版本 1.6]
 > ccORM是最好的ORM对象关系映射底层库，采用最哲学最经典极简的设计，低代码和模块化式的开发，友好的用户体验度。
 > 🚀 支持Linux、windows平台(Mac平台暂时未适配字符串类型检测)。性能超越RTTI和protobuf，是编译期的静态反射。
 
@@ -29,22 +29,21 @@
 
 ## 模型层
 ```c++
-struct Tab;
-struct Type; D_M_TABLE(Type, Tab);
-Struct(Tab) {
-  uint32_t id;
-  bool ok;
-  text<15> name;
-  tm date;
-  vector<Type> types;
-  Type* type;
-  Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}, Type * f = nullptr) :
-	id(a), ok(b), name(c), date(d), types(e), type(f) {}
-  ~Tab() { type = nullptr; }
-  REFLECT(Tab, id, ok, name, date, types, type)
-	FIELD(id, ok, name, date)
-};
-CONSTRUCT(Tab, id, ok, name, date, types, type)
+class Tab;
+class Type; D_M_TABLE(Type, Tab);
+
+Class(Tab)
+uint32_t id;
+bool ok;
+text<15> name;
+tm date;
+vector<Type> types;
+Type* type;
+Tab(uint32_t a = 0, bool b = false, const char* c = "", tm d = now(), vector<Type> e = {}, Type* f = nullptr) :
+  id(a), ok(b), name(c), date(d), types(e), type(f) {}
+~Tab() { type = nullptr; }
+FIELD(id, ok, name, date)
+CLASS(Tab, id, ok, name, date, types, type)
 PROTO(Tab, id, ok, name, date)
 REGIST(Tab,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",
@@ -52,19 +51,17 @@ REGIST(Tab,
   TC::DEFAULT, "ww'zzgg",
   TC::DEFAULT | TC::NOT_NULL, "");
 
-Struct(Type) {
-  uint8_t id;
-  text<10> language;
-  double bigBlob;
-  vector<Tab> tabs;
-  Tab* tab;
-  Type(uint8_t a = 0, const char* b = "", double c = 0, vector<Tab> d = {}, Tab * e = nullptr) :
-	id(a), language(b), bigBlob(c), tabs(d), tab(e) {}
-  ~Type() { tab = nullptr; }
-  REFLECT(Type, id, language, bigBlob, tabs, tab)
-	FIELD(id, language, bigBlob)
-};
-CONSTRUCT(Type, id, language, bigBlob, tabs, tab)
+Class(Type)
+uint8_t id;
+text<10> language;
+double bigBlob;
+vector<Tab> tabs;
+Tab* tab;
+Type(uint8_t a = 0, const char* b = "", double c = 0, vector<Tab> d = {}, Tab* e = nullptr) :
+  id(a), language(b), bigBlob(c), tabs(d), tab(e) {}
+~Type() { tab = nullptr; }
+FIELD(id, language, bigBlob)
+CLASS(Type, id, language, bigBlob, tabs, tab)
 PROTO(Type, id, language, bigBlob)
 REGIST(Type,
   TC::PRIMARY_KEY | TC::AUTO_INCREMENT, "",

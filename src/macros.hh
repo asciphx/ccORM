@@ -18,194 +18,128 @@
 #include "json.hh"
 #define M_IDEX 0xa//Magic numbers, big fools, don't change them
 namespace orm {
-  static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
-  static std::unordered_map<uint64_t, std::string> RES_M_T;
-  using Expand = int[];
+ static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
+ static std::unordered_map<uint64_t, std::string> RES_M_T; using Expand = int[];
 #define Exp (void)orm::Expand
-  template <typename T, typename Fn, std::size_t... I>
-  inline constexpr void ForEachTuple(T& tuple, Fn&& fn, std::index_sequence<I...>) {
-	Exp{ ((void)fn(std::get<I>(tuple)), 0)... };
-  }
-  template <typename T, typename Fn>
-  inline constexpr void ForEachField(T* value, Fn&& fn) {
-	ForEachTuple(T::Tuple, [value, &fn](auto field) { fn(value->*(field)); }, std::make_index_sequence<T::_size>{});
-  }
-  static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1;
-  enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
-  constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value;
-  constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value;
-  constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value;
-  //Serialization into JSON
-  inline void FuckJSON(const tm& _v, const char* s, json& j) {
-	std::ostringstream os; os << std::setfill('0');
+ template <typename T, typename Fn, std::size_t... I>
+ inline constexpr void ForEachTuple(const T& tuple, Fn&& fn, std::index_sequence<I...>) {
+ Exp{ ((void)fn(std::get<I>(tuple)), 0)... }; }
+ template <typename T, typename Fn>
+ inline constexpr void ForEachField(T* value, Fn&& fn) {
+ ForEachTuple(T::Tuple, [value, &fn](auto field) { fn(value->*(field)); }, std::make_index_sequence<T::_size>{}); }
+ static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1; enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
+ constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value; constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value; constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value; //Serialization into JSON
+ inline void FuckJSON(const tm& _v, const char* s, json& j) {
+ std::ostringstream os; os << std::setfill('0');
 #ifdef _WIN32
-	os << std::setw(4) << _v.tm_year + 1900;
+ os << std::setw(4) << _v.tm_year + 1900;
 #else
-	int y = _v.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
+ int y = _v.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
 #endif
-	os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
-	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; j[s] = os.str();
-  }
-  template <class T>
-  static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckJSON(const T& _v, const char* s, json& j) {
-	j[s] = _v.c_str();
-  }
-  template <class T>
-  static typename std::enable_if<li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
-	using TYPE = li::vector_pack_t<T>; size_t l = _v.size(); if (l) {
-	  if constexpr (std::is_same<TYPE, std::string>::value || std::is_same<TYPE, tm>::value || is_text<TYPE>::value) {
-		std::string s; s.reserve(0x1f); s.push_back('['); s.push_back('\"');
-		if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[0]; } else { s << _v[0]; } s.push_back('\"');
-		for (size_t i = 1; i < l; ++i) {
-		  s.push_back(','); s.push_back('\"');
-		  if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"');
-		} s.push_back(']'); j[c] = json::parse(s);
-	  } else if constexpr (std::is_fundamental<TYPE>::value) {
-		std::string s; s.push_back('['); s += std::to_string(_v[0]);
-		for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s);
-	  } else {
-		auto& $ = TYPE::Tuple; std::string s; s.reserve(0x3f); s.push_back('[');
-		for (size_t i = 0; i < l; ++i) {
-		  auto* t = &_v[i]; s.push_back('{'); int8_t k = -1;
-		  ForEachTuple($, [t, &k, &s](auto& _) {
-			if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
-			  s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
+ os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
+ << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; j[s] = os.str(); }
+ template <class T>
+ static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+ j[s] = _v.c_str(); }
+ template <class T>
+ static typename std::enable_if<li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
+ using TYPE = li::vector_pack_t<T>; size_t l = _v.size(); if (l) {
+ if constexpr (std::is_same<TYPE, std::string>::value || std::is_same<TYPE, tm>::value || is_text<TYPE>::value) {
+ std::string s; s.reserve(0x1f); s.push_back('['); s.push_back('\"'); if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[0]; } else { s << _v[0]; } s.push_back('\"'); for (size_t i = 1; i < l; ++i) {
+ s.push_back(','); s.push_back('\"'); if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"'); } s.push_back(']'); j[c] = json::parse(s); } else if constexpr (std::is_fundamental<TYPE>::value) {
+ std::string s; s.push_back('['); s += std::to_string(_v[0]); for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s); } else {
+ std::string s; s.reserve(0x3f); s.push_back('['); for (size_t i = 0; i < l; ++i) {
+ const TYPE* t = &_v[i]; s.push_back('{'); int8_t k = -1; ForEachTuple(TYPE::Tuple, [t, &k, &s](auto& _) {
+ if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
 #ifdef _WIN32
-			  os << std::setw(4) << time->tm_year + 1900;
+ os << std::setw(4) << time->tm_year + 1900;
 #else
-			  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
+ int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
 #endif
-			  os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
-				<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
-			} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
-			  s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false";
-			} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
-			  s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_);
-			} else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
-			  s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\"";
-			} else if constexpr (li::is_vector<std::decay_t<decltype(t->*_)>>::value) {
-			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
-			} else if constexpr (li::is_ptr<std::decay_t<decltype(t->*_)>>::value) {
-			  s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_;
-			} else {
-			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
-			} s.push_back(',');
-			}, std::make_index_sequence<TYPE::_size>{}); s[s.size() - 1] = '}'; s.push_back(',');
-		} s[s.size() - 1] = ']'; j[c] = json::parse(s);
-	  }
-	}
-  }
-  template<typename T>
-  inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
-	j[s] = _v;
-  }
-  template <class T>
-  static typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
-	if (_v == nullptr) {
-	  j[c] = nullptr;
-	} else {
-	  auto& $ = li::ptr_pack_t<T>::Tuple; auto* t = _v; std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1;
-	  ForEachTuple($, [t, &k, &s](auto& _) {
-		using Y = std::remove_reference_t<decltype(t->*_)>;
-		if constexpr (std::is_same<tm, Y>::value) {
-		  s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
+ os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
+ << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); } else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); } else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; } else if constexpr (li::is_vector<std::decay_t<decltype(t->*_)>>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; } else if constexpr (li::is_ptr<std::decay_t<decltype(t->*_)>>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; } else {
+ s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; } s.push_back(','); }, std::make_index_sequence<TYPE::_size>{}); s[s.size() - 1] = '}'; s.push_back(','); } s[s.size() - 1] = ']'; j[c] = json::parse(s); }
+ }
+ }
+ template<typename T>
+ inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+ j[s] = _v; }
+ template <class T>
+ static typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
+ if (_v == nullptr) {
+ j[c] = nullptr; } else {
+ T t = _v; std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1; ForEachTuple(li::ptr_pack_t<T>::Tuple, [t, &k, &s](auto& _) {
+ using Y = std::remove_reference_t<decltype(t->*_)>; if constexpr (std::is_same<tm, Y>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
 #ifdef _WIN32
-		  os << std::setw(4) << time->tm_year + 1900;
+ os << std::setw(4) << time->tm_year + 1900;
 #else
-		  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
+ int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
 #endif
-		  os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
-			<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); s.push_back(',');
-		} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
-		  s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; s.push_back(',');
-		} else if constexpr (std::is_fundamental<Y>::value) {
-		  s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); s.push_back(',');
-		} else if constexpr (std::is_same<std::string, Y>::value) {
-		  s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; s.push_back(',');
-		} else if constexpr (li::is_vector<Y>::value) {
-		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(',');
-		} else if constexpr (is_text<Y>::value) {
-		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; s.push_back(',');
-		} else if constexpr (li::is_ptr<Y>::value) {
-		  s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; s.push_back(',');
-		} else {
-		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(',');
-		}
-		}, std::make_index_sequence<li::ptr_pack_t<T>::_size>{}); s[s.size() - 1] = '}';
-		j[c] = json::parse(s);
-	}
-  }
-  //Deserialization into Object
-  inline void FuckOop(tm& _v, const char* s, const json& j) {
-	std::string d_; try { if (j.contains(s))j.at(s).get_to(d_); } catch (const std::exception&) {
-	  _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0;
-	} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
-	if (sscanf(d_.c_str(), "%4d-%2d-%2d %2d:%2d:%2d", &year, &month, &day, &hour, &min, &sec) == 6) {
-	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
-	}
-  }
-  template <class T>
-  static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckOop(T& _v, const char* s, const json& j) {
-	try { _v = j.at(s).get<std::string>(); } catch (const std::exception&) {}
-  }
-  template <class T>
-  static inline typename std::enable_if<li::is_vector<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
-	using TYPE = li::vector_pack_t<T>; try { for (auto& t : j.at(s))_v.push_back(t.get<TYPE>()); } catch (const std::exception&) {}
-  }
-  template<typename T>
-  inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
-	try {
-	  if (j.contains(s)) {
-		if constexpr (std::is_same_v<bool, T>) { _v = j.at(s).get<short>() == 0 ? false : true; } else { j.at(s).get_to(_v); }
-	  }
-	} catch (const std::exception&) {}
-  }
-  template <class T>
-  inline typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T _v, const char* s, const json& j) {}
-  static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
-  char RES_C[M_IDEX][40] = { 0 }; uint8_t RES_I = 0;
+ os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
+ << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); s.push_back(','); } else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; s.push_back(','); } else if constexpr (std::is_fundamental<Y>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); s.push_back(','); } else if constexpr (std::is_same<std::string, Y>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; s.push_back(','); } else if constexpr (li::is_vector<Y>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(','); } else if constexpr (is_text<Y>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; s.push_back(','); } else if constexpr (li::is_ptr<Y>::value) {
+ s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; s.push_back(','); } else {
+ s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(','); }
+ }, std::make_index_sequence<li::ptr_pack_t<T>::_size>{}); s[s.size() - 1] = '}'; j[c] = json::parse(s); }
+ }
+ //Deserialization into Object
+ inline void FuckOop(tm& _v, const char* s, const json& j) {
+ std::string d_; try { if (j.contains(s))j.at(s).get_to(d_); } catch (const std::exception&) {
+ _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0; } int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sscanf(d_.c_str(), "%4d-%2d-%2d %2d:%2d:%2d", &year, &month, &day, &hour, &min, &sec) == 6) {
+ _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec; }
+ }
+ template <class T>
+ static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckOop(T& _v, const char* s, const json& j) {
+ try { _v = j.at(s).get<std::string>(); } catch (const std::exception&) {}
+ }
+ template <class T>
+ static inline typename std::enable_if<li::is_vector<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
+ using TYPE = li::vector_pack_t<T>; try { for (const json& t : j.at(s))_v.push_back(t.get<TYPE>()); } catch (const std::exception&) {}
+ }
+ template<typename T>
+ inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
+ try {
+ if (j.contains(s)) { if constexpr (std::is_same_v<bool, T>) { _v = j.at(s).get<short>() == 0 ? false : true; } else { j.at(s).get_to(_v); } }
+ } catch (const std::exception&) {}
+ }
+ template <class T>
+ inline typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
+ if (_v != nullptr) { *_v = j.at(s).get<li::ptr_pack_t<T>>(); }
+ }
+ static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
+ char RES_C[M_IDEX][40] = { 0 }; uint8_t RES_I = 0;
 #ifdef _MSC_VER
-  inline const char* RType(const char* _);//get key's type char
-  inline const char* LiType(const char* _);
-  inline const char* HandleComma(const char* _) {
-	int8_t i = 0; RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f;
-	while (*++_ != 0x2c)RES_C[RES_I][++i] = *_; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
-  };
+ inline const char* RType(const char* _);//get key's type char
+ inline const char* LiType(const char* _); inline const char* HandleComma(const char* _) {
+ int8_t i = 0; RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f; while (*++_ != 0x2c)RES_C[RES_I][++i] = *_; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; };
 #else
-  inline const char* RType(const char* _, const char* $);//get key's type char
-  inline const char* LiType(const char* _, unsigned char $);
+ inline const char* RType(const char* _, const char* $);//get key's type char
+ inline const char* LiType(const char* _, unsigned char $);
 #endif
 }
 #if 1
 #define EXP(O) O
 #ifdef _MSC_VER
 inline const char* orm::LiType(const char* s) {
-  switch (hack8Str(s)) {
-  case T_INT8: return "a";
-  case T_UINT8: return "h";
-  case T_INT16: return "s";
-  case T_UINT16: return "t";
-  case T_INT: return "i";
-  case T_UINT: return "j";
-  case T_INT64: return "x";
-  case T_UINT64: return "y";
-  case T_BOOL: return "b";
-  case T_DOUBLE:return "d";
-  case T_FLOAT: return "f";
-  case T_TM: return "m";
-  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0;
-	int8_t i = 0; s += M_IDEX; while (*++s < 58)RES_C[RES_I][++i] = *s; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
-  case T_STRING: return "c";
-  default: return s;
-  }
+ switch (hack8Str(s)) {
+ case T_INT8: return "a"; case T_UINT8: return "h"; case T_INT16: return "s"; case T_UINT16: return "t"; case T_INT: return "i"; case T_UINT: return "j"; case T_INT64: return "x"; case T_UINT64: return "y"; case T_BOOL: return "b"; case T_DOUBLE:return "d"; case T_FLOAT: return "f"; case T_TM: return "m"; case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0; int8_t i = 0; s += M_IDEX; while (*++s < 58)RES_C[RES_I][++i] = *s; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
+ case T_STRING: return "c"; default: return s; }
 }
 inline const char* orm::RType(const char* s) {
-  if (s[0] == 117) { return s + M_IDE; } if (s[11] == 118) { return HandleComma(s + M_IDE * 3); }
-  if (s[strLen(s) - 1] == 0x2a) {
-	RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0; s += 6;
-	int8_t i = 0; while (*++s != 0x20) { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0; return RES_C[RES_I];
-  } return s;
-}
+ if (s[0] == 117) { return s + M_IDE; } if (s[11] == 118) { return HandleComma(s + M_IDE * 3); }
+ if (s[strLen(s) - 1] == 0x2a) {
+ RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0; s += M_IDE - 3; int8_t i = 0; while (*++s != 0x20) { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; } return s;}
 #define Inject(U, T) orm::LiType(orm::RType(typeid(U::T).name()))
 #define TO_CHAR "\""
 #define FOR_CHAR "`"
@@ -214,24 +148,15 @@ inline const char* orm::RType(const char* s) {
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
 inline const char* orm::LiType(const char* s, unsigned char l) {
-  switch (hack8Str(s)) {
-  case T_TM: return "m";
-  case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0;
-	int8_t i = 0, c = M_IDE; while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
-  case T_STRING: return "c";
-  default:
-	if (s[0] == 0x53) {
-	  RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f; RES_C[RES_I][1] = 0;
-	  strncat(RES_C[RES_I], s + M_IDEX + l, strLen(s) - M_IDE - M_IDEX - l); return RES_C[RES_I];
-	} else if (s[0] == 0x50) {
-	  RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0;
-	  strcat(RES_C[RES_I], s + l + 1); return RES_C[RES_I];
-	}
-	return s;
-  }
+ switch (hack8Str(s)) {
+ case T_TM: return "m"; case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0; int8_t i = 0, c = M_IDE; while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
+ case T_STRING: return "c"; default: if (s[0] == 0x53) {
+ RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f; RES_C[RES_I][1] = 0; strncat(RES_C[RES_I], s + M_IDEX + l, strLen(s) - M_IDE - M_IDEX - l); return RES_C[RES_I]; } else if (s[0] == 0x50) {
+ RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0; strcat(RES_C[RES_I], s + l + 1); return RES_C[RES_I]; }
+ return s; }
 }
 inline const char* orm::RType(const char* s, const char* c) {
-  unsigned char l = strLen(s); if (l > 9) { l += 3; return orm::LiType(c + l, 2); } else { l += 2; return orm::LiType(c + l, 1); }
+ unsigned char l = strLen(s); if (l > 9) { l += 3; return orm::LiType(c + l, 2); } else { l += 2; return orm::LiType(c + l, 1); }
 }
 #define Inject(U, T) orm::RType(#U,typeid(&U::T).name())
 #define TO_CHAR "
@@ -241,15 +166,15 @@ inline const char* orm::RType(const char* s, const char* c) {
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
 #endif
-#define PROTO_1(k)      std::string_view(#k, sizeof(#k)-1)
-#define PROTO_2(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_1(__VA_ARGS__))
-#define PROTO_3(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_2(__VA_ARGS__))
-#define PROTO_4(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_3(__VA_ARGS__))
-#define PROTO_5(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_4(__VA_ARGS__))
-#define PROTO_6(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_5(__VA_ARGS__))
-#define PROTO_7(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_6(__VA_ARGS__))
-#define PROTO_8(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_7(__VA_ARGS__))
-#define PROTO_9(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_8(__VA_ARGS__))
+#define PROTO_1(k) std::string_view(#k, sizeof(#k)-1)
+#define PROTO_2(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_1(__VA_ARGS__))
+#define PROTO_3(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_2(__VA_ARGS__))
+#define PROTO_4(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_3(__VA_ARGS__))
+#define PROTO_5(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_4(__VA_ARGS__))
+#define PROTO_6(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_5(__VA_ARGS__))
+#define PROTO_7(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_6(__VA_ARGS__))
+#define PROTO_8(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_7(__VA_ARGS__))
+#define PROTO_9(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_8(__VA_ARGS__))
 #define PROTO_10(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_9(__VA_ARGS__))
 #define PROTO_11(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_10(__VA_ARGS__))
 #define PROTO_12(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_11(__VA_ARGS__))
@@ -275,15 +200,15 @@ inline const char* orm::RType(const char* s, const char* c) {
 #define PROTO_32(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_31(__VA_ARGS__))
 #define PROTO_N1(N,...) EXP(PROTO_##N(__VA_ARGS__))
 #define PROTO_N(N,...) PROTO_N1(N,__VA_ARGS__)
-#define TYPE_1(o,k)      Inject(o, k)
-#define TYPE_2(o,k,...)  Inject(o, k), EXP(TYPE_1(o,__VA_ARGS__))
-#define TYPE_3(o,k,...)  Inject(o, k), EXP(TYPE_2(o,__VA_ARGS__))
-#define TYPE_4(o,k,...)  Inject(o, k), EXP(TYPE_3(o,__VA_ARGS__))
-#define TYPE_5(o,k,...)  Inject(o, k), EXP(TYPE_4(o,__VA_ARGS__))
-#define TYPE_6(o,k,...)  Inject(o, k), EXP(TYPE_5(o,__VA_ARGS__))
-#define TYPE_7(o,k,...)  Inject(o, k), EXP(TYPE_6(o,__VA_ARGS__))
-#define TYPE_8(o,k,...)  Inject(o, k), EXP(TYPE_7(o,__VA_ARGS__))
-#define TYPE_9(o,k,...)  Inject(o, k), EXP(TYPE_8(o,__VA_ARGS__))
+#define TYPE_1(o,k) Inject(o, k)
+#define TYPE_2(o,k,...) Inject(o, k), EXP(TYPE_1(o,__VA_ARGS__))
+#define TYPE_3(o,k,...) Inject(o, k), EXP(TYPE_2(o,__VA_ARGS__))
+#define TYPE_4(o,k,...) Inject(o, k), EXP(TYPE_3(o,__VA_ARGS__))
+#define TYPE_5(o,k,...) Inject(o, k), EXP(TYPE_4(o,__VA_ARGS__))
+#define TYPE_6(o,k,...) Inject(o, k), EXP(TYPE_5(o,__VA_ARGS__))
+#define TYPE_7(o,k,...) Inject(o, k), EXP(TYPE_6(o,__VA_ARGS__))
+#define TYPE_8(o,k,...) Inject(o, k), EXP(TYPE_7(o,__VA_ARGS__))
+#define TYPE_9(o,k,...) Inject(o, k), EXP(TYPE_8(o,__VA_ARGS__))
 #define TYPE_10(o,k,...) Inject(o, k), EXP(TYPE_9(o,__VA_ARGS__))
 #define TYPE_11(o,k,...) Inject(o, k), EXP(TYPE_10(o,__VA_ARGS__))
 #define TYPE_12(o,k,...) Inject(o, k), EXP(TYPE_11(o,__VA_ARGS__))
@@ -309,15 +234,15 @@ inline const char* orm::RType(const char* s, const char* c) {
 #define TYPE_32(o,k,...) Inject(o, k), EXP(TYPE_31(o,__VA_ARGS__))
 #define TYPE_N1(o,N,...) EXP(TYPE_##N(o,__VA_ARGS__))
 #define TYPE_N(o,N,...) TYPE_N1(o,N,__VA_ARGS__)
-#define OFFSET_1(o,k)      (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k))
-#define OFFSET_2(o,k,...)  (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_1(o,__VA_ARGS__))
-#define OFFSET_3(o,k,...)  (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_2(o,__VA_ARGS__))
-#define OFFSET_4(o,k,...)  (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_3(o,__VA_ARGS__))
-#define OFFSET_5(o,k,...)  (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_4(o,__VA_ARGS__))
-#define OFFSET_6(o,k,...)  (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_5(o,__VA_ARGS__))
-#define OFFSET_7(o,k,...)  (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_6(o,__VA_ARGS__))
-#define OFFSET_8(o,k,...)  (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_7(o,__VA_ARGS__))
-#define OFFSET_9(o,k,...)  (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_8(o,__VA_ARGS__))
+#define OFFSET_1(o,k) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k))
+#define OFFSET_2(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_1(o,__VA_ARGS__))
+#define OFFSET_3(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_2(o,__VA_ARGS__))
+#define OFFSET_4(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_3(o,__VA_ARGS__))
+#define OFFSET_5(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_4(o,__VA_ARGS__))
+#define OFFSET_6(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_5(o,__VA_ARGS__))
+#define OFFSET_7(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_6(o,__VA_ARGS__))
+#define OFFSET_8(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_7(o,__VA_ARGS__))
+#define OFFSET_9(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_8(o,__VA_ARGS__))
 #define OFFSET_10(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_9(o,__VA_ARGS__))
 #define OFFSET_11(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_10(o,__VA_ARGS__))
 #define OFFSET_12(o,k,...) (size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->k)), EXP(OFFSET_11(o,__VA_ARGS__))
@@ -344,54 +269,32 @@ inline const char* orm::RType(const char* s, const char* c) {
 #define OFFSET_N1(o,N,...) EXP(OFFSET_##N(o,__VA_ARGS__))
 #define OFFSET_N(o,N,...) OFFSET_N1(o,N,__VA_ARGS__)
 #endif
-#define REGIST_STATIC(o,...)\
- template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__);\
- template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)] = { OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
- template<> const std::string_view orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };\
- template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
-
+#define REGIST_STATIC(o,...) template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__); template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)] = { OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }; template<> const std::string_view orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }; template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
 static const char* orm::getAkTs(const char* _) {
-  switch (hack4Str(_)) {
-  case T_INT8_: if constexpr (!sqlitE) { return "TINYINT"; }
-  case T_UINT8_: if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; }
-  case T_INT16_: if constexpr (!sqlitE) { return "SMALLINT"; }
-  case T_UINT16_: if constexpr (mysqL) { return "SMALLINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_SMALLINT"; }
-  case T_INT_: return "INTEGER";
-  case T_UINT_: if constexpr (mysqL) { return "INTEGER UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_INTEGER"; }
-  case T_INT64_: if constexpr (!sqlitE) { return "BIGINT"; }
-  case T_UINT64_: if constexpr (sqlitE) { return "INTEGER"; }
-				if constexpr (mysqL) { return "BIGINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_BIGINT"; }
-  default: return "[TYPE] MUST BE <NUMBER>!";
-  }
+ switch (hack4Str(_)) {
+ case T_INT8_: if constexpr (!sqlitE) { return "TINYINT"; }
+ case T_UINT8_: if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; }
+ case T_INT16_: if constexpr (!sqlitE) { return "SMALLINT"; }
+ case T_UINT16_: if constexpr (mysqL) { return "SMALLINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_SMALLINT"; }
+ case T_INT_: return "INTEGER"; case T_UINT_: if constexpr (mysqL) { return "INTEGER UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_INTEGER"; }
+ case T_INT64_: if constexpr (!sqlitE) { return "BIGINT"; }
+ case T_UINT64_: if constexpr (sqlitE) { return "INTEGER"; }
+ if constexpr (mysqL) { return "BIGINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_BIGINT"; }
+ default: return "[TYPE] MUST BE <NUMBER>!"; }
 }
 #define VIEW_CHAR(k) std::string_view(k, sizeof(k)-1)
 //In the fastest development mode, the intermediate table will be deleted first(Only in fatest DevMode)
-#define D_M_TABLE(o, p)static int o##p_d(){std::string s("DROP TABLE IF EXISTS ");\
-if constexpr(FastestDev){s+=toSqlCase(#o"_")+toSqlCase(#p";");D.conn()(s);}return 1;}static int _o##p_d=o##p_d();
-//after CONSTRUCT(middle table)
-#define M_TABLE(o, o_k, p, p_k)\
-static int o##p_(){std::string s=toSqlCase(#o#p),ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;orm::RES_M_T[hackStr(#o#p)]=s;\
-orm::RES_M_T[hackStr(#p#o)]=s;if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";\
-if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');\
-s+=pgsqL?"\n\""+ot+"_"#o_k"\" ":"\n`"+ot+"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));\
-s+=" NOT NULL,\n"; s+=pgsqL?"\""+pt+"_"#p_k"\" ":"`"+pt+"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));\
-s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(\""+ot+"_"#o_k"\",\""+pt+"_"#p_k"\")":\
-" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(`"+ot+"_"#o_k"`,`"+pt+"_"#p_k"`)";s+=",\nCONSTRAINT fk_";\
-s+=pgsqL?ot+"_"#o_k" FOREIGN KEY(\""+ot+"_"#o_k"\") REFERENCES \""+ot+"\"(\""#o_k"\")":ot+"_"#o_k" FOREIGN KEY(`"\
-+ot+"_"#o_k"`) REFERENCES `"+ot+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";\
-s+=pgsqL?pt+"_"#p_k" FOREIGN KEY(\""+pt+"_"#p_k"\") REFERENCES \""+pt+"\"(\""#p_k"\")":pt+"_"#p_k" FOREIGN KEY(`"\
-+pt+"_"#p_k"`) REFERENCES `"+pt+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);\n";if(!b)D.conn()(s);printf(s.c_str());\
-return 0;} static int _##o##p=o##p_();
-
-#define COL_1(o,k)      orm::FuckJSON(o.k,#k,j);
-#define COL_2(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_1(o,__VA_ARGS__))
-#define COL_3(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_2(o,__VA_ARGS__))
-#define COL_4(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_3(o,__VA_ARGS__))
-#define COL_5(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_4(o,__VA_ARGS__))
-#define COL_6(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_5(o,__VA_ARGS__))
-#define COL_7(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_6(o,__VA_ARGS__))
-#define COL_8(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_7(o,__VA_ARGS__))
-#define COL_9(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_8(o,__VA_ARGS__))
+#define D_M_TABLE(o, p)static int o##p_d(){std::string s,b=toSqlCase(#o"_")+toSqlCase(#p);if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=b+"';";if(D.conn()(s).template r__<int>()==0){return 1;};}s="DROP TABLE IF EXISTS ";s+=b; if constexpr(FastestDev){s+=";";D.conn()(s).flush_results();}return 1;}static int _o##p_d=o##p_d();//after CONSTRUCT(middle table)
+#define M_TABLE(o, o_k, p, p_k)static int o##p_(){std::string s=toSqlCase(#o#p),ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;orm::RES_M_T[hackStr(#o#p)]=s;orm::RES_M_T[hackStr(#p#o)]=s;if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');s+=pgsqL?"\n\""+ot+"_"#o_k"\" ":"\n`"+ot+"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));s+=" NOT NULL,\n"; s+=pgsqL?"\""+pt+"_"#p_k"\" ":"`"+pt+"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(\""+ot+"_"#o_k"\",\""+pt+"_"#p_k"\")":" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(`"+ot+"_"#o_k"`,`"+pt+"_"#p_k"`)";s+=",\nCONSTRAINT fk_";s+=pgsqL?ot+"_"#o_k" FOREIGN KEY(\""+ot+"_"#o_k"\") REFERENCES \""+ot+"\"(\""#o_k"\")":ot+"_"#o_k" FOREIGN KEY(`"+ot+"_"#o_k"`) REFERENCES `"+ot+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";s+=pgsqL?pt+"_"#p_k" FOREIGN KEY(\""+pt+"_"#p_k"\") REFERENCES \""+pt+"\"(\""#p_k"\")":pt+"_"#p_k" FOREIGN KEY(`"+pt+"_"#p_k"`) REFERENCES `"+pt+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);\n";if(!b)D.conn()(s).flush_results();printf(s.c_str());return 0;} static int _##o##p=o##p_();
+#define COL_1(o,k) orm::FuckJSON(o.k,#k,j);
+#define COL_2(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_1(o,__VA_ARGS__))
+#define COL_3(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_2(o,__VA_ARGS__))
+#define COL_4(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_3(o,__VA_ARGS__))
+#define COL_5(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_4(o,__VA_ARGS__))
+#define COL_6(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_5(o,__VA_ARGS__))
+#define COL_7(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_6(o,__VA_ARGS__))
+#define COL_8(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_7(o,__VA_ARGS__))
+#define COL_9(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_8(o,__VA_ARGS__))
 #define COL_10(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_9(o,__VA_ARGS__))
 #define COL_11(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_10(o,__VA_ARGS__))
 #define COL_12(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_11(o,__VA_ARGS__))
@@ -418,15 +321,15 @@ return 0;} static int _##o##p=o##p_();
 #define COL_N1(o,N,...) EXP(COL_##N(o,__VA_ARGS__))
 #define COL_N(o,N,...) COL_N1(o,N,__VA_ARGS__)
 
-#define ATTR_1(o,k)      orm::FuckOop(o.k,#k,j);
-#define ATTR_2(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_1(o,__VA_ARGS__))
-#define ATTR_3(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_2(o,__VA_ARGS__))
-#define ATTR_4(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_3(o,__VA_ARGS__))
-#define ATTR_5(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_4(o,__VA_ARGS__))
-#define ATTR_6(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_5(o,__VA_ARGS__))
-#define ATTR_7(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_6(o,__VA_ARGS__))
-#define ATTR_8(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_7(o,__VA_ARGS__))
-#define ATTR_9(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_8(o,__VA_ARGS__))
+#define ATTR_1(o,k) orm::FuckOop(o.k,#k,j);
+#define ATTR_2(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_1(o,__VA_ARGS__))
+#define ATTR_3(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_2(o,__VA_ARGS__))
+#define ATTR_4(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_3(o,__VA_ARGS__))
+#define ATTR_5(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_4(o,__VA_ARGS__))
+#define ATTR_6(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_5(o,__VA_ARGS__))
+#define ATTR_7(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_6(o,__VA_ARGS__))
+#define ATTR_8(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_7(o,__VA_ARGS__))
+#define ATTR_9(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_8(o,__VA_ARGS__))
 #define ATTR_10(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_9(o,__VA_ARGS__))
 #define ATTR_11(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_10(o,__VA_ARGS__))
 #define ATTR_12(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_11(o,__VA_ARGS__))
@@ -452,19 +355,17 @@ return 0;} static int _##o##p=o##p_();
 #define ATTR_32(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_31(o,__VA_ARGS__))
 #define ATTR_N1(o,N,...) EXP(ATTR_##N(o,__VA_ARGS__))
 #define ATTR_N(o,N,...) ATTR_N1(o,N,__VA_ARGS__)
-#define ATTRS(o,...)\
-static void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
-static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
+#define ATTRS(o,...)static inline void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }static inline void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
 
-#define STAR_1(o,k)      &o::k
-#define STAR_2(o,k,...)  &o::k, EXP(STAR_1(o,__VA_ARGS__))
-#define STAR_3(o,k,...)  &o::k, EXP(STAR_2(o,__VA_ARGS__))
-#define STAR_4(o,k,...)  &o::k, EXP(STAR_3(o,__VA_ARGS__))
-#define STAR_5(o,k,...)  &o::k, EXP(STAR_4(o,__VA_ARGS__))
-#define STAR_6(o,k,...)  &o::k, EXP(STAR_5(o,__VA_ARGS__))
-#define STAR_7(o,k,...)  &o::k, EXP(STAR_6(o,__VA_ARGS__))
-#define STAR_8(o,k,...)  &o::k, EXP(STAR_7(o,__VA_ARGS__))
-#define STAR_9(o,k,...)  &o::k, EXP(STAR_8(o,__VA_ARGS__))
+#define STAR_1(o,k) &o::k
+#define STAR_2(o,k,...) &o::k, EXP(STAR_1(o,__VA_ARGS__))
+#define STAR_3(o,k,...) &o::k, EXP(STAR_2(o,__VA_ARGS__))
+#define STAR_4(o,k,...) &o::k, EXP(STAR_3(o,__VA_ARGS__))
+#define STAR_5(o,k,...) &o::k, EXP(STAR_4(o,__VA_ARGS__))
+#define STAR_6(o,k,...) &o::k, EXP(STAR_5(o,__VA_ARGS__))
+#define STAR_7(o,k,...) &o::k, EXP(STAR_6(o,__VA_ARGS__))
+#define STAR_8(o,k,...) &o::k, EXP(STAR_7(o,__VA_ARGS__))
+#define STAR_9(o,k,...) &o::k, EXP(STAR_8(o,__VA_ARGS__))
 #define STAR_10(o,k,...) &o::k, EXP(STAR_9(o,__VA_ARGS__))
 #define STAR_11(o,k,...) &o::k, EXP(STAR_10(o,__VA_ARGS__))
 #define STAR_12(o,k,...) &o::k, EXP(STAR_11(o,__VA_ARGS__))
@@ -491,15 +392,15 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define STARS_N(o,N,...) EXP(STAR_##N(o,__VA_ARGS__))
 #define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
 
-#define STAR__1(o,k)      decltype(&o::k)
-#define STAR__2(o,k,...)  decltype(&o::k), EXP(STAR__1(o,__VA_ARGS__))
-#define STAR__3(o,k,...)  decltype(&o::k), EXP(STAR__2(o,__VA_ARGS__))
-#define STAR__4(o,k,...)  decltype(&o::k), EXP(STAR__3(o,__VA_ARGS__))
-#define STAR__5(o,k,...)  decltype(&o::k), EXP(STAR__4(o,__VA_ARGS__))
-#define STAR__6(o,k,...)  decltype(&o::k), EXP(STAR__5(o,__VA_ARGS__))
-#define STAR__7(o,k,...)  decltype(&o::k), EXP(STAR__6(o,__VA_ARGS__))
-#define STAR__8(o,k,...)  decltype(&o::k), EXP(STAR__7(o,__VA_ARGS__))
-#define STAR__9(o,k,...)  decltype(&o::k), EXP(STAR__8(o,__VA_ARGS__))
+#define STAR__1(o,k) decltype(&o::k)
+#define STAR__2(o,k,...) decltype(&o::k), EXP(STAR__1(o,__VA_ARGS__))
+#define STAR__3(o,k,...) decltype(&o::k), EXP(STAR__2(o,__VA_ARGS__))
+#define STAR__4(o,k,...) decltype(&o::k), EXP(STAR__3(o,__VA_ARGS__))
+#define STAR__5(o,k,...) decltype(&o::k), EXP(STAR__4(o,__VA_ARGS__))
+#define STAR__6(o,k,...) decltype(&o::k), EXP(STAR__5(o,__VA_ARGS__))
+#define STAR__7(o,k,...) decltype(&o::k), EXP(STAR__6(o,__VA_ARGS__))
+#define STAR__8(o,k,...) decltype(&o::k), EXP(STAR__7(o,__VA_ARGS__))
+#define STAR__9(o,k,...) decltype(&o::k), EXP(STAR__8(o,__VA_ARGS__))
 #define STAR__10(o,k,...) decltype(&o::k), EXP(STAR__9(o,__VA_ARGS__))
 #define STAR__11(o,k,...) decltype(&o::k), EXP(STAR__10(o,__VA_ARGS__))
 #define STAR__12(o,k,...) decltype(&o::k), EXP(STAR__11(o,__VA_ARGS__))
@@ -525,32 +426,16 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define STAR__32(o,k,...) decltype(&o::k), EXP(STAR__31(o,__VA_ARGS__))
 #define STAR_S_N(o,N,...) EXP(STAR__##N(o,__VA_ARGS__))
 #define STAR_S(o,N,...) STAR_S_N(o,N,__VA_ARGS__)
-#define REFLECT(o,...) static std::tuple<STAR_S(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> Tuple;
+#define REFLECT(o,...) static const std::tuple<STAR_S(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> Tuple;
+#define Class(T) struct T : orm::Table<T> {
+#define REGISTER_TABLE(o) template<> const std::string orm::Table<o>::_low = toSqlCase(#o""); template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={}; template<> uint8_t orm::Table<o>::_idex = 0; template<> std::string orm::Table<o>::_create = pgsqL? "CREATE TABLE IF NOT EXISTS \""+orm::Table<o>::_low+"\" (\n": "CREATE TABLE IF NOT EXISTS `"+orm::Table<o>::_low+"` (\n"; template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \"" +orm::Table<o>::_low+"\"":"DROP TABLE IF EXISTS `"+orm::Table<o>::_low+"`"; template<> const std::string orm::Table<o>::_name = pgsqL?"\""+orm::Table<o>::_low+"\" ":"`"+orm::Table<o>::_low+"` "; template<> const std::string_view orm::Table<o>::_alias = pgsqL?VIEW_CHAR("\""#o"\""):VIEW_CHAR("`"#o"`"); template<> const std::string_view orm::Table<o>::_as_alia = VIEW_CHAR(" AS "#o"_"); template<> bool orm::Table<o>::_created = true;
+#define CONSTRUCT(o,...)REGIST_STATIC(o, __VA_ARGS__)ATTRS(o, __VA_ARGS__)REGISTER_TABLE(o)const std::tuple<STAR_S(o, NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> o::Tuple = std::make_tuple(STARS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));
+#define CLASS(o,...) REFLECT(o,__VA_ARGS__)};CONSTRUCT(o,__VA_ARGS__)
 
-#define REGISTER_TABLE(o)\
-	template<> const std::string orm::Table<o>::_low = toSqlCase(#o"");\
-	template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={};\
-	template<> uint8_t orm::Table<o>::_idex = 0;\
-	template<> std::string orm::Table<o>::_create = pgsqL?\
-	"CREATE TABLE IF NOT EXISTS \""+orm::Table<o>::_low+"\" (\n":\
-	"CREATE TABLE IF NOT EXISTS `"+orm::Table<o>::_low+"` (\n";\
-	template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \""\
-	+orm::Table<o>::_low+"\"":"DROP TABLE IF EXISTS `"+orm::Table<o>::_low+"`";\
-	template<> const std::string orm::Table<o>::_name = pgsqL?"\""+orm::Table<o>::_low+"\" ":"`"+orm::Table<o>::_low+"` ";\
-	template<> const std::string_view orm::Table<o>::_alias = pgsqL?VIEW_CHAR("\""#o"\""):VIEW_CHAR("`"#o"`");\
-	template<> const std::string_view orm::Table<o>::_as_alia = VIEW_CHAR(" AS "#o"_");\
-	template<> bool orm::Table<o>::_created = true;
-#define CONSTRUCT(o,...)\
-        REGIST_STATIC(o, __VA_ARGS__)\
-		ATTRS(o, __VA_ARGS__)\
-		REGISTER_TABLE(o)\
-	std::tuple<STAR_S(o, NUM_ARGS(__VA_ARGS__),__VA_ARGS__)>\
-	o::Tuple = std::make_tuple(STARS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));
-
-#define PTR_2(k,t,v)      _tc[k] = t; _def[k] = v;
-#define PTR_4(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
-#define PTR_6(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_4(k+1,__VA_ARGS__))
-#define PTR_8(k,t,v,...)  _tc[k] = t; _def[k] = v; EXP(PTR_6(k+1,__VA_ARGS__))
+#define PTR_2(k,t,v) _tc[k] = t; _def[k] = v;
+#define PTR_4(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_2(k+1,__VA_ARGS__))
+#define PTR_6(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_4(k+1,__VA_ARGS__))
+#define PTR_8(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_6(k+1,__VA_ARGS__))
 #define PTR_10(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_8(k+1,__VA_ARGS__))
 #define PTR_12(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_10(k+1,__VA_ARGS__))
 #define PTR_14(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_12(k+1,__VA_ARGS__))
@@ -582,38 +467,25 @@ static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA
 #define PTRS_N(N,...) EXP(PTR_##N(0,__VA_ARGS__))
 #define PTRS(N,...) PTRS_N(N,__VA_ARGS__)
 //`1;`->加粗，`4`->下划线，`0`->还原,`m`<=>`\033[`
-#define RGB_BLACK  	 "\033[30m"
-#define RGB_RED  	 "\033[31m"
-#define RGB_GREEN    "\033[32m"
-#define RGB_YELLOW   "\033[33m"
-#define RGB_BLUE   	 "\033[34m"
-#define RGB_MAGENTA  "\033[35m"
-#define RGB_AZURE    "\033[36m"
-#define RGB_NULL 	 "\033[0m"
+#define RGB_BLACK "\033[30m"
+#define RGB_RED "\033[31m"
+#define RGB_GREEN "\033[32m"
+#define RGB_YELLOW "\033[33m"
+#define RGB_BLUE "\033[34m"
+#define RGB_MAGENTA "\033[35m"
+#define RGB_AZURE "\033[36m"
+#define RGB_NULL "\033[0m"
 
-#define REGIST(o,...)\
-template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};\
-template<> const char* orm::Table<o>::_def[NUM_ARGS(__VA_ARGS__)]={};\
-template<> int orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)\
-try {if(strLen(#o)>31){throw std::runtime_error("\033[1;34m["#o"]\033[31;4m The length of the name cannot exceed 31!\n\033[0m");}\
-  bool b=true;if(_tc[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){\
-     if(_tc[i] & TC::PRIMARY_KEY){ if(b){b=false;\
-throw std::runtime_error("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m");}\
-else{ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m");} }}\
-} catch (const std::exception& e) { std::cerr << e.what();return 0; }unsigned int i = HARDWARE_ASYNCHRONOUS;\
-while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };if constexpr(FastestDev){orm::Table<o>::_dropTable();}return 1;}\
-template<> void orm::Table<o>::Dev(){if constexpr(FastestDev){std::vector<o> v={o(),o(),o()};o::Q().InsertArr(&v);}}\
-template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
-
-#define FIELD_1(k)      static const text<63> $##k;
-#define FIELD_2(k,...)  static const text<63> $##k; EXP(FIELD_1(__VA_ARGS__))
-#define FIELD_3(k,...)  static const text<63> $##k; EXP(FIELD_2(__VA_ARGS__))
-#define FIELD_4(k,...)  static const text<63> $##k; EXP(FIELD_3(__VA_ARGS__))
-#define FIELD_5(k,...)  static const text<63> $##k; EXP(FIELD_4(__VA_ARGS__))
-#define FIELD_6(k,...)  static const text<63> $##k; EXP(FIELD_5(__VA_ARGS__))
-#define FIELD_7(k,...)  static const text<63> $##k; EXP(FIELD_6(__VA_ARGS__))
-#define FIELD_8(k,...)  static const text<63> $##k; EXP(FIELD_7(__VA_ARGS__))
-#define FIELD_9(k,...)  static const text<63> $##k; EXP(FIELD_8(__VA_ARGS__))
+#define REGIST(o,...)template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};template<> const char* orm::Table<o>::_def[NUM_ARGS(__VA_ARGS__)]={};template<> int orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)try {if(strLen(#o)>31){throw std::runtime_error("\033[1;34m["#o"]\033[31;4m The length of the name cannot exceed 31!\n\033[0m");} bool b=true;if(_tc[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){ if(_tc[i] & TC::PRIMARY_KEY){ if(b){b=false;throw std::runtime_error("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m");}else{ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m");} }}} catch (const std::exception& e) { std::cerr << e.what();return 0; }unsigned int i = HARDWARE_ASYNCHRONOUS;while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };if constexpr(FastestDev){if constexpr(pgsqL){std::string s="select count(*) from pg_class where relname='";s+=orm::Table<o>::_low+"';";if(D.conn()(s).template r__<int>()==0){return 1;}}orm::Table<o>::_dropTable();}return 1;}template<> void orm::Table<o>::Dev(){if constexpr(FastestDev){std::vector<o> v={o(),o(),o()};o::Q().InsertArr(&v);}}template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
+#define FIELD_1(k) static const text<63> $##k;
+#define FIELD_2(k,...) static const text<63> $##k; EXP(FIELD_1(__VA_ARGS__))
+#define FIELD_3(k,...) static const text<63> $##k; EXP(FIELD_2(__VA_ARGS__))
+#define FIELD_4(k,...) static const text<63> $##k; EXP(FIELD_3(__VA_ARGS__))
+#define FIELD_5(k,...) static const text<63> $##k; EXP(FIELD_4(__VA_ARGS__))
+#define FIELD_6(k,...) static const text<63> $##k; EXP(FIELD_5(__VA_ARGS__))
+#define FIELD_7(k,...) static const text<63> $##k; EXP(FIELD_6(__VA_ARGS__))
+#define FIELD_8(k,...) static const text<63> $##k; EXP(FIELD_7(__VA_ARGS__))
+#define FIELD_9(k,...) static const text<63> $##k; EXP(FIELD_8(__VA_ARGS__))
 #define FIELD_10(k,...) static const text<63> $##k; EXP(FIELD_9(__VA_ARGS__))
 #define FIELD_11(k,...) static const text<63> $##k; EXP(FIELD_10(__VA_ARGS__))
 #define FIELD_12(k,...) static const text<63> $##k; EXP(FIELD_11(__VA_ARGS__))
@@ -639,18 +511,17 @@ template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Tabl
 #define FIELD_32(k,...) static const text<63> $##k; EXP(FIELD_31(__VA_ARGS__))
 #define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
-#define FIELD(...)\
-        FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
+#define FIELD(...) FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 //select * FROM <T> => select (`T`.`$`,)...
-#define IOS_1(o,a,k)      IOS_(o,a,k)
-#define IOS_2(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
-#define IOS_3(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_2(o,a,__VA_ARGS__))
-#define IOS_4(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_3(o,a,__VA_ARGS__))
-#define IOS_5(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_4(o,a,__VA_ARGS__))
-#define IOS_6(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_5(o,a,__VA_ARGS__))
-#define IOS_7(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_6(o,a,__VA_ARGS__))
-#define IOS_8(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_7(o,a,__VA_ARGS__))
-#define IOS_9(o,a,k,...)  IOS_(o,a,k)"," EXP(IOS_8(o,a,__VA_ARGS__))
+#define IOS_1(o,a,k) IOS_(o,a,k)
+#define IOS_2(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
+#define IOS_3(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_2(o,a,__VA_ARGS__))
+#define IOS_4(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_3(o,a,__VA_ARGS__))
+#define IOS_5(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_4(o,a,__VA_ARGS__))
+#define IOS_6(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_5(o,a,__VA_ARGS__))
+#define IOS_7(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_6(o,a,__VA_ARGS__))
+#define IOS_8(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_7(o,a,__VA_ARGS__))
+#define IOS_9(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_8(o,a,__VA_ARGS__))
 #define IOS_10(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_9(o,a,__VA_ARGS__))
 #define IOS_11(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_10(o,a,__VA_ARGS__))
 #define IOS_12(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_11(o,a,__VA_ARGS__))
@@ -677,15 +548,15 @@ template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Tabl
 #define IOS_N1(o,a,N,...) EXP(IOS_##N(o,a,__VA_ARGS__))
 #define IOS_N(o,a,N,...) IOS_N1(o,a,N,__VA_ARGS__)
 
-#define PRO_1(t,k)      const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`";
-#define PRO_2(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_1(t,__VA_ARGS__))
-#define PRO_3(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_2(t,__VA_ARGS__))
-#define PRO_4(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_3(t,__VA_ARGS__))
-#define PRO_5(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_4(t,__VA_ARGS__))
-#define PRO_6(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_5(t,__VA_ARGS__))
-#define PRO_7(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_6(t,__VA_ARGS__))
-#define PRO_8(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_7(t,__VA_ARGS__))
-#define PRO_9(t,k,...)  const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_8(t,__VA_ARGS__))
+#define PRO_1(t,k) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`";
+#define PRO_2(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_1(t,__VA_ARGS__))
+#define PRO_3(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_2(t,__VA_ARGS__))
+#define PRO_4(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_3(t,__VA_ARGS__))
+#define PRO_5(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_4(t,__VA_ARGS__))
+#define PRO_6(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_5(t,__VA_ARGS__))
+#define PRO_7(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_6(t,__VA_ARGS__))
+#define PRO_8(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_7(t,__VA_ARGS__))
+#define PRO_9(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_8(t,__VA_ARGS__))
 #define PRO_10(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_9(t,__VA_ARGS__))
 #define PRO_11(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_10(t,__VA_ARGS__))
 #define PRO_12(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_11(t,__VA_ARGS__))
@@ -711,22 +582,16 @@ template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Tabl
 #define PRO_32(t,k,...) const text<63> t::$##k = pgsqL?"\""#t"\".\""#k"\"":"`"#t"`.`"#k"`"; EXP(PRO_31(t,__VA_ARGS__))
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
-#define PROTO(o,...)\
-PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)\
-template<> const uint8_t orm::Table<o>::_len = NUM_ARGS(__VA_ARGS__);\
-template<> const std::string_view orm::Table<o>::_ios=pgsqL?\
-VIEW_CHAR("SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)):\
-VIEW_CHAR("SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));
-
-#define STR_1(k,i)  k[i]
-#define STR_2(k,i)  k[i], STR_1(k,i+1)
-#define STR_3(k,i)  k[i], STR_2(k,i+1)
-#define STR_4(k,i)  k[i], STR_3(k,i+1)
-#define STR_5(k,i)  k[i], STR_4(k,i+1)
-#define STR_6(k,i)  k[i], STR_5(k,i+1)
-#define STR_7(k,i)  k[i], STR_6(k,i+1)
-#define STR_8(k,i)  k[i], STR_7(k,i+1)
-#define STR_9(k,i)  k[i], STR_8(k,i+1)
+#define PROTO(o,...)PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)template<> const uint8_t orm::Table<o>::_len = NUM_ARGS(__VA_ARGS__);template<> const std::string_view orm::Table<o>::_ios=pgsqL?VIEW_CHAR("SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)):VIEW_CHAR("SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));
+#define STR_1(k,i) k[i]
+#define STR_2(k,i) k[i], STR_1(k,i+1)
+#define STR_3(k,i) k[i], STR_2(k,i+1)
+#define STR_4(k,i) k[i], STR_3(k,i+1)
+#define STR_5(k,i) k[i], STR_4(k,i+1)
+#define STR_6(k,i) k[i], STR_5(k,i+1)
+#define STR_7(k,i) k[i], STR_6(k,i+1)
+#define STR_8(k,i) k[i], STR_7(k,i+1)
+#define STR_9(k,i) k[i], STR_8(k,i+1)
 #define STR_10(k,i) k[i], STR_9(k,i+1)
 #define STR_11(k,i) k[i], STR_10(k,i+1)
 #define STR_12(k,i) k[i], STR_11(k,i+1)
