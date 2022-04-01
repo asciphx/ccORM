@@ -16,130 +16,39 @@
 #include <cstdarg>
 #include <stdexcept>
 #include "json.hh"
-#define M_IDEX 0xa//Magic numbers, big fools, don't change them
+#define M_IDEX 0xa
 namespace orm {
- static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc;//It is best to set the maximum number of threads
- static std::unordered_map<uint64_t, std::string> RES_M_T; using Expand = int[];
+ static constexpr unsigned int HARDWARE_ASYNCHRONOUS = 0xc; static std::unordered_map<uint64_t, std::string> RES_M_T; using Expand = int[];
 #define Exp (void)orm::Expand
- template <typename T, typename Fn, std::size_t... I>
- inline constexpr void ForEachTuple(const T& tuple, Fn&& fn, std::index_sequence<I...>) {
- Exp{ ((void)fn(std::get<I>(tuple)), 0)... }; }
- template <typename T, typename Fn>
- inline constexpr void ForEachField(T* value, Fn&& fn) {
- ForEachTuple(T::Tuple, [value, &fn](auto field) { fn(value->*(field)); }, std::make_index_sequence<T::_size>{}); }
- static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1; enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 };//protoSpecs
- constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value; constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value; constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value; //Serialization into JSON
- inline void FuckJSON(const tm& _v, const char* s, json& j) {
- std::ostringstream os; os << std::setfill('0');
+ template <typename T, typename Fn, std::size_t... I> inline constexpr void ForEachTuple(const T& tuple, Fn&& fn, std::index_sequence<I...>) { Exp{ ((void)fn(std::get<I>(tuple)), 0)... }; } template <typename T, typename Fn> inline constexpr void ForEachField(T* value, Fn&& fn) { ForEachTuple(T::Tuple, [value, &fn](auto field) { fn(value->*(field)); }, std::make_index_sequence<std::tuple_size_v<decltype(T::Tuple)>>{}); } template <std::size_t I, typename T, typename Fn> inline constexpr void ForEachField(T* value, Fn&& fn) { ForEachTuple(T::Tuple, [value, &fn](auto field) { fn(value->*(field)); }, std::make_index_sequence<I>{}); } static unsigned int HARDWARE_CORE = HARDWARE_ASYNCHRONOUS - 1; enum TC { EMPTY, PRIMARY_KEY, AUTO_INCREMENT, DEFAULT = 4, NOT_NULL = 8, UNIQUIE = 16, IDEX = 32 }; constexpr bool pgsqL = std::is_same<decltype(D)::db_tag, li::pgsql_tag>::value; constexpr bool mysqL = std::is_same<decltype(D)::db_tag, li::mysql_tag>::value; constexpr bool sqlitE = std::is_same<decltype(D)::db_tag, li::sqlite_tag>::value;  inline void FuckJSON(const tm& _v, const char* s, json& j) { std::ostringstream os; os << std::setfill('0');
 #ifdef _WIN32
  os << std::setw(4) << _v.tm_year + 1900;
 #else
  int y = _v.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
 #endif
- os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
- << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; j[s] = os.str(); }
- template <class T>
- static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckJSON(const T& _v, const char* s, json& j) {
- j[s] = _v.c_str(); }
- template <class T>
- static typename std::enable_if<li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
- using TYPE = li::vector_pack_t<T>; size_t l = _v.size(); if (l) {
- if constexpr (std::is_same<TYPE, std::string>::value || std::is_same<TYPE, tm>::value || is_text<TYPE>::value) {
- std::string s; s.reserve(0x1f); s.push_back('['); s.push_back('\"'); if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[0]; } else { s << _v[0]; } s.push_back('\"'); for (size_t i = 1; i < l; ++i) {
- s.push_back(','); s.push_back('\"'); if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"'); } s.push_back(']'); j[c] = json::parse(s); } else if constexpr (std::is_fundamental<TYPE>::value) {
- std::string s; s.push_back('['); s += std::to_string(_v[0]); for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s); } else {
- std::string s; s.reserve(0x3f); s.push_back('['); for (size_t i = 0; i < l; ++i) {
- const TYPE* t = &_v[i]; s.push_back('{'); int8_t k = -1; ForEachTuple(TYPE::Tuple, [t, &k, &s](auto& _) {
- if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
+ os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2) << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; j[s] = os.str(); } template <class T> static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckJSON(const T& _v, const char* s, json& j) { j[s] = _v.c_str(); } template <class T> static typename std::enable_if<li::is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) { using TYPE = li::vector_pack_t<T>; size_t l = _v.size(); if (l) { if constexpr (std::is_same<TYPE, std::string>::value || std::is_same<TYPE, tm>::value || is_text<TYPE>::value) { std::string s; s.reserve(0x1f); s.push_back('['); s.push_back('\"'); if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[0]; } else { s << _v[0]; } s.push_back('\"'); for (size_t i = 1; i < l; ++i) { s.push_back(','); s.push_back('\"'); if constexpr (std::is_same<TYPE, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"'); } s.push_back(']'); j[c] = json::parse(s); } else if constexpr (std::is_fundamental<TYPE>::value) { std::string s; s.push_back('['); s += std::to_string(_v[0]); for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s); } else { std::string s; s.reserve(0x3f); s.push_back('['); for (size_t i = 0; i < l; ++i) { const TYPE* t = &_v[i]; s.push_back('{'); int8_t k = -1; ForEachTuple(TYPE::Tuple, [t, &k, &s](auto& _) { if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) { s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
 #ifdef _WIN32
  os << std::setw(4) << time->tm_year + 1900;
 #else
  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
 #endif
- os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
- << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); } else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); } else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; } else if constexpr (li::is_vector<std::decay_t<decltype(t->*_)>>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; } else if constexpr (li::is_ptr<std::decay_t<decltype(t->*_)>>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; } else {
- s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; } s.push_back(','); }, std::make_index_sequence<TYPE::_size>{}); s[s.size() - 1] = '}'; s.push_back(','); } s[s.size() - 1] = ']'; j[c] = json::parse(s); }
- }
- }
- template<typename T>
- inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
- j[s] = _v; }
- template <class T>
- static typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
- if (_v == nullptr) {
- j[c] = nullptr; } else {
- T t = _v; std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1; ForEachTuple(li::ptr_pack_t<T>::Tuple, [t, &k, &s](auto& _) {
- using Y = std::remove_reference_t<decltype(t->*_)>; if constexpr (std::is_same<tm, Y>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
+ os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2) << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); } else if constexpr (std::is_same<bool, decltype(t->*_)>::value) { s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; } else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) { s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); } else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) { s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; } else if constexpr (li::is_vector<std::decay_t<decltype(t->*_)>>::value) { s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; } else if constexpr (li::is_ptr<std::decay_t<decltype(t->*_)>>::value) { s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; } else { s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; } s.push_back(','); }, std::make_index_sequence<TYPE::_size>{}); s[s.size() - 1] = '}'; s.push_back(','); } s[s.size() - 1] = ']'; j[c] = json::parse(s); } } } template<typename T> inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) { j[s] = _v; } template <class T> static typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) { if (_v == nullptr) { j[c] = nullptr; } else { T t = _v; std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1; ForEachTuple(li::ptr_pack_t<T>::Tuple, [t, &k, &s](auto& _) { using Y = std::remove_reference_t<decltype(t->*_)>; if constexpr (std::is_same<tm, Y>::value) { s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
 #ifdef _WIN32
  os << std::setw(4) << time->tm_year + 1900;
 #else
  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
 #endif
- os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
- << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); s.push_back(','); } else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; s.push_back(','); } else if constexpr (std::is_fundamental<Y>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); s.push_back(','); } else if constexpr (std::is_same<std::string, Y>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; s.push_back(','); } else if constexpr (li::is_vector<Y>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(','); } else if constexpr (is_text<Y>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; s.push_back(','); } else if constexpr (li::is_ptr<Y>::value) {
- s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; s.push_back(','); } else {
- s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(','); }
- }, std::make_index_sequence<li::ptr_pack_t<T>::_size>{}); s[s.size() - 1] = '}'; j[c] = json::parse(s); }
- }
- //Deserialization into Object
- inline void FuckOop(tm& _v, const char* s, const json& j) {
- std::string d_; try { if (j.contains(s))j.at(s).get_to(d_); } catch (const std::exception&) {
- _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0; } int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sscanf(d_.c_str(), "%4d-%2d-%2d %2d:%2d:%2d", &year, &month, &day, &hour, &min, &sec) == 6) {
- _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec; }
- }
- template <class T>
- static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckOop(T& _v, const char* s, const json& j) {
- try { _v = j.at(s).get<std::string>(); } catch (const std::exception&) {}
- }
- template <class T>
- static inline typename std::enable_if<li::is_vector<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
- using TYPE = li::vector_pack_t<T>; try { for (const json& t : j.at(s))_v.push_back(t.get<TYPE>()); } catch (const std::exception&) {}
- }
- template<typename T>
- inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
- try {
- if (j.contains(s)) { if constexpr (std::is_same_v<bool, T>) { _v = j.at(s).get<short>() == 0 ? false : true; } else { j.at(s).get_to(_v); } }
- } catch (const std::exception&) {}
- }
- template <class T>
- inline typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
- if (_v != nullptr) { *_v = j.at(s).get<li::ptr_pack_t<T>>(); }
- }
- static const char* getAkTs(const char* _);//get AUTO_INCREMENT key type
- char RES_C[M_IDEX][40] = { 0 }; uint8_t RES_I = 0;
+ os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2) << time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); s.push_back(','); } else if constexpr (std::is_same<bool, decltype(t->*_)>::value) { s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; s.push_back(','); } else if constexpr (std::is_fundamental<Y>::value) { s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); s.push_back(','); } else if constexpr (std::is_same<std::string, Y>::value) { s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; s.push_back(','); } else if constexpr (li::is_vector<Y>::value) { s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(','); } else if constexpr (is_text<Y>::value) { s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; s.push_back(','); } else if constexpr (li::is_ptr<Y>::value) { s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; s.push_back(','); } else { s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(','); } }, std::make_index_sequence<li::ptr_pack_t<T>::_size>{}); s[s.size() - 1] = '}'; j[c] = json::parse(s); } }  inline void FuckOop(tm& _v, const char* s, const json& j) { std::string d_; try { if (j.contains(s))j.at(s).get_to(d_); } catch (const std::exception&) { _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0; } int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0; if (sscanf(d_.c_str(), "%4d-%2d-%2d %2d:%2d:%2d", &year, &month, &day, &hour, &min, &sec) == 6) { _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec; } } template <class T> static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckOop(T& _v, const char* s, const json& j) { try { _v = j.at(s).get<std::string>(); } catch (const std::exception&) {} } template <class T> static inline typename std::enable_if<li::is_vector<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) { using TYPE = li::vector_pack_t<T>; try { for (const json& t : j.at(s))_v.push_back(t.get<TYPE>()); } catch (const std::exception&) {} } template<typename T> inline typename std::enable_if<!li::is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) { try { if (j.contains(s)) { if constexpr (std::is_same_v<bool, T>) { _v = j.at(s).get<short>() == 0 ? false : true; } else { j.at(s).get_to(_v); } } } catch (const std::exception&) {} } template <class T> inline typename std::enable_if<li::is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) { if (_v != nullptr && j.contains(s)) { *_v = j.at(s).get<li::ptr_pack_t<T>>(); } } static const char* getAkTs(const char* _); char RES_C[M_IDEX][40] = { 0 }; uint8_t RES_I = 0;
 #ifdef _MSC_VER
- inline const char* RType(const char* _);//get key's type char
- inline const char* LiType(const char* _); inline const char* HandleComma(const char* _) {
- int8_t i = 0; RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f; while (*++_ != 0x2c)RES_C[RES_I][++i] = *_; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; };
+ inline const char* RType(const char* _); inline const char* LiType(const char* _); inline const char* HandleComma(const char* _) { int8_t i = 0; RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f; while (*++_ != 0x2c)RES_C[RES_I][++i] = *_; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; };
 #else
- inline const char* RType(const char* _, const char* $);//get key's type char
- inline const char* LiType(const char* _, unsigned char $);
+ inline const char* RType(const char* _, const char* $); inline const char* LiType(const char* _, unsigned char $);
 #endif
 }
 #if 1
 #define EXP(O) O
 #ifdef _MSC_VER
-inline const char* orm::LiType(const char* s) {
- switch (hack8Str(s)) {
- case T_INT8: return "a"; case T_UINT8: return "h"; case T_INT16: return "s"; case T_UINT16: return "t"; case T_INT: return "i"; case T_UINT: return "j"; case T_INT64: return "x"; case T_UINT64: return "y"; case T_BOOL: return "b"; case T_DOUBLE:return "d"; case T_FLOAT: return "f"; case T_TM: return "m"; case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0; int8_t i = 0; s += M_IDEX; while (*++s < 58)RES_C[RES_I][++i] = *s; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
- case T_STRING: return "c"; default: return s; }
-}
-inline const char* orm::RType(const char* s) {
- if (s[0] == 117) { return s + M_IDE; } if (s[11] == 118) { return HandleComma(s + M_IDE * 3); }
- if (s[strLen(s) - 1] == 0x2a) {
- RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0; s += M_IDE - 3; int8_t i = 0; while (*++s != 0x20) { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; } return s;}
+inline const char* orm::LiType(const char* s) { switch (hack8Str(s)) { case T_INT8: return "a"; case T_UINT8: return "h"; case T_INT16: return "s"; case T_UINT16: return "t"; case T_INT: return "i"; case T_UINT: return "j"; case T_INT64: return "x"; case T_UINT64: return "y"; case T_BOOL: return "b"; case T_DOUBLE:return "d"; case T_FLOAT: return "f"; case T_TM: return "m"; case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0; int8_t i = 0; s += M_IDEX; while (*++s < 58)RES_C[RES_I][++i] = *s; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; } case T_STRING: return "c"; default: return s; }}inline const char* orm::RType(const char* s) { if (s[0] == 117) { return s + M_IDE; } if (s[11] == 118) { return HandleComma(s + M_IDE * 3); } if (s[strLen(s) - 1] == 0x2a) { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0; s += M_IDE - 3; int8_t i = 0; while (*++s != 0x20) { RES_C[RES_I][++i] = *s; }; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; } return s;}
 #define Inject(U, T) orm::LiType(orm::RType(typeid(U::T).name()))
 #define TO_CHAR "\""
 #define FOR_CHAR "`"
@@ -147,20 +56,10 @@ inline const char* orm::RType(const char* s) {
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
 #define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 #else
-inline const char* orm::LiType(const char* s, unsigned char l) {
- switch (hack8Str(s)) {
- case T_TM: return "m"; case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0; int8_t i = 0, c = M_IDE; while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; }
- case T_STRING: return "c"; default: if (s[0] == 0x53) {
- RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f; RES_C[RES_I][1] = 0; strncat(RES_C[RES_I], s + M_IDEX + l, strLen(s) - M_IDE - M_IDEX - l); return RES_C[RES_I]; } else if (s[0] == 0x50) {
- RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0; strcat(RES_C[RES_I], s + l + 1); return RES_C[RES_I]; }
- return s; }
-}
-inline const char* orm::RType(const char* s, const char* c) {
- unsigned char l = strLen(s); if (l > 9) { l += 3; return orm::LiType(c + l, 2); } else { l += 2; return orm::LiType(c + l, 1); }
-}
+inline const char* orm::LiType(const char* s, unsigned char l) { switch (hack8Str(s)) { case T_TM: return "m"; case T_TEXT: { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x65; RES_C[RES_I][1] = 0; int8_t i = 0, c = M_IDE; while (s[c] < 58)RES_C[RES_I][++i] = s[c++]; RES_C[RES_I][++i] = 0; return RES_C[RES_I]; } case T_STRING: return "c"; default: if (s[0] == 0x53) { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x5f; RES_C[RES_I][1] = 0; strncat(RES_C[RES_I], s + M_IDEX + l, strLen(s) - M_IDE - M_IDEX - l); return RES_C[RES_I]; } else if (s[0] == 0x50) { RES_I < M_IDEX ? ++RES_I : RES_I = 0; RES_C[RES_I][0] = 0x2a; RES_C[RES_I][1] = 0; strcat(RES_C[RES_I], s + l + 1); return RES_C[RES_I]; } return s; }}inline const char* orm::RType(const char* s, const char* c) { unsigned char l = strLen(s); if (l > 9) { l += 3; return orm::LiType(c + l, 2); } else { l += 2; return orm::LiType(c + l, 1); }}
 #define Inject(U, T) orm::RType(#U,typeid(&U::T).name())
 #define TO_CHAR "
-/*\" for web markdown, ~!@#$%^&*///"
+//"
 #define FOR_CHAR `
 #define IOS_(o,a,k) o#a#k#a
 #define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
@@ -270,22 +169,14 @@ inline const char* orm::RType(const char* s, const char* c) {
 #define OFFSET_N(o,N,...) OFFSET_N1(o,N,__VA_ARGS__)
 #endif
 #define REGIST_STATIC(o,...) template<> const uint8_t orm::Table<o>::_size = NUM_ARGS(__VA_ARGS__); template<> const size_t orm::Table<o>::_o$[NUM_ARGS(__VA_ARGS__)] = { OFFSET_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }; template<> const std::string_view orm::Table<o>::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }; template<> const char* orm::Table<o>::_[NUM_ARGS(__VA_ARGS__)] = { TYPE_N(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) };
-static const char* orm::getAkTs(const char* _) {
- switch (hack4Str(_)) {
- case T_INT8_: if constexpr (!sqlitE) { return "TINYINT"; }
- case T_UINT8_: if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; }
- case T_INT16_: if constexpr (!sqlitE) { return "SMALLINT"; }
- case T_UINT16_: if constexpr (mysqL) { return "SMALLINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_SMALLINT"; }
- case T_INT_: return "INTEGER"; case T_UINT_: if constexpr (mysqL) { return "INTEGER UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_INTEGER"; }
- case T_INT64_: if constexpr (!sqlitE) { return "BIGINT"; }
- case T_UINT64_: if constexpr (sqlitE) { return "INTEGER"; }
- if constexpr (mysqL) { return "BIGINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_BIGINT"; }
- default: return "[TYPE] MUST BE <NUMBER>!"; }
-}
+
+static const char* orm::getAkTs(const char* _) { switch (hack4Str(_)) { case T_INT8_: if constexpr (!sqlitE) { return "TINYINT"; } case T_UINT8_: if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; } case T_INT16_: if constexpr (!sqlitE) { return "SMALLINT"; } case T_UINT16_: if constexpr (mysqL) { return "SMALLINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_SMALLINT"; } case T_INT_: return "INTEGER"; case T_UINT_: if constexpr (mysqL) { return "INTEGER UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_INTEGER"; } case T_INT64_: if constexpr (!sqlitE) { return "BIGINT"; } case T_UINT64_: if constexpr (sqlitE) { return "INTEGER"; } if constexpr (mysqL) { return "BIGINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_BIGINT"; } default: return "[TYPE] MUST BE <NUMBER>!"; }}
 #define VIEW_CHAR(k) std::string_view(k, sizeof(k)-1)
 //In the fastest development mode, the intermediate table will be deleted first(Only in fatest DevMode)
-#define D_M_TABLE(o, p)static int o##p_d(){std::string s,b=toSqlCase(#o"_")+toSqlCase(#p);if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=b+"';";if(D.conn()(s).template r__<int>()==0){return 1;};}s="DROP TABLE IF EXISTS ";s+=b; if constexpr(FastestDev){s+=";";D.conn()(s).flush_results();}return 1;}static int _o##p_d=o##p_d();//after CONSTRUCT(middle table)
+#define D_M_TABLE(o, p)static int o##p_d(){std::string s,b=toSqlCase(#o"_")+toSqlCase(#p);if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=b+"';";if(D.conn()(s).template r__<int>()==0){return 1;};}s="DROP TABLE IF EXISTS ";s+=b; if constexpr(FastestDev){s+=";";D.conn()(s).flush_results();}return 1;}static int _o##p_d=o##p_d();
+//after CONSTRUCT(middle table)
 #define M_TABLE(o, o_k, p, p_k)static int o##p_(){std::string s=toSqlCase(#o#p),ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;orm::RES_M_T[hackStr(#o#p)]=s;orm::RES_M_T[hackStr(#p#o)]=s;if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');s+=pgsqL?"\n\""+ot+"_"#o_k"\" ":"\n`"+ot+"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));s+=" NOT NULL,\n"; s+=pgsqL?"\""+pt+"_"#p_k"\" ":"`"+pt+"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(\""+ot+"_"#o_k"\",\""+pt+"_"#p_k"\")":" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(`"+ot+"_"#o_k"`,`"+pt+"_"#p_k"`)";s+=",\nCONSTRAINT fk_";s+=pgsqL?ot+"_"#o_k" FOREIGN KEY(\""+ot+"_"#o_k"\") REFERENCES \""+ot+"\"(\""#o_k"\")":ot+"_"#o_k" FOREIGN KEY(`"+ot+"_"#o_k"`) REFERENCES `"+ot+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";s+=pgsqL?pt+"_"#p_k" FOREIGN KEY(\""+pt+"_"#p_k"\") REFERENCES \""+pt+"\"(\""#p_k"\")":pt+"_"#p_k" FOREIGN KEY(`"+pt+"_"#p_k"`) REFERENCES `"+pt+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);\n";if(!b)D.conn()(s).flush_results();printf(s.c_str());return 0;} static int _##o##p=o##p_();
+
 #define COL_1(o,k) orm::FuckJSON(o.k,#k,j);
 #define COL_2(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_1(o,__VA_ARGS__))
 #define COL_3(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_2(o,__VA_ARGS__))
@@ -356,6 +247,7 @@ static const char* orm::getAkTs(const char* _) {
 #define ATTR_N1(o,N,...) EXP(ATTR_##N(o,__VA_ARGS__))
 #define ATTR_N(o,N,...) ATTR_N1(o,N,__VA_ARGS__)
 #define ATTRS(o,...)static inline void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }static inline void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
+
 
 #define STAR_1(o,k) &o::k
 #define STAR_2(o,k,...) &o::k, EXP(STAR_1(o,__VA_ARGS__))
@@ -429,7 +321,10 @@ static const char* orm::getAkTs(const char* _) {
 #define REFLECT(o,...) static const std::tuple<STAR_S(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> Tuple;
 #define Class(T) struct T : orm::Table<T> {
 #define REGISTER_TABLE(o) template<> const std::string orm::Table<o>::_low = toSqlCase(#o""); template<> Sql<o>* orm::Table<o>::__[HARDWARE_ASYNCHRONOUS]={}; template<> uint8_t orm::Table<o>::_idex = 0; template<> std::string orm::Table<o>::_create = pgsqL? "CREATE TABLE IF NOT EXISTS \""+orm::Table<o>::_low+"\" (\n": "CREATE TABLE IF NOT EXISTS `"+orm::Table<o>::_low+"` (\n"; template<> const std::string orm::Table<o>::_drop = pgsqL?"DROP TABLE IF EXISTS \"" +orm::Table<o>::_low+"\"":"DROP TABLE IF EXISTS `"+orm::Table<o>::_low+"`"; template<> const std::string orm::Table<o>::_name = pgsqL?"\""+orm::Table<o>::_low+"\" ":"`"+orm::Table<o>::_low+"` "; template<> const std::string_view orm::Table<o>::_alias = pgsqL?VIEW_CHAR("\""#o"\""):VIEW_CHAR("`"#o"`"); template<> const std::string_view orm::Table<o>::_as_alia = VIEW_CHAR(" AS "#o"_"); template<> bool orm::Table<o>::_created = true;
+
 #define CONSTRUCT(o,...)REGIST_STATIC(o, __VA_ARGS__)ATTRS(o, __VA_ARGS__)REGISTER_TABLE(o)const std::tuple<STAR_S(o, NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> o::Tuple = std::make_tuple(STARS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));
+
+
 #define CLASS(o,...) REFLECT(o,__VA_ARGS__)};CONSTRUCT(o,__VA_ARGS__)
 
 #define PTR_2(k,t,v) _tc[k] = t; _def[k] = v;
@@ -467,16 +362,17 @@ static const char* orm::getAkTs(const char* _) {
 #define PTRS_N(N,...) EXP(PTR_##N(0,__VA_ARGS__))
 #define PTRS(N,...) PTRS_N(N,__VA_ARGS__)
 //`1;`->加粗，`4`->下划线，`0`->还原,`m`<=>`\033[`
-#define RGB_BLACK "\033[30m"
-#define RGB_RED "\033[31m"
+#define RGB_BLACK  "\033[30m"
+#define RGB_RED  "\033[31m"
 #define RGB_GREEN "\033[32m"
-#define RGB_YELLOW "\033[33m"
-#define RGB_BLUE "\033[34m"
+#define RGB_YELLOW  "\033[33m"
+#define RGB_BLUE    "\033[34m"
 #define RGB_MAGENTA "\033[35m"
 #define RGB_AZURE "\033[36m"
-#define RGB_NULL "\033[0m"
+#define RGB_NULL   "\033[0m"
 
-#define REGIST(o,...)template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};template<> const char* orm::Table<o>::_def[NUM_ARGS(__VA_ARGS__)]={};template<> int orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)try {if(strLen(#o)>31){throw std::runtime_error("\033[1;34m["#o"]\033[31;4m The length of the name cannot exceed 31!\n\033[0m");} bool b=true;if(_tc[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){ if(_tc[i] & TC::PRIMARY_KEY){ if(b){b=false;throw std::runtime_error("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m");}else{ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m");} }}} catch (const std::exception& e) { std::cerr << e.what();return 0; }unsigned int i = HARDWARE_ASYNCHRONOUS;while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };if constexpr(FastestDev){if constexpr(pgsqL){std::string s="select count(*) from pg_class where relname='";s+=orm::Table<o>::_low+"';";if(D.conn()(s).template r__<int>()==0){return 1;}}orm::Table<o>::_dropTable();}return 1;}template<> void orm::Table<o>::Dev(){if constexpr(FastestDev){std::vector<o> v={o(),o(),o()};o::Q().InsertArr(&v);}}template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
+#define REGIST(o,...)template<> uint8_t orm::Table<o>::_tc[NUM_ARGS(__VA_ARGS__)]={};template<> const char* orm::Table<o>::_def[NUM_ARGS(__VA_ARGS__)]={};template<> int orm::Table<o>::Init(){ PTRS(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)try {if(strLen(#o)>31){throw std::runtime_error("\033[1;34m["#o"]\033[31;4m The length of the name cannot exceed 31!\n\033[0m");} bool b=true;if(_tc[0] & TC::PRIMARY_KEY){b=false;}for(char i=1;i<NUM_ARGS(__VA_ARGS__);++i){  if(_tc[i] & TC::PRIMARY_KEY){ if(b){b=false;throw std::runtime_error("\033[1;34m["#o"]\033[31;4m primary key must be in the first position!\n\033[0m");}else{ throw std::runtime_error("\033[1;34m["#o"]\033[31;4m can't have multiple primary keys!\n\033[0m");} }}} catch (const std::exception& e) { std::cerr << e.what();return 0; }unsigned int i = HARDWARE_ASYNCHRONOUS;while (i--) { orm::Table<o>::__[i] = new Sql<o>(); };if constexpr(FastestDev){if constexpr(pgsqL){std::string s="select count(*) from pg_class where relname='";s+=orm::Table<o>::_low+"';";if(D.conn()(s).template r__<int>()==0){return 1;}}orm::Table<o>::_dropTable();}return 1;}template<> void orm::Table<o>::Dev(){if constexpr(FastestDev){std::vector<o> v={o(),o(),o()};o::Q().InsertArr(&v);}}template<> int orm::Table<o>::_r=orm::Table<o>::Init(); template<> int orm::Table<o>::_r1=orm::Table<o>::_addTable();
+
 #define FIELD_1(k) static const text<63> $##k;
 #define FIELD_2(k,...) static const text<63> $##k; EXP(FIELD_1(__VA_ARGS__))
 #define FIELD_3(k,...) static const text<63> $##k; EXP(FIELD_2(__VA_ARGS__))
@@ -512,6 +408,7 @@ static const char* orm::getAkTs(const char* _) {
 #define FIELD_N1(N,...) EXP(FIELD_##N(__VA_ARGS__))
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
 #define FIELD(...) FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
+
 //select * FROM <T> => select (`T`.`$`,)...
 #define IOS_1(o,a,k) IOS_(o,a,k)
 #define IOS_2(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
@@ -583,6 +480,8 @@ static const char* orm::getAkTs(const char* _) {
 #define PRO_N(t,N,...) EXP(PRO_##N(t,__VA_ARGS__))
 #define PROS(t,N,...) PRO_N(t,N,__VA_ARGS__)
 #define PROTO(o,...)PROS(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)template<> const uint8_t orm::Table<o>::_len = NUM_ARGS(__VA_ARGS__);template<> const std::string_view orm::Table<o>::_ios=pgsqL?VIEW_CHAR("SELECT " IOS_N("\""#o"\".", TO_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)):VIEW_CHAR("SELECT " IOS_N("`"#o"`.", FOR_CHAR, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));
+
+
 #define STR_1(k,i) k[i]
 #define STR_2(k,i) k[i], STR_1(k,i+1)
 #define STR_3(k,i) k[i], STR_2(k,i+1)
