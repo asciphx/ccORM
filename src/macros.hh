@@ -172,9 +172,9 @@ inline const char* orm::LiType(const char* s, unsigned char l) { switch (hack8St
 
 static const char* orm::getAkTs(const char* _) { switch (hack4Str(_)) { case T_INT8_: if constexpr (!sqlitE) { return "TINYINT"; } case T_UINT8_: if constexpr (mysqL) { return "TINYINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_TINYINT"; } case T_INT16_: if constexpr (!sqlitE) { return "SMALLINT"; } case T_UINT16_: if constexpr (mysqL) { return "SMALLINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_SMALLINT"; } case T_INT_: return "INTEGER"; case T_UINT_: if constexpr (mysqL) { return "INTEGER UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_INTEGER"; } case T_INT64_: if constexpr (!sqlitE) { return "BIGINT"; } case T_UINT64_: if constexpr (sqlitE) { return "INTEGER"; } if constexpr (mysqL) { return "BIGINT UNSIGNED"; } else if constexpr (pgsqL) { return "UNSIGNED_BIGINT"; } default: return "[TYPE] MUST BE <NUMBER>!"; }}
 #define VIEW_CHAR(k) std::string_view(k, sizeof(k)-1)
-//In the fastest development mode, the intermediate table will be deleted first(Only in fatest DevMode)
+
 #define D_M_TABLE(o, p)static int o##p_d(){std::string s,b=toSqlCase(#o"_")+toSqlCase(#p);if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=b+"';";if(D.conn()(s).template r__<int>()==0){return 1;};}s="DROP TABLE IF EXISTS ";s+=b; if constexpr(FastestDev){s+=";";D.conn()(s).flush_results();}return 1;}static int _o##p_d=o##p_d();
-//after CONSTRUCT(middle table)
+
 #define M_TABLE(o, o_k, p, p_k)static int o##p_(){std::string s=toSqlCase(#o#p),ot=toSqlCase(#o),pt=toSqlCase(#p);bool b=false;orm::RES_M_T[hackStr(#o#p)]=s;orm::RES_M_T[hackStr(#p#o)]=s;if constexpr(pgsqL){s="select count(*) from pg_class where relname='";s+=ot+"_"+pt+"';";if(D.conn()(s).template r__<int>()!=0){b=true;}}s="CREATE TABLE IF NOT EXISTS "; s+=ot+"_"+pt+" "; s.push_back('(');s+=pgsqL?"\n\""+ot+"_"#o_k"\" ":"\n`"+ot+"_"#o_k"` "; s+=orm::getAkTs(Inject(o, o_k));s+=" NOT NULL,\n"; s+=pgsqL?"\""+pt+"_"#p_k"\" ":"`"+pt+"_"#p_k"` "; s+=orm::getAkTs(Inject(p, p_k));s+=pgsqL?" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(\""+ot+"_"#o_k"\",\""+pt+"_"#p_k"\")":" NOT NULL,\nCONSTRAINT pk_"+ot+"_"+pt+" PRIMARY KEY(`"+ot+"_"#o_k"`,`"+pt+"_"#p_k"`)";s+=",\nCONSTRAINT fk_";s+=pgsqL?ot+"_"#o_k" FOREIGN KEY(\""+ot+"_"#o_k"\") REFERENCES \""+ot+"\"(\""#o_k"\")":ot+"_"#o_k" FOREIGN KEY(`"+ot+"_"#o_k"`) REFERENCES `"+ot+"`(`"#o_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE,\nCONSTRAINT fk_";s+=pgsqL?pt+"_"#p_k" FOREIGN KEY(\""+pt+"_"#p_k"\") REFERENCES \""+pt+"\"(\""#p_k"\")":pt+"_"#p_k" FOREIGN KEY(`"+pt+"_"#p_k"`) REFERENCES `"+pt+"`(`"#p_k"`)";s+=" ON DELETE CASCADE ON UPDATE CASCADE\n);\n";if(!b)D.conn()(s).flush_results();printf(s.c_str());return 0;} static int _##o##p=o##p_();
 
 #define COL_1(o,k) orm::FuckJSON(o.k,#k,j);
@@ -361,7 +361,7 @@ static const char* orm::getAkTs(const char* _) { switch (hack4Str(_)) { case T_I
 #define PTR_64(k,t,v,...) _tc[k] = t; _def[k] = v; EXP(PTR_62(k+1,__VA_ARGS__))
 #define PTRS_N(N,...) EXP(PTR_##N(0,__VA_ARGS__))
 #define PTRS(N,...) PTRS_N(N,__VA_ARGS__)
-//`1;`->加粗，`4`->下划线，`0`->还原,`m`<=>`\033[`
+
 #define RGB_BLACK  "\033[30m"
 #define RGB_RED  "\033[31m"
 #define RGB_GREEN "\033[32m"
@@ -409,7 +409,7 @@ static const char* orm::getAkTs(const char* _) { switch (hack4Str(_)) { case T_I
 #define FIELD_N(N,...) FIELD_N1(N,__VA_ARGS__)
 #define FIELD(...) FIELD_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__)
 
-//select * FROM <T> => select (`T`.`$`,)...
+
 #define IOS_1(o,a,k) IOS_(o,a,k)
 #define IOS_2(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_1(o,a,__VA_ARGS__))
 #define IOS_3(o,a,k,...) IOS_(o,a,k)"," EXP(IOS_2(o,a,__VA_ARGS__))
@@ -514,6 +514,6 @@ static const char* orm::getAkTs(const char* _) { switch (hack4Str(_)) { case T_I
 #define STR_30(k,i) k[i], STR_29(k,i+1)
 #define STR_31(k,i) k[i], STR_30(k,i+1)
 #define STR_32(k,i) k[i], STR_31(k,i+1)
-//R("hello") -> 'h','e','l','l','o','\0'... [ template<char... T> ]
+
 #define R(N) STR_32(N"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",0)
 #endif
